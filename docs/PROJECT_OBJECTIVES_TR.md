@@ -2,20 +2,35 @@
 
 ## Ana Amaç
 
-Protein-peptit etkileşimini tahmin eden, GAINET benzeri görsel çıktı üreten, sade ve tekrar çalıştırılabilir bir proje hattı kurmak.
+Protein-peptit etkileşimini yüksek doğrulukta tahmin eden, GAINET benzeri görsel çıktı üreten, MPNN-inspired geliştirilmiş mimariye sahip, sade ve tekrar çalıştırılabilir bir proje hattı kurmak.
 
 ## Alt Amaçlar
 
 1. GEPPRI ham verisini doğrudan kullanmak.
 2. Residue-level etiketlerden peptide-protein pair veri üretmek.
-3. Çift-kollu graph model (PeptGAINET) ile gerçek eğitim yapmak.
-4. Tahminleri makaledeki stile yakın panel görsel ile sunmak.
-5. Projeyi gereksiz dosyalardan arındırmak ve tek bir README ile yönetilebilir hale getirmek.
+3. **Geliştirilmiş çift-kollu graph model (Improved PeptGAINET) ile yüksek performanslı eğitim yapmak.**
+4. **Otomatik threshold optimizasyonu ile optimal sınıflandırma yapmak.**
+5. Tahminleri makaledeki stile yakın panel görsel ile sunmak.
+6. **COVID-19 drug interaction projesindeki başarılı MPNN yaklaşımını entegre etmek.**
+7. Projeyi gereksiz dosyalardan arındırmak ve yönetilebilir hale getirmek.
 
 ## Başarı Kriterleri
 
+### Temel Akış
 - `data/raw/GEPPRI/` altında ham veri mevcut.
 - `scripts/build_geppri_pair_dataset.py` ile pair jsonl üretilebiliyor.
-- `scripts/train_peptgainet.py` ile model eğitilebiliyor.
-- `scripts/predict_peptgainet_dataset.py` ile batch tahmin CSV üretiliyor.
+- `scripts/train_peptgainet_improved.py` ile geliştirilmiş model eğitilebiliyor.
+- `scripts/predict_peptgainet_improved.py` ile optimal threshold ile tahmin yapılabiliyor.
 - `scripts/plot_gainet_style_panel.py` ile panel görsel üretiliyor.
+
+### Performans Hedefleri
+- **F1 Score**: ≥ 0.70 (orijinal 0.55 yerine)
+- **AUPRC**: ≥ 0.75 (orijinal 0.57 yerine)
+- **ROC-AUC**: ≥ 0.80 (orijinal 0.60 yerine)
+- **Optimal Threshold**: Otomatik bulunacak (~0.45)
+
+### Teknik Gereksinimler
+- MPNN-inspired message passing (6 adım)
+- Transformer encoder readout
+- Early stopping ve learning rate scheduling
+- Gradient clipping ve stabil eğitim
