@@ -528,10 +528,14 @@ class PeptidQuantumPipeline:
             logger.info("Generating peptide 2D structure...")
             try:
                 peptide_seq = complex_obj.peptide_chains[0].sequence
+                protein_label = protein_chain if protein_chain else "N/A"
                 self.peptide_renderer.from_sequence(
                     peptide_seq,
                     figures_dir / "peptide_2d.png",
-                    title=f"Peptide {peptide_chain}: {peptide_seq}"
+                    title=(
+                        f"{complex_obj.complex_id} | Protein {protein_label} "
+                        f"| Peptide {peptide_chain}: {peptide_seq}"
+                    )
                 )
                 results['peptide_2d'] = True
             except Exception as e:

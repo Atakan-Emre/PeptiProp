@@ -45,7 +45,7 @@ class Viewer3DMol:
         
         # Save JSON if requested
         if output_json:
-            with open(output_json, 'w') as f:
+            with open(output_json, 'w', encoding='utf-8') as f:
                 json.dump(viewer_state, f, indent=2)
         
         # Generate HTML if requested
@@ -157,12 +157,24 @@ class Viewer3DMol:
         # Read structure file if available
         structure_data = ""
         if structure_file and Path(structure_file).exists():
-            with open(structure_file, 'r') as f:
+            with open(structure_file, 'r', encoding='utf-8') as f:
                 structure_data = f.read()
         
         # Generate JavaScript code
         js_code = self._generate_viewer_js(viewer_state, structure_data)
-        
+        protein_chains = [
+            str(chain.get("chain_id"))
+            for chain in viewer_state.get("chains", [])
+            if chain.get("type") == "protein"
+        ]
+        peptide_chains = [
+            str(chain.get("chain_id"))
+            for chain in viewer_state.get("chains", [])
+            if chain.get("type") == "peptide"
+        ]
+        protein_chain_text = ", ".join(sorted(set(protein_chains))) if protein_chains else "N/A"
+        peptide_chain_text = ", ".join(sorted(set(peptide_chains))) if peptide_chains else "N/A"
+
         # Create HTML
         html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -189,6 +201,14 @@ class Viewer3DMol:
         h1 {{
             color: #333;
             margin-top: 0;
+        }}
+        .meta {{
+            margin: 10px 0 18px 0;
+            padding: 10px 12px;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            background: #fafafa;
+            line-height: 1.5;
         }}
         #viewer {{
             width: 100%;
@@ -247,6 +267,11 @@ class Viewer3DMol:
 <body>
     <div class="container">
         <h1>Interactive 3D Viewer: {viewer_state['complex_id']}</h1>
+        <div class="meta">
+            <div><strong>Complex:</strong> {viewer_state['complex_id']}</div>
+            <div><strong>Protein Chains:</strong> {protein_chain_text}</div>
+            <div><strong>Peptide Chains:</strong> {peptide_chain_text}</div>
+        </div>
         
         <div id="viewer"></div>
         
@@ -287,11 +312,11 @@ class Viewer3DMol:
             </div>
             <div class="legend-item">
                 <span class="legend-color" style="background-color: #C73E1D;"></span>
-                π-Stacking
+                Pi-Stacking
             </div>
             <div class="legend-item">
                 <span class="legend-color" style="background-color: #6A994E;"></span>
-                Cation-π
+                Cation-Pi
             </div>
         </div>
     </div>
@@ -304,7 +329,7 @@ class Viewer3DMol:
 """
         
         # Write HTML file
-        with open(output_html, 'w') as f:
+        with open(output_html, 'w', encoding='utf-8') as f:
             f.write(html)
         
         print(f"3Dmol.js viewer saved to {output_html}")
@@ -480,7 +505,7 @@ window.addEventListener('load', initViewer);
         # Read structure
         structure_data = ""
         if complex_obj.structure_file and Path(complex_obj.structure_file).exists():
-            with open(complex_obj.structure_file, 'r') as f:
+            with open(complex_obj.structure_file, 'r', encoding='utf-8') as f:
                 structure_data = f.read()
         
         # HTML div

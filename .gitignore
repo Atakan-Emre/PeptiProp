@@ -1,0 +1,73 @@
+# ------------------------------
+# OS / Editor
+# ------------------------------
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ------------------------------
+# Python
+# ------------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.ipynb_checkpoints/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# ------------------------------
+# Local temp / logs
+# ------------------------------
+.tmp.drivedownload/
+.tmp.driveupload/
+*.log
+*.tmp
+
+# ------------------------------
+# Generated data artifacts
+# ------------------------------
+data/cache/
+data/staging/
+data/raw/propedia/
+data/canonical/
+data/reports/
+
+# Keep frozen references directory itself if needed
+!data/external_frozen/
+!data/external_frozen/**/.gitkeep
+
+# ------------------------------
+# Training / analysis outputs
+# ------------------------------
+outputs/
+!outputs/.gitkeep
+
+# Model checkpoints and heavy artifacts
+*.pt
+*.pth
+*.ckpt
+*.onnx
+
+# ------------------------------
+# Build / packaging
+# ------------------------------
+build/
+dist/
+*.spec
+

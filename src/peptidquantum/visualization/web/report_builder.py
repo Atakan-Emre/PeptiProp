@@ -118,6 +118,8 @@ class ReportBuilder:
         # Count chains
         n_protein = len(complex_obj.protein_chains)
         n_peptide = len(complex_obj.peptide_chains)
+        protein_chain_ids = ", ".join(chain.chain_id for chain in complex_obj.protein_chains) if complex_obj.protein_chains else "N/A"
+        peptide_chain_ids = ", ".join(chain.chain_id for chain in complex_obj.peptide_chains) if complex_obj.peptide_chains else "N/A"
         n_interactions = len(interaction_set.interactions)
         
         # Get interaction types
@@ -137,7 +139,9 @@ class ReportBuilder:
                     <h3>Complex Information</h3>
                     <p><strong>Complex ID:</strong> {complex_obj.complex_id}</p>
                     <p><strong>Protein Chains:</strong> {n_protein}</p>
+                    <p><strong>Protein Chain IDs:</strong> {protein_chain_ids}</p>
                     <p><strong>Peptide Chains:</strong> {n_peptide}</p>
+                    <p><strong>Peptide Chain IDs:</strong> {peptide_chain_ids}</p>
                     <p><strong>Source:</strong> {complex_obj.structure_source.value}</p>
                     <p><strong>Origin:</strong> {complex_obj.structure_origin.value}</p>
                 </div>

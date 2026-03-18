@@ -25,6 +25,8 @@ class MessagePassingLayer(nn.Module):
     def forward(self, x: torch.Tensor, adj: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         B, N, F = x.shape
         h = x
+        mask_bool = mask > 0
+        mask_float = mask_bool.to(dtype=x.dtype)
         
         for step in range(self.message_steps):
             h_src = h.unsqueeze(2).expand(-1, -1, N, -1)
@@ -33,15 +35,21 @@ class MessagePassingLayer(nn.Module):
             messages = torch.cat([h_src, h_tgt], dim=-1)
             messages = self.message_net(messages)
             
-            valid_edges = (adj > 0).unsqueeze(-1) & mask.unsqueeze(1).unsqueeze(-1) & mask.unsqueeze(2).unsqueeze(-1)
-            messages = messages * valid_edges
+            valid_edges = torch.logical_and(
+                (adj > 0).unsqueeze(-1),
+                torch.logical_and(
+                    mask_bool.unsqueeze(1).unsqueeze(-1),
+                    mask_bool.unsqueeze(2).unsqueeze(-1),
+                ),
+            )
+            messages = messages * valid_edges.to(dtype=messages.dtype)
             
             agg_messages = messages.sum(dim=2)
             
             h_flat = h.view(B * N, F)
             messages_flat = agg_messages.view(B * N, F)
             h = self.update_net(messages_flat, h_flat).view(B, N, F)
-            h = h * mask.unsqueeze(-1)
+            h = h * mask_float.unsqueeze(-1)
             
         return h
 
@@ -72,16 +80,17 @@ class TransformerReadout(nn.Module):
         
     def forward(self, x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         x = self.input_proj(x)
-        
-        attn_mask = ~mask.bool()
+
+        mask_bool = mask > 0
+        attn_mask = ~mask_bool
         attn_out, _ = self.attention(x, x, x, key_padding_mask=attn_mask)
         x = self.norm1(x + self.dropout(attn_out))
         
         ff_out = self.dense_proj(x)
         x = self.norm2(x + self.dropout(ff_out))
         
-        mask_expanded = mask.unsqueeze(-1)
-        x_masked = x.masked_fill(~mask_expanded.bool(), -float('inf'))
+        mask_expanded = mask_bool.unsqueeze(-1)
+        x_masked = x.masked_fill(~mask_expanded, -float('inf'))
         return x_masked.max(dim=1)[0]
 
 

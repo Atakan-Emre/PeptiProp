@@ -73,12 +73,14 @@ class StandardizedInteraction:
     protein_chain: str
     protein_residue_id: int
     protein_residue_name: str
-    protein_atom: Optional[str] = None
     
     # Peptide side
     peptide_chain: str
     peptide_residue_id: int
     peptide_residue_name: str
+
+    # Optional atom-level detail
+    protein_atom: Optional[str] = None
     peptide_atom: Optional[str] = None
     
     # Interaction details

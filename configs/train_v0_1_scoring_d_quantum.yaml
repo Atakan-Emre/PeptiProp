@@ -1,0 +1,11 @@
+experiment_name: peptidquantum_v0_1_final_quantum_kernel
+
+base_config: configs/train_v0_1_scoring_b.yaml
+checkpoint_dir: outputs/training/peptidquantum_v0_1_final_scoring_features
+output_dir: outputs/training/peptidquantum_v0_1_final_quantum_kernel
+output_file: quantum_pilot_results.json
+
+train_max_samples: 120
+eval_max_samples: 300
+n_qubits: 2
+seed: 42
