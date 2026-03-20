@@ -104,3 +104,12 @@ python -m unittest tests/test_baseline_leakage_guards.py -v
 python scripts/train_scoring_model.py --config configs/train_v0_1_final_best_classical_100ep.yaml
 python scripts/run_visualization_sanity.py --canonical data/canonical --sample-list data/reports/audit_gallery_propedia/sample_list_top_ranked_100ep_r2.txt --output outputs/analysis_propedia_top_ranked_batch_100ep_r2 --limit 10
 ```
+
+## MLX (M4 MacBook) Optional Backend
+
+Apple Silicon için ayrı MLX çalışma yapısı eklendi:
+
+- setup ve kullanım: `mlx/README.md`
+- feature export: `scripts/export_mlx_features.py`
+- MLX training: `scripts/train_scoring_mlx.py`
+- M4 config: `configs/train_v0_1_scoring_mlx_m4.yaml`
