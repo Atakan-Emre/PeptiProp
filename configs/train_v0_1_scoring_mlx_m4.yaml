@@ -1,0 +1,36 @@
+experiment_name: peptidquantum_v0_1_scoring_mlx_m4
+
+data:
+  canonical_dir: data/canonical
+  pairs_dir: data/canonical/pairs
+  feature_dir: data/mlx/features_v0_1_m4
+  quality_filter: clean
+
+features:
+  use_local_density: false
+  local_density_radius: 8.0
+
+model:
+  hidden_dim: 192
+  num_layers: 3
+
+training:
+  seed: 42
+  batch_size: 512
+  epochs: 100
+  early_stopping_patience: 12
+  lr: 0.001
+  weight_decay: 0.0001
+
+loss:
+  use_ranking: true
+  margin: 0.2
+  bce_alpha: 0.5
+
+evaluation:
+  monitor_metric: val_mrr
+  threshold_selection_metric: mcc
+
+logging:
+  save_dir: outputs/training/peptidquantum_v0_1_final_mlx_m4
+

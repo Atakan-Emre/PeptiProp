@@ -47,6 +47,7 @@ data/staging/
 data/raw/propedia/
 data/canonical/
 data/reports/
+data/mlx/
 
 # Keep frozen references directory itself if needed
 !data/external_frozen/
@@ -70,4 +71,3 @@ outputs/
 build/
 dist/
 *.spec
-
