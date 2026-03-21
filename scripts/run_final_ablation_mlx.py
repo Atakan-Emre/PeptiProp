@@ -167,25 +167,53 @@ def run_command(cmd: List[str]):
     subprocess.run(cmd, cwd=ROOT, check=True, env=env)
 
 
-def ensure_features(config_path: Path):
+def _mtime(path: Path) -> float:
+    return path.stat().st_mtime if path.exists() else 0.0
+
+
+def ensure_features(config_path: Path, refresh: bool = False):
     cfg = load_yaml(config_path)
     feature_dir = Path(cfg["data"]["feature_dir"])
-    required = [
+    required_npz = [
         feature_dir / "train_mlx_features.npz",
         feature_dir / "val_mlx_features.npz",
         feature_dir / "test_mlx_features.npz",
     ]
-    if all(path.exists() for path in required):
+    required_reports = [
+        feature_dir / "pair_data_report.json",
+        feature_dir / "candidate_set_report.json",
+        feature_dir / "feature_export_meta.json",
+    ]
+
+    if refresh:
+        run_command([sys.executable, "scripts/export_mlx_features.py", "--config", str(config_path)])
         return
-    run_command([sys.executable, "scripts/export_mlx_features.py", "--config", str(config_path)])
+
+    has_outputs = all(path.exists() for path in (required_npz + required_reports))
+    if not has_outputs:
+        run_command([sys.executable, "scripts/export_mlx_features.py", "--config", str(config_path)])
+        return
+
+    pairs_dir = Path(cfg["data"]["pairs_dir"])
+    pair_inputs = [
+        pairs_dir / "train_pairs.parquet",
+        pairs_dir / "val_pairs.parquet",
+        pairs_dir / "test_pairs.parquet",
+        pairs_dir / "pair_data_report.json",
+        pairs_dir / "candidate_set_report.json",
+    ]
+    newest_input = max(_mtime(path) for path in pair_inputs)
+    oldest_output = min(_mtime(path) for path in (required_npz + required_reports))
+    if oldest_output < newest_input:
+        run_command([sys.executable, "scripts/export_mlx_features.py", "--config", str(config_path)])
 
 
-def run_training(config_path: Path, skip_existing: bool):
+def run_training(config_path: Path, skip_existing: bool, refresh_features: bool = False):
     cfg = load_yaml(config_path)
+    ensure_features(config_path, refresh=refresh_features)
     save_dir = Path(cfg["logging"]["save_dir"])
     if skip_existing and (save_dir / "metrics.json").exists():
         return
-    ensure_features(config_path)
     run_command([sys.executable, "scripts/train_scoring_mlx.py", "--config", str(config_path)])
 
 
@@ -319,10 +347,46 @@ def sync_best_run(best_dir: Path):
     shutil.copytree(best_dir, FINAL_BEST_DIR)
 
 
+def build_top_ranked_sample_list(best_dir: Path, out_path: Path, limit: int = 10):
+    top_hits_path = best_dir / "test_topk_positive_hits.csv"
+    if not top_hits_path.exists():
+        return
+    df = pd.read_csv(top_hits_path)
+    if "protein_complex_id" not in df.columns:
+        return
+    ids = df["protein_complex_id"].dropna().astype(str).drop_duplicates().head(limit).tolist()
+    if not ids:
+        return
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text("\n".join(ids) + "\n", encoding="utf-8")
+
+
+def run_visualization(sample_list: Path, output_dir: Path):
+    cmd = [
+        sys.executable,
+        "scripts/run_visualization_sanity.py",
+        "--canonical",
+        "data/canonical",
+        "--sample-list",
+        str(sample_list),
+        "--output",
+        str(output_dir),
+        "--limit",
+        "10",
+    ]
+    try:
+        run_command(cmd)
+        return True
+    except subprocess.CalledProcessError as exc:
+        print(f"[WARN] Visualization sanity failed for {output_dir}: {exc}")
+        return False
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run MLX final ablation with smoke/full stages.")
     parser.add_argument("--smoke-only", action="store_true", help="Only run smoke stage.")
     parser.add_argument("--skip-existing", action="store_true", help="Skip runs that already have metrics.json.")
+    parser.add_argument("--refresh-features", action="store_true", help="Force re-export MLX features before each run.")
     parser.add_argument("--finalists-per-family", type=int, default=1, help="How many smoke finalists per family go to full stage.")
     parser.add_argument("--smoke-epochs", type=int, default=8, help="Epochs for smoke stage.")
     parser.add_argument("--smoke-patience", type=int, default=4, help="Early-stop patience for smoke stage.")
@@ -368,7 +432,11 @@ def main():
             )
             config_path = GEN_CONFIG_DIR / f"{cfg['experiment_name']}.yaml"
             write_config(cfg, config_path)
-            run_training(config_path, skip_existing=args.skip_existing)
+            run_training(
+                config_path,
+                skip_existing=args.skip_existing,
+                refresh_features=args.refresh_features,
+            )
             save_dir = Path(cfg["logging"]["save_dir"])
             metrics = load_run_metrics(save_dir)
             row = {
@@ -404,7 +472,11 @@ def main():
             )
             config_path = GEN_CONFIG_DIR / f"{cfg['experiment_name']}.yaml"
             write_config(cfg, config_path)
-            run_training(config_path, skip_existing=args.skip_existing)
+            run_training(
+                config_path,
+                skip_existing=args.skip_existing,
+                refresh_features=args.refresh_features,
+            )
             save_dir = Path(cfg["logging"]["save_dir"])
             metrics = load_run_metrics(save_dir)
             row = {
@@ -425,8 +497,9 @@ def main():
 
     if len(full_rows) > 0:
         full_df = pd.DataFrame(full_rows)
+        # Selection must be validation-only; test metrics are never used for model choice.
         best_idx = full_df.sort_values(
-            by=["val_mrr", "val_hit3", "val_auroc", "test_mrr", "test_auroc"],
+            by=["val_mrr", "val_hit3", "val_auroc", "val_mcc", "val_auprc"],
             ascending=[False, False, False, False, False],
         ).index[0]
         best_row = full_df.loc[best_idx].to_dict()
@@ -440,12 +513,20 @@ def main():
         with open(FINAL_BEST_DIR / "selection_summary.json", "w", encoding="utf-8") as handle:
             json.dump(
                 {
+                    "selection_policy": "validation_only",
+                    "selection_sort_keys": ["val_mrr", "val_hit3", "val_auroc", "val_mcc", "val_auprc"],
                     "best_run": best_row,
                     "full_finalists": full_df.to_dict(orient="records"),
                 },
                 handle,
                 indent=2,
             )
+
+        sample_list_path = ROOT / "data" / "reports" / "audit_gallery_propedia" / "sample_list_final_best_mlx_model.txt"
+        build_top_ranked_sample_list(FINAL_BEST_DIR, sample_list_path, limit=10)
+        if sample_list_path.exists():
+            run_visualization(sample_list_path, ROOT / "outputs" / "analysis_propedia_batch_mlx")
+            run_visualization(sample_list_path, ROOT / "outputs" / "analysis_propedia_top_ranked_batch_mlx")
     else:
         FINAL_BEST_DIR.mkdir(parents=True, exist_ok=True)
         all_df.to_csv(summary_csv, index=False)

@@ -47,11 +47,11 @@ function Invoke-Leakage-Tests {
     & cmd /c "python -m pytest --version >nul 2>&1"
     if ($LASTEXITCODE -eq 0) {
         Write-Host ("[{0}] using pytest" -f $Name) -ForegroundColor DarkCyan
-        & cmd /c "python -m pytest tests/test_baseline_leakage_guards.py -q 2>&1" | Tee-Object -FilePath $logFile
+        & cmd /c "python -m pytest tests/test_mlx_leakage_guards.py -q 2>&1" | Tee-Object -FilePath $logFile
     }
     else {
         Write-Host ("[{0}] pytest not found, using unittest fallback" -f $Name) -ForegroundColor DarkYellow
-        & cmd /c "python tests/test_baseline_leakage_guards.py 2>&1" | Tee-Object -FilePath $logFile
+        & cmd /c "python tests/test_mlx_leakage_guards.py 2>&1" | Tee-Object -FilePath $logFile
     }
 
     $exitCode = $LASTEXITCODE
@@ -67,8 +67,9 @@ function Invoke-Leakage-Tests {
 Invoke-Step "01_split" "python scripts/build_pdb_level_splits.py --canonical data/canonical --propedia-meta data/raw/propedia --out data/canonical/splits --seed 42"
 Invoke-Step "02_pairs" "python scripts/generate_negative_pairs.py --canonical data/canonical --splits data/canonical/splits --output data/canonical/pairs --seed 42"
 Invoke-Leakage-Tests "03_leakage_tests"
-Invoke-Step "04_ablation_smoke_mlx" "python scripts/run_final_ablation_mlx.py --smoke-only --smoke-epochs 8 --smoke-patience 4"
-Invoke-Step "05_ablation_full_200ep_mlx" "python scripts/run_final_ablation_mlx.py --full-epochs 200 --full-patience 20 --smoke-epochs 8 --smoke-patience 4 --finalists-per-family 1 --full-subset-train 60000 --full-subset-val 20000 --full-subset-test 20000"
+Invoke-Step "04_ablation_smoke_mlx" "python scripts/run_final_ablation_mlx.py --smoke-only --refresh-features --smoke-epochs 8 --smoke-patience 4"
+Invoke-Step "05_ablation_full_200ep_mlx" "python scripts/run_final_ablation_mlx.py --refresh-features --full-epochs 200 --full-patience 20 --smoke-epochs 8 --smoke-patience 4 --finalists-per-family 1 --full-subset-train 60000 --full-subset-val 20000 --full-subset-test 20000"
+Invoke-Step "06_mlx_pipeline_tests" "python tests/test_propedia_active_pipeline_mlx.py"
 
 Write-Host ""
 Write-Host ("DONE. Logs: {0}" -f $logDir) -ForegroundColor Yellow

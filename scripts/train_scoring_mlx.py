@@ -61,24 +61,91 @@ def apply_subset_limit(
     max_rows: int | None,
     seed: int,
 ) -> Dict[str, np.ndarray]:
-    """Optionally downsample one split for faster smoke experiments."""
+    """
+    Group-aware downsampling to keep candidate sets intact.
+
+    If `group_idx` exists, groups are sampled as whole units (protein-level candidate
+    sets) so ranking integrity is preserved.
+    """
     if max_rows is None or max_rows <= 0:
         return payload
     total = len(payload["x"])
     if total <= max_rows:
         return payload
 
+    if "group_idx" not in payload:
+        rng = np.random.default_rng(seed)
+        keep = rng.choice(total, size=max_rows, replace=False)
+        keep.sort()
+        out: Dict[str, np.ndarray] = {}
+        for key, value in payload.items():
+            if hasattr(value, "shape") and len(value.shape) > 0 and int(value.shape[0]) == total:
+                out[key] = value[keep]
+            else:
+                out[key] = value
+        return out
+
+    group_idx = payload["group_idx"].astype(np.int64)
+    unique_groups, counts = np.unique(group_idx, return_counts=True)
     rng = np.random.default_rng(seed)
-    keep = rng.choice(total, size=max_rows, replace=False)
-    keep.sort()
+    shuffled = unique_groups.copy()
+    rng.shuffle(shuffled)
+
+    selected_groups = []
+    running = 0
+    count_lookup = {int(g): int(c) for g, c in zip(unique_groups, counts)}
+    for gid in shuffled:
+        gid_i = int(gid)
+        g_count = count_lookup[gid_i]
+        if running + g_count <= max_rows or not selected_groups:
+            selected_groups.append(gid_i)
+            running += g_count
+
+    selected_groups_arr = np.array(sorted(set(selected_groups)), dtype=np.int64)
+    keep_mask = np.isin(group_idx, selected_groups_arr)
+
     out: Dict[str, np.ndarray] = {}
     for key, value in payload.items():
-        # Only subset tensors aligned to sample dimension N.
         if hasattr(value, "shape") and len(value.shape) > 0 and int(value.shape[0]) == total:
-            out[key] = value[keep]
+            out[key] = value[keep_mask]
         else:
             out[key] = value
+
+    # Remap group indices to contiguous range for downstream ranking/reporting.
+    subset_groups = out["group_idx"].astype(np.int64)
+    group_old_to_new = {int(old): i for i, old in enumerate(selected_groups_arr.tolist())}
+    out["group_idx"] = np.array([group_old_to_new[int(old)] for old in subset_groups], dtype=np.int32)
+    if "group_names" in out and hasattr(out["group_names"], "shape") and len(out["group_names"].shape) > 0:
+        group_names = out["group_names"]
+        if len(group_names) > int(selected_groups_arr.max(initial=-1)):
+            out["group_names"] = group_names[selected_groups_arr]
     return out
+
+
+def candidate_group_integrity(labels: np.ndarray, groups: np.ndarray) -> Dict[str, int]:
+    """Summarize ranking-candidate integrity at protein-group level."""
+    total_groups = 0
+    valid_groups = 0
+    groups_without_positive = 0
+    groups_without_negative = 0
+    for gid in np.unique(groups):
+        idxs = np.where(groups == gid)[0]
+        total_groups += 1
+        g_labels = labels[idxs]
+        has_pos = bool(np.any(g_labels > 0.5))
+        has_neg = bool(np.any(g_labels <= 0.5))
+        if has_pos and has_neg:
+            valid_groups += 1
+        if not has_pos:
+            groups_without_positive += 1
+        if not has_neg:
+            groups_without_negative += 1
+    return {
+        "total_groups": int(total_groups),
+        "valid_groups": int(valid_groups),
+        "groups_without_positive": int(groups_without_positive),
+        "groups_without_negative": int(groups_without_negative),
+    }
 
 
 def standardize_features(
@@ -104,12 +171,15 @@ def ranking_metrics(labels: np.ndarray, scores: np.ndarray, groups: np.ndarray) 
     hit3 = []
     hit5 = []
 
+    groups_evaluated = 0
     for idxs in group_to_indices.values():
         g_labels = labels[idxs]
         g_scores = scores[idxs]
         pos = np.where(g_labels > 0.5)[0]
-        if len(pos) == 0:
+        neg = np.where(g_labels <= 0.5)[0]
+        if len(pos) == 0 or len(neg) == 0:
             continue
+        groups_evaluated += 1
         # Candidate set spec expects one positive, but we robustly take best positive rank.
         order = np.argsort(-g_scores)
         ranked_pos = [int(np.where(order == p)[0][0]) + 1 for p in pos]
@@ -120,12 +190,13 @@ def ranking_metrics(labels: np.ndarray, scores: np.ndarray, groups: np.ndarray) 
         hit5.append(1.0 if rank <= 5 else 0.0)
 
     if not reciprocal_ranks:
-        return {"mrr": 0.0, "hit@1": 0.0, "hit@3": 0.0, "hit@5": 0.0}
+        return {"mrr": 0.0, "hit@1": 0.0, "hit@3": 0.0, "hit@5": 0.0, "groups_evaluated": 0}
     return {
         "mrr": float(np.mean(reciprocal_ranks)),
         "hit@1": float(np.mean(hit1)),
         "hit@3": float(np.mean(hit3)),
         "hit@5": float(np.mean(hit5)),
+        "groups_evaluated": int(groups_evaluated),
     }
 
 
@@ -258,6 +329,106 @@ def save_calibration(labels: np.ndarray, scores: np.ndarray, curve_path: Path, m
         json.dump(payload, f, indent=2)
 
 
+def build_topk_artifacts(cfg: dict, test_payload: Dict[str, np.ndarray], test_scores: np.ndarray, save_dir: Path):
+    """Write candidate-ranking artifacts for reranking analysis and sanity runs."""
+    pairs_dir = Path(cfg["data"]["pairs_dir"])
+    pairs_df = pd.read_parquet(pairs_dir / "test_pairs.parquet")
+    quality_filter = cfg["data"].get("quality_filter")
+    if quality_filter and "pair_quality_flag" in pairs_df.columns:
+        pairs_df = pairs_df[pairs_df["pair_quality_flag"] == quality_filter].reset_index(drop=True)
+
+    score_df = pd.DataFrame(
+        {
+            "pair_id": test_payload["pair_id"].astype(str),
+            "score": test_scores.astype(np.float32),
+            "label_eval": test_payload["y"].astype(np.int32),
+            "group_idx": test_payload["group_idx"].astype(np.int32),
+        }
+    ).drop_duplicates(subset=["pair_id"])
+
+    ranked = pairs_df.merge(score_df, on="pair_id", how="inner")
+    if ranked.empty:
+        return
+
+    label_col = "label_eval" if "label_eval" in ranked.columns else "label"
+    ranked["protein_group"] = (
+        ranked["protein_complex_id"].astype(str) + "::" + ranked["protein_chain_id"].astype(str)
+    )
+    g_stats = ranked.groupby("protein_group")[label_col].agg(
+        has_pos=lambda s: bool((s > 0).any()),
+        has_neg=lambda s: bool((s <= 0).any()),
+        candidate_size="size",
+    )
+    valid_groups = g_stats[(g_stats["has_pos"]) & (g_stats["has_neg"])].index
+    ranked = ranked[ranked["protein_group"].isin(valid_groups)].copy()
+    if ranked.empty:
+        return
+
+    ranked["rank"] = (
+        ranked.groupby("protein_group")["score"].rank(method="first", ascending=False).astype(int)
+    )
+    ranked["candidate_size"] = ranked["protein_group"].map(g_stats["candidate_size"]).astype(int)
+
+    top_k = 5
+    topk = ranked[ranked["rank"] <= top_k].sort_values(["protein_group", "rank"])
+    topk.to_csv(save_dir / "test_topk_candidates.csv", index=False)
+
+    positives = ranked[ranked[label_col] > 0].copy()
+    if not positives.empty:
+        top_pos = (
+            positives.sort_values(["protein_group", "rank", "score"], ascending=[True, True, False])
+            .groupby("protein_group", as_index=False)
+            .first()
+        )
+        top_pos["hit@1"] = (top_pos["rank"] <= 1).astype(int)
+        top_pos["hit@3"] = (top_pos["rank"] <= 3).astype(int)
+        top_pos["hit@5"] = (top_pos["rank"] <= 5).astype(int)
+        top_pos.to_csv(save_dir / "test_topk_positive_hits.csv", index=False)
+    else:
+        top_pos = pd.DataFrame(columns=ranked.columns.tolist() + ["hit@1", "hit@3", "hit@5"])
+        top_pos.to_csv(save_dir / "test_topk_positive_hits.csv", index=False)
+
+    false_pos = ranked[ranked[label_col] <= 0].sort_values("score", ascending=False).head(1)
+    best_true_pos = top_pos.sort_values("score", ascending=False).head(1) if not top_pos.empty else pd.DataFrame()
+
+    def row_payload(df: pd.DataFrame) -> dict | None:
+        if df.empty:
+            return None
+        row = df.iloc[0]
+        keep_cols = [
+            "pair_id",
+            "protein_complex_id",
+            "protein_chain_id",
+            "peptide_complex_id",
+            "peptide_chain_id",
+            "score",
+            "label",
+            "rank",
+            "candidate_size",
+        ]
+        return {col: (float(row[col]) if isinstance(row[col], (np.floating, float)) else int(row[col]) if isinstance(row[col], (np.integer, int)) else str(row[col])) for col in keep_cols if col in row}
+
+    with open(save_dir / "top_ranked_examples.json", "w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "best_true_positive": row_payload(best_true_pos),
+                "worst_false_positive": row_payload(false_pos),
+                "top_ranked_candidates_preview": topk.head(50).to_dict(orient="records"),
+            },
+            f,
+            indent=2,
+        )
+
+    # For visualization sanity: list up to 10 unique complex IDs from top positive hits.
+    sample_ids = (
+        top_pos["protein_complex_id"].dropna().astype(str).drop_duplicates().head(10).tolist()
+        if not top_pos.empty
+        else []
+    )
+    if sample_ids:
+        (save_dir / "sample_list_top_ranked.txt").write_text("\n".join(sample_ids) + "\n", encoding="utf-8")
+
+
 class MLXScoringMLP:
     def __init__(self, nn, input_dim: int, hidden_dim: int, num_layers: int):
         class _Model(nn.Module):
@@ -334,6 +505,9 @@ def main():
     g_train = train["group_idx"].astype(np.int32)
     g_val = val["group_idx"].astype(np.int32)
     g_test = test["group_idx"].astype(np.int32)
+    integrity_train = candidate_group_integrity(y_train, g_train)
+    integrity_val = candidate_group_integrity(y_val, g_val)
+    integrity_test = candidate_group_integrity(y_test, g_test)
 
     input_dim = x_train.shape[1]
     model_wrapper = MLXScoringMLP(
@@ -365,6 +539,12 @@ def main():
         "MLX training config | "
         f"train={len(train['x'])} val={len(val['x'])} test={len(test['x'])} | "
         f"epochs={epochs} patience={patience} min_epochs_before_early_stop={min_epochs_before_early_stop}"
+    )
+    print(
+        "Candidate integrity | "
+        f"train={integrity_train['valid_groups']}/{integrity_train['total_groups']} "
+        f"val={integrity_val['valid_groups']}/{integrity_val['total_groups']} "
+        f"test={integrity_test['valid_groups']}/{integrity_test['total_groups']}"
     )
 
     pos_count = float(np.sum(y_train > 0.5))
@@ -496,6 +676,11 @@ def main():
         "threshold_selection_metric": threshold_metric,
         "best_val_monitor_metric": float(best_val_metric),
         "epochs_completed": int(len(train_log)),
+        "candidate_group_integrity": {
+            "train": integrity_train,
+            "val": integrity_val,
+            "test": integrity_test,
+        },
     }
     with open(save_dir / "metrics.json", "w", encoding="utf-8") as f:
         json.dump(metrics, f, indent=2)
@@ -547,6 +732,7 @@ def main():
             f"F1={test_cls['f1']:.4f}, MCC={test_cls['mcc']:.4f}, MRR={test_rank['mrr']:.4f}\n"
         )
 
+    build_topk_artifacts(cfg, test, test_scores, save_dir)
     np.savez_compressed(save_dir / "feature_scaler_stats.npz", mean=scaler_mean, std=scaler_std)
     print(f"Training complete. Outputs: {save_dir}")
 

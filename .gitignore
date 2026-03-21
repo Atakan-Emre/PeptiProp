@@ -38,6 +38,8 @@ ENV/
 .tmp.driveupload/
 *.log
 *.tmp
+logs/
+outputs/logs/
 
 # ------------------------------
 # Generated data artifacts
