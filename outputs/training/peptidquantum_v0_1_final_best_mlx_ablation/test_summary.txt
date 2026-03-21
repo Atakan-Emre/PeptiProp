@@ -1,5 +1,0 @@
-MLX scoring run summary
-============================================================
-selected_threshold: 0.4900
-val -> AUROC=0.8049, AUPRC=0.4588, F1=0.5010, MCC=0.3886, MRR=0.6942
-test -> AUROC=0.7923, AUPRC=0.4447, F1=0.4846, MCC=0.3677, MRR=0.6781
