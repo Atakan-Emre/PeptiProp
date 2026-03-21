@@ -12,7 +12,7 @@
 Depoda **GitHub Actions → Pages** açıldıktan sonra statik site yayınlanır.
 
 - **Yayın URL:** [atakan-emre.github.io/PeptiProp](https://atakan-emre.github.io/PeptiProp/index.html) · **Kaynak:** [github.com/Atakan-Emre/PeptiProp](https://github.com/Atakan-Emre/PeptiProp)
-- **Ana sayfa:** tek sütun hizalı düzen; üst çubukta depo bağlantısı + tema; **proje akışı** diyagramı; tablolar mobilde kaydırmalı; eğitim PNG’leri yoksa CI **yer tutucu grafik** üretir (kırık resim olmaz); metrikler `manifest.json` üzerinden
+- **Ana sayfa:** tek sütun hizalı düzen; üst çubukta depo bağlantısı + tema; **proje akışı** diyagramı; tablolar mobilde kaydırmalı; **GitHub’da gerçek metrik/görsel** için `publish/github_pages_training_bundle/` commit edilir (`python scripts/sync_pages_training_bundle.py`). Bu paket yoksa CI yer tutucu PNG üretir.
 - **3D demo:** `embed/viewer-demo.html` — **3Dmol.js** + `1crn.cif` (build sırasında indirilir)
 
 Yerelde site üretmek:

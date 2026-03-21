@@ -25,6 +25,8 @@ SITE = ROOT / "site"
 PROJECT_DISPLAY_NAME = "PeptiProp"
 REPO_URL = "https://github.com/Atakan-Emre/PeptiProp"
 MLX_BEST = ROOT / "outputs" / "training" / "peptidquantum_v0_1_final_best_mlx_ablation"
+# GitHub Actions’ta outputs/ yok; metrik + PNG’ler buradan kopyalanır (sync betiği ile güncellenir).
+PAGES_TRAINING_BUNDLE = ROOT / "publish" / "github_pages_training_bundle"
 DEMO_CIF_URL = "https://files.rcsb.org/download/1CRN.cif"
 
 
@@ -97,10 +99,13 @@ def _resolve_primary_training_dir() -> Optional[Path]:
     if d:
         return d
     td = ROOT / "outputs" / "training"
-    if not td.is_dir():
-        return None
-    any_m = [x for x in td.iterdir() if x.is_dir() and (x / "metrics.json").is_file()]
-    return max(any_m, key=lambda p: (p / "metrics.json").stat().st_mtime) if any_m else None
+    if td.is_dir():
+        any_m = [x for x in td.iterdir() if x.is_dir() and (x / "metrics.json").is_file()]
+        if any_m:
+            return max(any_m, key=lambda p: (p / "metrics.json").stat().st_mtime)
+    if PAGES_TRAINING_BUNDLE.is_dir() and (PAGES_TRAINING_BUNDLE / "metrics.json").is_file():
+        return PAGES_TRAINING_BUNDLE
+    return None
 
 
 def download_demo_cif(dest: Path) -> bool:
@@ -1366,6 +1371,8 @@ def main() -> None:
     write_site_css(SITE)
     write_theme_js(SITE)
     training_dir = _resolve_primary_training_dir()
+    if training_dir and training_dir.resolve() == PAGES_TRAINING_BUNDLE.resolve():
+        print("[INFO] Eğitim kaynağı: publish/github_pages_training_bundle (CI / senkron paket)")
     manifest = build_manifest(training_dir)
     (SITE / "data").mkdir(parents=True, exist_ok=True)
 

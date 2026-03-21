@@ -18,6 +18,12 @@ Workflow `.github/workflows/pages.yml` her `main` (veya `master`) push’ında:
 
 > `site/` `.gitignore` içindedir; **yayınlanan dosyalar CI ürünüdür**, repoya commit edilmesi gerekmez.
 
+### Metrik ve eğitim görselleri neden yerelde dolu, CI’da boştu?
+
+`outputs/training/` `.gitignore` ile repoda yok. **Çözüm:** `publish/github_pages_training_bundle/` içine `metrics.json`, `ranking_metrics.json` ve ilgili PNG’leri commit edin. `build_pages_site.py` önce yerel `outputs/training/` arar; yoksa bu paketi kullanır.
+
+Güncelleme: `python scripts/sync_pages_training_bundle.py` → `git add publish/github_pages_training_bundle` → push. Ayrıntı: `publish/github_pages_training_bundle/README.md`.
+
 ## Repo ayarları
 
 1. GitHub → **Settings → Pages**
