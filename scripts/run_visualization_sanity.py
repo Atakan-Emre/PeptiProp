@@ -22,7 +22,14 @@ def parse_sample_list(sample_list_path: Path) -> list[str]:
     return complex_ids
 
 
-def main(canonical_dir: Path, sample_list: Path, output_dir: Path, limit: int) -> None:
+def main(
+    canonical_dir: Path,
+    sample_list: Path,
+    output_dir: Path,
+    limit: int,
+    min_tool_fraction: float,
+    enforce_tool_fraction: bool,
+) -> None:
     complexes = pd.read_parquet(canonical_dir / "complexes.parquet").set_index("complex_id")
     selected_ids = []
     seen = set()
@@ -61,6 +68,8 @@ def main(canonical_dir: Path, sample_list: Path, output_dir: Path, limit: int) -
             generate_viewer=True,
         )
         sample_output_dir = output_dir / complex_id
+        prov = result.get("interaction_provenance") or {}
+        tool_frac = float(prov.get("tool_based_interaction_fraction", 0.0))
         summary.append(
             {
                 "complex_id": complex_id,
@@ -68,6 +77,8 @@ def main(canonical_dir: Path, sample_list: Path, output_dir: Path, limit: int) -
                 "protein_chain": protein_chain,
                 "peptide_chain": peptide_chain,
                 "status": result["status"],
+                "extraction_mode": prov.get("extraction_mode"),
+                "tool_based_interaction_fraction": tool_frac,
                 "report_exists": (sample_output_dir / "report.html").exists(),
                 "viewer_exists": (sample_output_dir / "viewer.html").exists(),
                 "viewer_state_exists": (sample_output_dir / "data" / "viewer_state.json").exists(),
@@ -91,6 +102,29 @@ def main(canonical_dir: Path, sample_list: Path, output_dir: Path, limit: int) -
     print(f"[OK] sanity batch complete: {passed}/{len(summary)} passed")
     print(f"[OK] summary: {summary_path}")
 
+    if enforce_tool_fraction and summary:
+        ok_samples = [
+            item
+            for item in summary
+            if item["status"] == "success"
+            and item["report_exists"]
+            and item["viewer_exists"]
+            and item["viewer_state_exists"]
+            and item["peptide_2d_exists"]
+        ]
+        if ok_samples:
+            low = [
+                item
+                for item in ok_samples
+                if float(item.get("tool_based_interaction_fraction") or 0.0) + 1e-9 < min_tool_fraction
+            ]
+            if low:
+                raise SystemExit(
+                    f"[FAIL] {len(low)}/{len(ok_samples)} passed samples have "
+                    f"tool_based_interaction_fraction < {min_tool_fraction}. "
+                    "Install Arpeggio + PLIP (see EXTERNAL_TOOLS.md) or lower --min-tool-fraction."
+                )
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run visualization sanity batch")
@@ -98,5 +132,23 @@ if __name__ == "__main__":
     parser.add_argument("--sample-list", type=Path, required=True, help="Audit sample list path")
     parser.add_argument("--output", type=Path, required=True, help="Output directory")
     parser.add_argument("--limit", type=int, default=10, help="Number of samples to run")
+    parser.add_argument(
+        "--min-tool-fraction",
+        type=float,
+        default=0.8,
+        help="Require this fraction of interactions from PLIP/Arpeggio (not geometric fallback) per passing sample",
+    )
+    parser.add_argument(
+        "--no-enforce-tool-fraction",
+        action="store_true",
+        help="Do not fail when tool_based_interaction_fraction is below --min-tool-fraction",
+    )
     args = parser.parse_args()
-    main(args.canonical, args.sample_list, args.output, args.limit)
+    main(
+        args.canonical,
+        args.sample_list,
+        args.output,
+        args.limit,
+        min_tool_fraction=args.min_tool_fraction,
+        enforce_tool_fraction=not args.no_enforce_tool_fraction,
+    )

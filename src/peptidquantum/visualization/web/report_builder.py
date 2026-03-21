@@ -24,7 +24,8 @@ class ReportBuilder:
         interaction_set: InteractionSet,
         assets_dir: str | Path,
         output_html: str | Path,
-        include_viewer: bool = True
+        include_viewer: bool = True,
+        interaction_provenance: Optional[Dict] = None,
     ):
         """
         Build complete HTML report
@@ -48,7 +49,9 @@ class ReportBuilder:
         sections.append(self._generate_header(complex_obj))
         
         # 2. Overview section
-        sections.append(self._generate_overview_section(complex_obj, interaction_set))
+        sections.append(
+            self._generate_overview_section(complex_obj, interaction_set, interaction_provenance)
+        )
         
         # 3. Interactive viewer
         if include_viewer:
@@ -113,7 +116,12 @@ class ReportBuilder:
         </div>
         """
     
-    def _generate_overview_section(self, complex_obj: Complex, interaction_set: InteractionSet) -> str:
+    def _generate_overview_section(
+        self,
+        complex_obj: Complex,
+        interaction_set: InteractionSet,
+        interaction_provenance: Optional[Dict] = None,
+    ) -> str:
         """Generate overview section"""
         # Count chains
         n_protein = len(complex_obj.protein_chains)
@@ -130,6 +138,27 @@ class ReportBuilder:
             f"&bull; {itype.value.replace('_', ' ').title()}: {count}"
             for itype, count in sorted(type_counts.items(), key=lambda x: x[1], reverse=True)
         ])
+
+        prov_html = ""
+        if interaction_provenance:
+            mode = interaction_provenance.get("extraction_mode", "unknown")
+            tbf = interaction_provenance.get("tool_based_interaction_fraction")
+            fbf = interaction_provenance.get("fallback_interaction_fraction")
+            fr = interaction_provenance.get("per_interaction_source_fraction") or {}
+            frac_lines = "<br>".join(
+                f"&bull; {k}: {100.0 * float(v):.1f}%"
+                for k, v in sorted(fr.items(), key=lambda x: -x[1])
+            )
+            prov_html = f"""
+                <div class="info-card">
+                    <h3>Interaction source</h3>
+                    <p><strong>Extraction mode:</strong> {mode}</p>
+                    <p><strong>Tool-based (PLIP/Arpeggio) fraction:</strong> {100.0 * float(tbf or 0):.1f}%</p>
+                    <p><strong>Geometric fallback fraction:</strong> {100.0 * float(fbf or 0):.1f}%</p>
+                    <p><strong>Per-record source mix:</strong></p>
+                    <p style="font-size: 0.9em; line-height: 1.6;">{frac_lines or "N/A"}</p>
+                </div>
+            """
         
         return f"""
         <div class="section">
@@ -152,6 +181,7 @@ class ReportBuilder:
                     <p><strong>Breakdown:</strong></p>
                     <p style="font-size: 0.9em; line-height: 1.6;">{type_list}</p>
                 </div>
+                {prov_html}
             </div>
         </div>
         """

@@ -11,6 +11,8 @@ Active data surface is **PROPEDIA-only**.
 
 External datasets are not part of active training flow.
 
+Özet manifest (GitHub Pages / yerel site): `scripts/build_pages_site.py` → `site/data/manifest.json`.
+
 ## Directory Layout
 
 ```text

@@ -1,6 +1,7 @@
 """PLIP 2025 interaction extraction wrapper"""
 from __future__ import annotations
 
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -22,7 +23,17 @@ class PLIPWrapper:
             plip_path: Path to PLIP executable (if None, assumes in PATH)
         """
         self.plip_path = plip_path or "plip"
-    
+
+    @staticmethod
+    def _obabel_executable() -> str:
+        found = shutil.which("obabel")
+        if found:
+            return found
+        for candidate in (Path("/opt/homebrew/bin/obabel"), Path("/usr/local/bin/obabel")):
+            if candidate.is_file():
+                return str(candidate)
+        return "obabel"
+
     def extract_interactions(
         self,
         complex_obj: Complex,
@@ -54,7 +65,8 @@ class PLIPWrapper:
         
         # Run PLIP
         try:
-            interactions = self._run_plip(structure_file, output_dir)
+            plip_input = self._ensure_pdb_for_plip(structure_file, output_dir)
+            interactions = self._run_plip(plip_input, output_dir)
             
             # Standardize interactions
             standardized = self._standardize_interactions(
@@ -71,6 +83,22 @@ class PLIPWrapper:
             print(f"PLIP extraction failed: {e}")
             return InteractionSet(complex_id=complex_obj.complex_id, interactions=[])
     
+    def _ensure_pdb_for_plip(self, structure_file: Path, work_dir: Path) -> Path:
+        """PLIP 3.x often rejects mmCIF; convert with Open Babel when possible."""
+        ext = structure_file.suffix.lower()
+        if ext not in {".cif", ".mmcif"}:
+            return structure_file
+        out = work_dir / f"{structure_file.stem}_plip_input.pdb"
+        result = subprocess.run(
+            [self._obabel_executable(), "-icif", str(structure_file), "-opdb", "-O", str(out)],
+            capture_output=True,
+            text=True,
+            timeout=180,
+        )
+        if result.returncode != 0 or not out.exists() or out.stat().st_size == 0:
+            return structure_file
+        return out
+
     def _run_plip(
         self,
         structure_file: Path,

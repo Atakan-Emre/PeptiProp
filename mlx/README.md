@@ -25,7 +25,18 @@ python scripts/export_mlx_features.py --config configs/train_v0_1_scoring_mlx_m4
 python scripts/train_scoring_mlx.py --config configs/train_v0_1_scoring_mlx_m4.yaml
 ```
 
-## Çıktılar
+## Tam ablation + final senkron
+
+```bash
+python scripts/run_final_ablation_mlx.py \
+  --smoke-epochs 8 --smoke-patience 4 \
+  --full-epochs 200 --full-patience 20 \
+  --finalists-per-family 2
+```
+
+Seçilen en iyi çalışma: `outputs/training/peptidquantum_v0_1_final_best_mlx_ablation/` (`ablation_heatmap.png`, `metrics.json`, …). Statik site bu klasörden görselleri kopyalayabilir: `python scripts/build_pages_site.py` — `docs/GITHUB_PAGES_TR.md`.
+
+## Çıktılar (tek MLX koşusu örneği)
 
 - `outputs/training/peptidquantum_v0_1_final_mlx_m4/metrics.json`
 - `outputs/training/peptidquantum_v0_1_final_mlx_m4/ranking_metrics.json`

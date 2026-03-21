@@ -1,5 +1,7 @@
 # Proje Amaçları
 
+> **Not:** Aktif ürün hattı PROPEDIA + skorlama + MLX/klasik eğitim + 2D/3D görselleştirmedir. Aşağıdaki maddeler tarihsel/planlama notları içerir; güncel komutlar ve klasörler için kök [README.md](../README.md) ve [docs/GITHUB_PAGES_TR.md](GITHUB_PAGES_TR.md) esas alınmalıdır.
+
 ## Ana Amaç
 
 Protein-peptit etkileşimini yüksek doğrulukta tahmin eden, GAINET benzeri görsel çıktı üreten, MPNN-inspired geliştirilmiş mimariye sahip, sade ve tekrar çalıştırılabilir bir proje hattı kurmak.

@@ -1,5 +1,7 @@
 # PeptGAINET Uygulama Planı (GEPPRI Tabanlı)
 
+> **Arşiv / plan notu.** Çalışan hattın özeti: [README.md](../README.md).
+
 ## Kapsam
 
 Bu plan, mevcut proje için gerçek ve çalışır üretim hattını tanımlar:

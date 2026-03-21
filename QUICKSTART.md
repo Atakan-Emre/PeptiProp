@@ -22,13 +22,15 @@ Check reports:
 
 ## 3. Train Scoring Runs
 
+**Klasik:**
+
 ```bash
 python scripts/train_scoring_model.py --config configs/train_v0_1_final_best_classical_100ep.yaml
 ```
 
-Output folders:
+Output: `outputs/training/peptidquantum_v0_1_final_best_classical_100ep_r2/`
 
-- `outputs/training/peptidquantum_v0_1_final_best_classical_100ep_r2/`
+**MLX (M4, ayrı venv):** bkz. `mlx/README.md` — `run_final_ablation_mlx.py` ile duman + tam ablation; senkron klasör `outputs/training/peptidquantum_v0_1_final_best_mlx_ablation/`.
 
 ## 4. Analyze Last Training Graphs
 
@@ -55,19 +57,29 @@ Open these for analysis:
 
 ## 5. 3D/2D Sanity
 
+Arpeggio / PLIP / Open Babel: `EXTERNAL_TOOLS.md` ve macOS için `scripts/install_external_tools_macos.sh`.
+
 ```bash
 python scripts/run_visualization_sanity.py --canonical data/canonical --sample-list data/reports/audit_gallery_propedia/sample_list_top_ranked_100ep_r2.txt --output outputs/analysis_propedia_batch_100ep_r2 --limit 10
 python scripts/run_visualization_sanity.py --canonical data/canonical --sample-list data/reports/audit_gallery_propedia/sample_list_top_ranked_100ep_r2.txt --output outputs/analysis_propedia_top_ranked_batch_100ep_r2 --limit 10
 ```
 
-Per-complex expected files:
+Beklenen çıktılar:
 
-- `report.html`
-- `viewer.html`
-- `data/viewer_state.json`
+- `report.html`, `viewer.html`
+- `data/viewer_state.json` (`structure_format`, `structure_basename`, `chains`, `interactions`, …)
+- `data/interaction_provenance.json`
 - `figures/peptide_2d.png`
 
-## 6. Leakage Guard Tests
+## 6. GitHub Pages (statik site)
+
+```bash
+python scripts/build_pages_site.py
+```
+
+Ayrıntı: `docs/GITHUB_PAGES_TR.md`. CI: `.github/workflows/pages.yml`.
+
+## 7. Leakage Guard Tests
 
 ```bash
 python -m unittest tests/test_baseline_leakage_guards.py -v

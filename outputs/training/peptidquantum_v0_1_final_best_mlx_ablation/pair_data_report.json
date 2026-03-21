@@ -24,9 +24,9 @@
     "positive_pairs": 4288,
     "negative_pairs": 21440,
     "negative_type_distribution": {
-      "easy": 16515,
-      "hard": 4925,
-      "positive": 4288
+      "easy": 17152,
+      "positive": 4288,
+      "hard": 4288
     },
     "quality_flag_distribution": {
       "clean": 25728
@@ -44,9 +44,9 @@
     "positive_pairs": 4154,
     "negative_pairs": 20770,
     "negative_type_distribution": {
-      "easy": 15766,
-      "hard": 5004,
-      "positive": 4154
+      "easy": 16616,
+      "positive": 4154,
+      "hard": 4154
     },
     "quality_flag_distribution": {
       "clean": 24924

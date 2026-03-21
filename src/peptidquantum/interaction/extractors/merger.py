@@ -1,7 +1,7 @@
 """Merge interactions from multiple tools"""
 from __future__ import annotations
 
-from typing import List, Dict
+from typing import List, Dict, Optional
 from collections import defaultdict
 
 from ..schema import StandardizedInteraction, InteractionSet, InteractionType

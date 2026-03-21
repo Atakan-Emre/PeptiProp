@@ -31,7 +31,13 @@ venv/
 env/
 ENV/
 
+# Harici kaynak klonları (install script ile kurulur)
+third_party/arpeggio/
+
 # ------------------------------
+# GitHub Pages build çıktısı (CI veya yerelde scripts/build_pages_site.py)
+site/
+
 # Local temp / logs
 # ------------------------------
 .tmp.drivedownload/

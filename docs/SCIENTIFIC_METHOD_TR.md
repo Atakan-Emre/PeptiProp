@@ -1,7 +1,8 @@
 # PeptidQuantum v0.1 Bilimsel Metod (PROPEDIA-only, Leakage-free)
 
 Bu doküman, mevcut aktif hattın bilimsel metodunu ve kanıt yüzeyini tek yerde toplar.  
-Kapsam yalnızca **PROPEDIA-only** hattıdır; legacy/dış dataset eğitim hattına dahil değildir.
+Kapsam yalnızca **PROPEDIA-only** hattıdır; legacy/dış dataset eğitim hattına dahil değildir.  
+Genel özet ve Pages: [README.md](../README.md), [GITHUB_PAGES_TR.md](GITHUB_PAGES_TR.md).
 
 ## 1) Problem Tanımı
 

@@ -128,6 +128,27 @@ def same_length_band(protein_complex: dict, peptide_complex: dict) -> bool:
     return (protein_complex["peptide_length"] <= 30) == (peptide_complex["peptide_length"] <= 30)
 
 
+def protein_hard_bucket_key(sequence: str, window: int = 12) -> str:
+    """
+    Split-local coarse bucket for hard negatives: length bin + terminal/mid anchors.
+
+    Expands the hard pool beyond exact protein_sequence matches while staying
+    leakage-safe (only complexes already in the same split).
+    """
+    if not sequence or not isinstance(sequence, str):
+        return "0|empty"
+    seq = sequence.upper().strip()
+    L = len(seq)
+    length_bin = min(L // 30, 60)
+    w = min(window, L)
+    head = seq[:w]
+    tail = seq[-w:]
+    mid_i = L // 2
+    half = max(1, w // 2)
+    mid = seq[max(0, mid_i - half) : min(L, mid_i + half)]
+    return f"{length_bin}|{head}|{mid}|{tail}"
+
+
 def build_sampling_context(split_complexes: List[dict]) -> Dict[str, object]:
     """Build lightweight sampling context for scalable negative generation."""
     protein_groups = defaultdict(list)
@@ -162,18 +183,22 @@ def build_candidate_sampling_context(split_complexes: List[dict]) -> Dict[str, o
     peptides_by_band = {"core": [], "extension": []}
     peptides_by_pdb = defaultdict(list)
     peptides_by_protein_sequence = defaultdict(list)
+    peptides_by_protein_hard_bucket = defaultdict(list)
 
     for row in split_complexes:
         band = "core" if row["peptide_length"] <= 30 else "extension"
         peptides_by_band[band].append(row)
         peptides_by_pdb[row["pdb_id"]].append(row)
         peptides_by_protein_sequence[row["protein_sequence"]].append(row)
+        bkey = protein_hard_bucket_key(row["protein_sequence"])
+        peptides_by_protein_hard_bucket[bkey].append(row)
 
     return {
         "all_rows": split_complexes,
         "peptides_by_band": peptides_by_band,
         "peptides_by_pdb": peptides_by_pdb,
         "peptides_by_protein_sequence": peptides_by_protein_sequence,
+        "peptides_by_protein_hard_bucket": peptides_by_protein_hard_bucket,
     }
 
 
@@ -210,7 +235,12 @@ def sample_negative_peptide_for_protein(
             if peptide_complex["pdb_id"] == protein_complex["pdb_id"]:
                 continue
         elif neg_type == "hard":
-            candidates = context["peptides_by_protein_sequence"].get(protein_complex["protein_sequence"], [])
+            bkey = protein_hard_bucket_key(protein_complex["protein_sequence"])
+            candidates = list(context["peptides_by_protein_hard_bucket"].get(bkey, []))
+            if len(candidates) < 2:
+                candidates = list(
+                    context["peptides_by_protein_sequence"].get(protein_complex["protein_sequence"], [])
+                )
             if len(candidates) < 2:
                 return None
             peptide_complex = rng.choice(candidates)
@@ -788,6 +818,12 @@ def generate_negatives_for_split(
         neg_type: int(count)
         for neg_type, count in shortfall_counts.items()
     }
+    type_targets_global = allocate_target_counts(n_total_negatives_target, ratio_map)
+    planned_hard = max(1, int(type_targets_global.get("hard", 0)))
+    candidate_summary["negative_type_planned_totals"] = {
+        k: int(v) for k, v in type_targets_global.items()
+    }
+    candidate_summary["hard_shortfall_rate"] = float(shortfall_counts["hard"] / planned_hard)
     candidate_summary["negative_type_ratio_shortfall"] = {
         neg_type: max(
             0.0,
@@ -817,6 +853,12 @@ def main(
     quality_filter: str = "clean",
     train_negatives_per_protein: int = 5,
     eval_negatives_per_protein: int = 5,
+    train_easy_ratio: float = 0.7,
+    train_hard_ratio: float = 0.3,
+    eval_easy_ratio: float = 0.8,
+    eval_hard_ratio: float = 0.2,
+    max_hard_shortfall_rate: float = 0.01,
+    enforce_shortfall_check: bool = True,
 ):
     """Main function to generate negative pairs"""
     
@@ -824,8 +866,12 @@ def main(
     print("Generating Negative Pairs for Interaction Scoring / Reranking")
     print("="*60)
     print("Strategy:")
-    print("  - Train negatives: 70% easy / 30% hard / 0% structure_hard")
-    print("  - Val/Test negatives: 70% easy / 30% hard / 0% structure_hard")
+    print(
+        f"  - Train negatives: {train_easy_ratio:.0%} easy / {train_hard_ratio:.0%} hard / 0% structure_hard"
+    )
+    print(
+        f"  - Val/Test negatives: {eval_easy_ratio:.0%} easy / {eval_hard_ratio:.0%} hard / 0% structure_hard"
+    )
     print(
         f"  - Candidate set size: train=1+{train_negatives_per_protein}, "
         f"val/test=1+{eval_negatives_per_protein}"
@@ -850,8 +896,8 @@ def main(
     train_pairs, train_candidates = generate_negatives_for_split(
         complexes, train_ids, 'train',
         negatives_per_protein=train_negatives_per_protein,
-        easy_ratio=0.7,
-        hard_ratio=0.3,
+        easy_ratio=train_easy_ratio,
+        hard_ratio=train_hard_ratio,
         struct_ratio=0.0,
         seed=seed
     )
@@ -859,8 +905,8 @@ def main(
     val_pairs, val_candidates = generate_negatives_for_split(
         complexes, val_ids, 'val',
         negatives_per_protein=eval_negatives_per_protein,
-        easy_ratio=0.7,
-        hard_ratio=0.3,
+        easy_ratio=eval_easy_ratio,
+        hard_ratio=eval_hard_ratio,
         struct_ratio=0.0,
         seed=seed + 100
     )
@@ -868,8 +914,8 @@ def main(
     test_pairs, test_candidates = generate_negatives_for_split(
         complexes, test_ids, 'test',
         negatives_per_protein=eval_negatives_per_protein,
-        easy_ratio=0.7,
-        hard_ratio=0.3,
+        easy_ratio=eval_easy_ratio,
+        hard_ratio=eval_hard_ratio,
         struct_ratio=0.0,
         seed=seed + 200
     )
@@ -912,9 +958,27 @@ def main(
         "train": train_candidates,
         "val": val_candidates,
         "test": test_candidates,
+        "shortfall_policy": {
+            "max_hard_shortfall_rate": float(max_hard_shortfall_rate),
+            "enforce_shortfall_check": bool(enforce_shortfall_check),
+        },
     }
     with open(output_dir / "candidate_set_report.json", "w") as f:
         json.dump(candidate_report, f, indent=2)
+
+    if enforce_shortfall_check:
+        for split_label, summary in (
+            ("train", train_candidates),
+            ("val", val_candidates),
+            ("test", test_candidates),
+        ):
+            rate = float(summary.get("hard_shortfall_rate", 0.0))
+            if rate > max_hard_shortfall_rate + 1e-12:
+                raise SystemExit(
+                    f"[FAIL] {split_label} hard_shortfall_rate={rate:.6f} exceeds "
+                    f"max_hard_shortfall_rate={max_hard_shortfall_rate}. "
+                    "Re-run with --no-enforce-shortfall-check to override (not recommended)."
+                )
     
     # Check for leakage
     train_protein_chains = set(train_pairs['protein_complex_id'])
@@ -946,6 +1010,21 @@ if __name__ == "__main__":
                        help="Number of negatives per protein candidate set for train split")
     parser.add_argument("--eval-negatives-per-protein", type=int, default=5,
                        help="Number of negatives per protein candidate set for val/test splits")
+    parser.add_argument("--train-easy-ratio", type=float, default=0.7, help="Train split easy negative target ratio")
+    parser.add_argument("--train-hard-ratio", type=float, default=0.3, help="Train split hard negative target ratio")
+    parser.add_argument("--eval-easy-ratio", type=float, default=0.8, help="Val/test easy negative target ratio")
+    parser.add_argument("--eval-hard-ratio", type=float, default=0.2, help="Val/test hard negative target ratio")
+    parser.add_argument(
+        "--max-hard-shortfall-rate",
+        type=float,
+        default=0.01,
+        help="Max allowed hard shortfall vs planned hard slots (fraction); fail if exceeded",
+    )
+    parser.add_argument(
+        "--no-enforce-shortfall-check",
+        action="store_true",
+        help="Do not exit when hard_shortfall_rate exceeds --max-hard-shortfall-rate",
+    )
     
     args = parser.parse_args()
     
@@ -957,4 +1036,10 @@ if __name__ == "__main__":
         args.quality_filter,
         args.train_negatives_per_protein,
         args.eval_negatives_per_protein,
+        train_easy_ratio=args.train_easy_ratio,
+        train_hard_ratio=args.train_hard_ratio,
+        eval_easy_ratio=args.eval_easy_ratio,
+        eval_hard_ratio=args.eval_hard_ratio,
+        max_hard_shortfall_rate=args.max_hard_shortfall_rate,
+        enforce_shortfall_check=not args.no_enforce_shortfall_check,
     )

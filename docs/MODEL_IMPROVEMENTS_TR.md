@@ -1,5 +1,7 @@
 # Model İyileştirmeleri ve MPNN Entegrasyonu
 
+> Aktif ürün: PROPEDIA skorlama + MLX/klasik — [README.md](../README.md).
+
 ## Geliştirme Motivasyonu
 
 Danışman geri bildirimleri ve COVID-19 drug interaction projesindeki MPNN başarısı göz önüne alınarak, PeptGAINET modeli önemli ölçüde geliştirilmiştir.

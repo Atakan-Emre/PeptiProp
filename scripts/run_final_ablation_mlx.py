@@ -286,6 +286,12 @@ def smoke_pass(row: dict) -> bool:
 
 
 def choose_family_finalists(smoke_df: pd.DataFrame, top_k: int = 2) -> pd.DataFrame:
+    """
+    Pick smoke finalists per model family using validation metrics only.
+
+    Ensures diversity: when top_k >= 2, prefer including at least one L2 config if any
+    L2 smoke run exists for that family (still ranked by val metrics within L2).
+    """
     finalists = []
     for family, group in smoke_df.groupby("family"):
         group = group.copy()
@@ -295,8 +301,42 @@ def choose_family_finalists(smoke_df: pd.DataFrame, top_k: int = 2) -> pd.DataFr
         source = source.sort_values(
             by=["val_mrr", "val_hit3", "val_auroc", "val_mcc"],
             ascending=[False, False, False, False],
-        )
-        finalists.append(source.head(min(top_k, len(source))))
+        ).reset_index(drop=True)
+        if source.empty:
+            continue
+        k = min(top_k, len(source))
+        if k <= 1:
+            finalists.append(source.head(1))
+            continue
+
+        picked_rows = [source.iloc[0]]
+        used_combos = {picked_rows[0]["combo"]}
+        second = source.iloc[1]
+        if picked_rows[0]["loss_level"] != "L2" and second["loss_level"] != "L2":
+            l2_ranked = source[source["loss_level"] == "L2"]
+            if len(l2_ranked) > 0:
+                for _, row in l2_ranked.iterrows():
+                    if row["combo"] not in used_combos:
+                        second = row
+                        break
+        if second["combo"] in used_combos:
+            for i in range(1, len(source)):
+                cand = source.iloc[i]
+                if cand["combo"] not in used_combos:
+                    second = cand
+                    break
+        picked_rows.append(second)
+        used_combos.add(second["combo"])
+
+        idx = 2
+        while len(picked_rows) < k and idx < len(source):
+            cand = source.iloc[idx]
+            if cand["combo"] not in used_combos:
+                picked_rows.append(cand)
+                used_combos.add(cand["combo"])
+            idx += 1
+
+        finalists.append(pd.DataFrame(picked_rows))
     return pd.concat(finalists, ignore_index=True)
 
 
@@ -361,7 +401,7 @@ def build_top_ranked_sample_list(best_dir: Path, out_path: Path, limit: int = 10
     out_path.write_text("\n".join(ids) + "\n", encoding="utf-8")
 
 
-def run_visualization(sample_list: Path, output_dir: Path):
+def run_visualization(sample_list: Path, output_dir: Path, relax_tool_fraction_check: bool = False):
     cmd = [
         sys.executable,
         "scripts/run_visualization_sanity.py",
@@ -374,6 +414,8 @@ def run_visualization(sample_list: Path, output_dir: Path):
         "--limit",
         "10",
     ]
+    if relax_tool_fraction_check:
+        cmd.append("--no-enforce-tool-fraction")
     try:
         run_command(cmd)
         return True
@@ -387,7 +429,12 @@ def main():
     parser.add_argument("--smoke-only", action="store_true", help="Only run smoke stage.")
     parser.add_argument("--skip-existing", action="store_true", help="Skip runs that already have metrics.json.")
     parser.add_argument("--refresh-features", action="store_true", help="Force re-export MLX features before each run.")
-    parser.add_argument("--finalists-per-family", type=int, default=1, help="How many smoke finalists per family go to full stage.")
+    parser.add_argument(
+        "--finalists-per-family",
+        type=int,
+        default=2,
+        help="How many smoke finalists per family go to full stage (>=2 helps retain L2 ablations).",
+    )
     parser.add_argument("--smoke-epochs", type=int, default=8, help="Epochs for smoke stage.")
     parser.add_argument("--smoke-patience", type=int, default=4, help="Early-stop patience for smoke stage.")
     parser.add_argument("--full-epochs", type=int, default=200, help="Epochs for full stage.")
@@ -398,6 +445,11 @@ def main():
     parser.add_argument("--full-subset-train", type=int, default=0, help="Full subset size for train split (0 disables subsetting).")
     parser.add_argument("--full-subset-val", type=int, default=0, help="Full subset size for val split (0 disables subsetting).")
     parser.add_argument("--full-subset-test", type=int, default=0, help="Full subset size for test split (0 disables subsetting).")
+    parser.add_argument(
+        "--vis-relax-tool-fraction",
+        action="store_true",
+        help="Do not enforce min PLIP/Arpeggio interaction fraction in post-ablation visualization sanity.",
+    )
     args = parser.parse_args()
 
     template = load_template()
@@ -525,8 +577,16 @@ def main():
         sample_list_path = ROOT / "data" / "reports" / "audit_gallery_propedia" / "sample_list_final_best_mlx_model.txt"
         build_top_ranked_sample_list(FINAL_BEST_DIR, sample_list_path, limit=10)
         if sample_list_path.exists():
-            run_visualization(sample_list_path, ROOT / "outputs" / "analysis_propedia_batch_mlx")
-            run_visualization(sample_list_path, ROOT / "outputs" / "analysis_propedia_top_ranked_batch_mlx")
+            run_visualization(
+                sample_list_path,
+                ROOT / "outputs" / "analysis_propedia_batch_mlx",
+                relax_tool_fraction_check=args.vis_relax_tool_fraction,
+            )
+            run_visualization(
+                sample_list_path,
+                ROOT / "outputs" / "analysis_propedia_top_ranked_batch_mlx",
+                relax_tool_fraction_check=args.vis_relax_tool_fraction,
+            )
     else:
         FINAL_BEST_DIR.mkdir(parents=True, exist_ok=True)
         all_df.to_csv(summary_csv, index=False)

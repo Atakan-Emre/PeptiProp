@@ -1,7 +1,9 @@
 """Unified pipeline for protein-peptide interaction analysis"""
 from __future__ import annotations
 
+import json
 import logging
+from collections import Counter
 from pathlib import Path
 from typing import Optional, Dict, List, Tuple
 import shutil
@@ -147,12 +149,15 @@ class PeptidQuantumPipeline:
         pocket_complex = self._extract_pocket(complex_obj, pocket_radius)
         
         # Stage 4: Extract interactions
-        interaction_set = self._extract_interactions(
+        interaction_set, interaction_provenance = self._extract_interactions(
             complex_obj,
             use_arpeggio=use_arpeggio,
             use_plip=use_plip,
             output_dir=output_dir
         )
+        prov_path = output_dir / "data" / "interaction_provenance.json"
+        with open(prov_path, "w", encoding="utf-8") as handle:
+            json.dump(interaction_provenance, handle, indent=2)
         
         if not interaction_set or len(interaction_set.interactions) == 0:
             logger.warning("No interactions found")
@@ -179,7 +184,8 @@ class PeptidQuantumPipeline:
             interaction_set,
             output_dir,
             generate_report=generate_report,
-            generate_viewer=generate_viewer
+            generate_viewer=generate_viewer,
+            interaction_provenance=interaction_provenance,
         )
         
         logger.info("="*60)
@@ -193,9 +199,10 @@ class PeptidQuantumPipeline:
             "output_dir": str(output_dir),
             "num_interactions": len(interaction_set.interactions),
             "interaction_types": len(interaction_set.get_interaction_types()),
+            "interaction_provenance": interaction_provenance,
             "analysis": analysis_results,
             "visuals": visual_results,
-            "reports": report_results
+            "reports": report_results,
         }
     
     def _acquire_structure(
@@ -318,17 +325,43 @@ class PeptidQuantumPipeline:
         
         return pocket_complex
     
+    def _summarize_interaction_provenance(
+        self,
+        interaction_set: InteractionSet,
+        extraction_mode: str,
+        use_arpeggio: bool,
+        use_plip: bool,
+        tools_succeeded: List[str],
+    ) -> Dict[str, object]:
+        """Counts / fractions of interaction records by source_tool (PLIP, Arpeggio, fallback)."""
+        tool_labels = frozenset({"arpeggio", "plip"})
+        counts = Counter((i.source_tool or "unknown").lower() for i in interaction_set.interactions)
+        n = len(interaction_set.interactions)
+        per_frac = {k: float(v / n) for k, v in counts.items()} if n else {}
+        n_tool = sum(counts[k] for k in counts if k in tool_labels)
+        fallback_count = int(counts.get("geometric_fallback", 0))
+        return {
+            "extraction_mode": extraction_mode,
+            "tools_requested": {"arpeggio": bool(use_arpeggio), "plip": bool(use_plip)},
+            "tools_succeeded": list(tools_succeeded),
+            "per_interaction_source_counts": dict(counts),
+            "per_interaction_source_fraction": per_frac,
+            "tool_based_interaction_fraction": float(n_tool / n) if n else 0.0,
+            "fallback_interaction_fraction": float(fallback_count / n) if n else 0.0,
+        }
+
     def _extract_interactions(
         self,
         complex_obj: Complex,
         use_arpeggio: bool,
         use_plip: bool,
         output_dir: Path
-    ) -> InteractionSet:
+    ) -> Tuple[InteractionSet, Dict[str, object]]:
         """Stage 4: Extract interactions"""
         logger.info("Stage 4: Extracting interactions...")
         
         interaction_sets = []
+        tools_succeeded: List[str] = []
         
         # Arpeggio
         if use_arpeggio and self.arpeggio.is_available():
@@ -339,6 +372,7 @@ class PeptidQuantumPipeline:
                     output_dir=output_dir / "arpeggio_tmp"
                 )
                 interaction_sets.append(arpeggio_set)
+                tools_succeeded.append("arpeggio")
                 logger.info(f"  Arpeggio: {len(arpeggio_set.interactions)} interactions")
             except Exception as e:
                 logger.warning(f"Arpeggio failed: {e}")
@@ -354,6 +388,7 @@ class PeptidQuantumPipeline:
                     output_dir=output_dir / "plip_tmp"
                 )
                 interaction_sets.append(plip_set)
+                tools_succeeded.append("plip")
                 logger.info(f"  PLIP: {len(plip_set.interactions)} interactions")
             except Exception as e:
                 logger.warning(f"PLIP failed: {e}")
@@ -364,18 +399,27 @@ class PeptidQuantumPipeline:
         if interaction_sets:
             merged_set = self.merger.merge(*interaction_sets, strategy="union")
             logger.info(f"✓ Total interactions: {len(merged_set.interactions)}")
+            extraction_mode = "tool_merged"
         else:
             logger.warning("No interaction extractors ran successfully, using geometric fallback")
             merged_set = self._build_geometric_fallback(
                 complex_obj=complex_obj,
                 distance_cutoff=8.0,
             )
+            extraction_mode = "geometric_fallback"
             if len(merged_set.interactions) > 0:
                 logger.info(f"✓ Geometric fallback interactions: {len(merged_set.interactions)}")
             else:
                 logger.warning("Geometric fallback produced no contacts")
-        
-        return merged_set
+
+        provenance = self._summarize_interaction_provenance(
+            merged_set,
+            extraction_mode,
+            use_arpeggio,
+            use_plip,
+            tools_succeeded,
+        )
+        return merged_set, provenance
 
     def _build_geometric_fallback(self, complex_obj: Complex, distance_cutoff: float = 8.0) -> InteractionSet:
         """
@@ -634,7 +678,8 @@ class PeptidQuantumPipeline:
         interaction_set: InteractionSet,
         output_dir: Path,
         generate_report: bool,
-        generate_viewer: bool
+        generate_viewer: bool,
+        interaction_provenance: Optional[Dict[str, object]] = None,
     ) -> Dict:
         """Stage 7: Build report"""
         logger.info("Stage 7: Building report...")
@@ -664,7 +709,8 @@ class PeptidQuantumPipeline:
                     interaction_set,
                     assets_dir=output_dir / "figures",
                     output_html=output_dir / "report.html",
-                    include_viewer=True
+                    include_viewer=True,
+                    interaction_provenance=interaction_provenance,
                 )
                 results['report'] = True
             except Exception as e:

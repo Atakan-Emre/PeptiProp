@@ -12,8 +12,20 @@ from ...interaction import InteractionSet, InteractionType
 class Viewer3DMol:
     """Generate 3Dmol.js viewer configurations"""
     
+    THREEDMOL_CDN = "https://3Dmol.csb.pitt.edu/build/3Dmol-min.js"
+
     def __init__(self):
         self.viewer_template = self._get_viewer_template()
+
+    @staticmethod
+    def infer_structure_format(structure_file: Optional[str | Path]) -> str:
+        """3Dmol addModel format: pdb vs cif/mmcif."""
+        if not structure_file:
+            return "cif"
+        ext = Path(structure_file).suffix.lower()
+        if ext == ".pdb":
+            return "pdb"
+        return "cif"
     
     def create_viewer(
         self,
@@ -34,13 +46,16 @@ class Viewer3DMol:
         Returns:
             Viewer configuration dictionary
         """
-        # Build viewer state
+        sf = Path(complex_obj.structure_file) if complex_obj.structure_file else None
+        structure_format = self.infer_structure_format(sf)
         viewer_state = {
             'complex_id': complex_obj.complex_id,
             'structure_file': str(complex_obj.structure_file) if complex_obj.structure_file else None,
+            'structure_basename': sf.name if sf else None,
+            'structure_format': structure_format,
             'chains': self._get_chain_config(complex_obj),
             'interactions': self._get_interaction_config(interaction_set) if interaction_set else [],
-            'view_config': self._get_default_view_config()
+            'view_config': self._get_default_view_config(),
         }
         
         # Save JSON if requested
@@ -160,8 +175,10 @@ class Viewer3DMol:
             with open(structure_file, 'r', encoding='utf-8') as f:
                 structure_data = f.read()
         
-        # Generate JavaScript code
-        js_code = self._generate_viewer_js(viewer_state, structure_data)
+        fmt = viewer_state.get("structure_format") or self.infer_structure_format(structure_file)
+        js_code = self._generate_viewer_js(
+            viewer_state, structure_data, fmt, dom_element_id="viewer"
+        )
         protein_chains = [
             str(chain.get("chain_id"))
             for chain in viewer_state.get("chains", [])
@@ -182,7 +199,7 @@ class Viewer3DMol:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Viewer - {viewer_state['complex_id']}</title>
-    <script src="https://3Dmol.csb.pitt.edu/build/3Dmol-min.js"></script>
+    <script src="{self.THREEDMOL_CDN}"></script>
     <style>
         body {{
             font-family: Arial, sans-serif;
@@ -334,12 +351,20 @@ class Viewer3DMol:
         
         print(f"3Dmol.js viewer saved to {output_html}")
     
-    def _generate_viewer_js(self, viewer_state: Dict, structure_data: str) -> str:
-        """Generate JavaScript code for viewer"""
-        
-        interactions_json = json.dumps(viewer_state.get('interactions', []))
-        chains_json = json.dumps(viewer_state.get('chains', []))
-        
+    def _generate_viewer_js(
+        self,
+        viewer_state: Dict,
+        structure_data: str,
+        structure_format: str,
+        dom_element_id: str = "viewer",
+    ) -> str:
+        """Generate JavaScript code for viewer (safe string embedding, correct PDB/CIF format)."""
+        interactions_json = json.dumps(viewer_state.get("interactions", []))
+        chains_json = json.dumps(viewer_state.get("chains", []))
+        structure_literal = json.dumps(structure_data)
+        fmt_lit = json.dumps(structure_format)
+        elem_lit = json.dumps(dom_element_id)
+
         return f"""
 // Initialize viewer
 let viewer = null;
@@ -347,21 +372,20 @@ let surfaceVisible = true;
 let interactionsVisible = true;
 
 function initViewer() {{
-    const element = document.getElementById('viewer');
+    const element = document.getElementById({elem_lit});
+    if (!element) {{
+        console.error('3D viewer: missing element', {elem_lit});
+        return;
+    }}
     const config = {{ backgroundColor: 'white' }};
     viewer = $3Dmol.createViewer(element, config);
     
-    // Load structure
-    const structureData = `{structure_data}`;
-    viewer.addModel(structureData, 'cif');
+    const structureData = {structure_literal};
+    viewer.addModel(structureData, {fmt_lit});
     
-    // Apply styles
     applyStyles();
-    
-    // Add interactions
     addInteractions();
     
-    // Render
     viewer.zoomTo();
     viewer.render();
 }}
@@ -388,6 +412,8 @@ function applyStyles() {{
 
 function addInteractions() {{
     const interactions = {interactions_json};
+    const model = viewer.getModel();
+    if (!model) return;
     
     interactions.forEach(int => {{
         const start = {{
@@ -398,10 +424,14 @@ function addInteractions() {{
             chain: int.peptide_chain,
             resi: int.peptide_residue
         }};
-        
+        const sa = model.selectedAtoms(start);
+        const ea = model.selectedAtoms(end);
+        if (!sa || !sa.length || !ea || !ea.length) {{
+            return;
+        }}
         viewer.addCylinder({{
-            start: viewer.getModel().selectedAtoms(start)[0],
-            end: viewer.getModel().selectedAtoms(end)[0],
+            start: sa[0],
+            end: ea[0],
             radius: int.radius,
             color: int.color,
             dashed: int.dashed,
@@ -418,11 +448,13 @@ function resetView() {{
 
 function toggleSurface() {{
     surfaceVisible = !surfaceVisible;
-    if (surfaceVisible) {{
+    const chains = {chains_json};
+    const prot = chains.find(c => c.type === 'protein');
+    if (surfaceVisible && prot) {{
         viewer.addSurface($3Dmol.SurfaceType.VDW, {{
             opacity: 0.3,
             color: 'white'
-        }}, {{chain: viewer.getModel().selectedAtoms({{}})[0].chain}});
+        }}, {{chain: prot.chain_id}});
     }} else {{
         viewer.removeAllSurfaces();
     }}
@@ -464,11 +496,11 @@ window.addEventListener('load', initViewer);
     
     def _get_viewer_template(self) -> str:
         """Get base viewer HTML template"""
-        return """
+        return f"""
 <!DOCTYPE html>
 <html>
 <head>
-    <script src="https://3Dmol.csb.pitt.edu/build/3Dmol-min.js"></script>
+    <script src="{self.THREEDMOL_CDN}"></script>
 </head>
 <body>
     <div id="viewer" style="width: 100%; height: 600px;"></div>
@@ -496,22 +528,23 @@ window.addEventListener('load', initViewer);
         Returns:
             Tuple of (html_div, javascript_code)
         """
+        sf = Path(complex_obj.structure_file) if complex_obj.structure_file else None
+        structure_format = self.infer_structure_format(sf)
         viewer_state = {
             'complex_id': complex_obj.complex_id,
             'chains': self._get_chain_config(complex_obj),
-            'interactions': self._get_interaction_config(interaction_set) if interaction_set else []
+            'interactions': self._get_interaction_config(interaction_set) if interaction_set else [],
+            'structure_format': structure_format,
         }
         
-        # Read structure
         structure_data = ""
-        if complex_obj.structure_file and Path(complex_obj.structure_file).exists():
-            with open(complex_obj.structure_file, 'r', encoding='utf-8') as f:
+        if sf and sf.exists():
+            with open(sf, 'r', encoding='utf-8') as f:
                 structure_data = f.read()
         
-        # HTML div
         html_div = f'<div id="{div_id}" style="width: 100%; height: 600px; border: 1px solid #ddd;"></div>'
-        
-        # JavaScript
-        js_code = self._generate_viewer_js(viewer_state, structure_data).replace('viewer', f'viewer_{div_id}')
+        js_code = self._generate_viewer_js(
+            viewer_state, structure_data, structure_format, dom_element_id=div_id
+        )
         
         return html_div, js_code

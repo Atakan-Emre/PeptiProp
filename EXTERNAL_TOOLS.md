@@ -57,6 +57,24 @@ pip install biopython numpy
 export PATH=$PATH:$(pwd)
 ```
 
+**macOS (Apple Silicon, Homebrew, `.venv-mlx`) — tek komut:**
+
+```bash
+bash scripts/install_external_tools_macos.sh
+```
+
+Bu script `open-babel`, `swig`, `pkgconf` kurar; PyPI `openbabel` paketini Homebrew başlıklarıyla derler; `plip` ve `biopython` yükler; `third_party/arpeggio` klonlar ve `.venv-mlx/bin/arpeggio` başlatıcısını yazar.
+
+**Doğrulama (tüm platformlar):**
+
+```bash
+source .venv-mlx/bin/activate
+export PYTHONPATH=src
+python scripts/verify_external_tools.py
+```
+
+Statik site üretimi (3D örnek sayfası dahil): `python scripts/build_pages_site.py` — `docs/GITHUB_PAGES_TR.md`.
+
 **Verification:**
 ```bash
 arpeggio --help
@@ -83,6 +101,8 @@ git clone https://github.com/pharmai/plip.git
 cd plip
 python setup.py install
 ```
+
+**Not (macOS):** PLIP 3.x komut satırı çoğu kurulumda **mmCIF** dosyasını doğrudan kabul etmez. PeptidQuantum, `obabel` ile geçici **PDB** üretir; bu nedenle Homebrew `open-babel` (komut: `obabel`) şarttır. Kurulum script’i bunu sağlar.
 
 **Verification:**
 ```bash

@@ -1,5 +1,7 @@
 # Literatür ve Benzer Çalışmalar
 
+> Aktif teknik özet: [SCIENTIFIC_METHOD_TR.md](SCIENTIFIC_METHOD_TR.md), [README.md](../README.md).
+
 Bu proje, aşağıdaki çalışma çizgisini hedefler: **etkileşim tahmini + dikkat/alt-yapı vurgulu görsel çıktı**.
 
 ## 1) Doğrudan Referanslar

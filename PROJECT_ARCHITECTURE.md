@@ -309,7 +309,7 @@ src/peptidquantum/analysis/
 - PyMOL (static figures)
 - ChimeraX (annotation)
 - Mol* (interactive RCSB viewer)
-- 3Dmol.js (web embedding)
+- 3Dmol.js (web embedding) — `Viewer3DMol`: PDB/mmCIF format seçimi, güvenli yapı gömme, `viewer_state.json` (`structure_format`, `structure_basename`, zincirler, etkileşimler)
 
 ### ML
 - PyTorch Geometric GATConv
@@ -355,11 +355,12 @@ plotly>=5.14.0
 5. **Multi-scale visualization**: From full complex to atom-level interactions
 6. **Contact atlas as core output**: Not just prediction, but explanation
 
-## Next Steps
+## Web / GitHub Pages
 
-1. Implement data fetchers (RCSB, PROPEDIA)
-2. Set up mmCIF parsing and normalization
-3. Integrate Arpeggio and PLIP
-4. Build dual-encoder model
-5. Create visualization pipeline
-6. Assemble complete end-to-end system
+- `scripts/build_pages_site.py` → `site/` (index, `data/manifest.json`, `embed/viewer-demo.html` 3Dmol + örnek CIF)
+- `.github/workflows/pages.yml` — Actions ile yayın
+- Ayrıntı: `docs/GITHUB_PAGES_TR.md`
+
+## Durum özeti (v0.1)
+
+PROPEDIA kanonik hattı, leakage-free split/negatifler, klasik + MLX skorlama, kalibrasyon/sıralama raporları ve 2D/3D çıktılar üretilebilir durumda. Eski “Next Steps” maddeleri çoğunlukla tamamlandı; model ve veri genişletmeleri için `ROADMAP.md` ve `docs/` altındaki TR notlara bakın.

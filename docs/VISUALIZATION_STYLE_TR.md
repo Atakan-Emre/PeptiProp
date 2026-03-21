@@ -1,5 +1,7 @@
 # Görselleştirme Standardı (Makale Stili)
 
+Üretim çıktıları: `report.html`, `viewer.html`, `data/viewer_state.json` (`structure_format`, zincirler, etkileşim listesi). GitHub Pages 3D örneği: `docs/GITHUB_PAGES_TR.md`.
+
 Bu proje için hedef görsel, GAINET makalesindeki panel düzenine benzer olmalıdır.
 
 ## Panel Yapısı (Satır Başına)

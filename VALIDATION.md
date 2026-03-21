@@ -2,6 +2,8 @@
 
 This validation checklist is aligned with the active PROPEDIA-only scoring pipeline.
 
+**Statik site (isteğe bağlı):** `python scripts/build_pages_site.py` produces `site/`; CI deploy is documented in `docs/GITHUB_PAGES_TR.md`.
+
 ## 1) Leakage Guards (Mandatory)
 
 Run:
