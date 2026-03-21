@@ -4,12 +4,13 @@
 
 Workflow `.github/workflows/pages.yml` her `main` (veya `master`) push’ında:
 
-1. `python scripts/build_pages_site.py` çalıştırır
-2. `site/` klasörünü GitHub Pages’e yükler
+1. `pip install -r scripts/requirements-pages.txt` (site için **matplotlib** — CI’da eksik eğitim PNG’lerine yer tutucu üretir)
+2. `python scripts/build_pages_site.py` çalıştırır (`PEPTIPROP_SITE_URL` ile `canonical` / `og:url` meta; örn. `https://atakan-emre.github.io/PeptiProp`)
+3. `site/` klasörünü GitHub Pages’e yükler
 
 İçerik:
 
-- `index.html` — yan menülü düzen; dört metrik kartı `manifest.json` → `metrics` (kaynak: `training_dir`/`metrics.json`); **eğitim PNG** bölümü çıktı klasöründe varsa ROC/PR, kalibrasyon vb. kopyalar
+- `index.html` — tek sütun genişliğinde hizalı **site-shell**, üst çubukta GitHub + tema; **proje akışı** diyagramı (`#akim`); dört metrik kartı; eğitim PNG’leri (veya yer tutucu)
 - `embed/viewer-demo.html` — **3Dmol.js** ile tarayıcıda **1CRN** (mmCIF, `assets/demo/1crn.cif`)
 - `data/manifest.json` — makine-okur özet
 - `assets/css/site.css` — gündüz/gece CSS değişkenleri, responsive düzen
@@ -25,7 +26,7 @@ Workflow `.github/workflows/pages.yml` her `main` (veya `master`) push’ında:
 
 ## Project Pages (alt yol)
 
-Depo `username.github.io/PeptidQuantum/` altında ise demo yolları göreli kalır (`../assets/...`). Başka bir base path kullanıyorsanız `scripts/build_pages_site.py` içindeki `fetch('../assets/demo/1crn.cif')` yolunu güncelleyin.
+Canlı örnek: [PeptiProp — GitHub Pages](https://atakan-emre.github.io/PeptiProp/index.html). Depo `username.github.io/RepoAdi/` altında göreli yollar (`assets/...`, `../assets/...`) tarayıcıda doğru çözülür; 3D demo CIF yüklemesi `fetch(new URL('../assets/demo/1crn.cif', window.location.href))` ile sayfa adresine göre çözülür.
 
 ## Yerel önizleme
 
@@ -37,4 +38,4 @@ cd site && python -m http.server 8080
 
 ## Görseller eksikse
 
-`ablation_heatmap.png` ve benzeri dosyalar yalnızca yerelde ilgili eğitim çıktı klasörü varsa kopyalanır. Önce eğitimi çalıştırıp ardından site script’ini tekrar çalıştırın.
+CI’da `outputs/training/` yoksa derleme **matplotlib** ile **yer tutucu PNG** üretir (kırık `<img>` olmaz). Gerçek ROC/ablation görselleri için yerelde eğitim/ablation sonrası `build_pages_site.py` çalıştırın.

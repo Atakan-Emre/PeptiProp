@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import html as html_module
 import json
+import os
 import shutil
 import sys
 import urllib.request
@@ -22,6 +23,7 @@ if _SRC.is_dir() and str(_SRC) not in sys.path:
 SITE = ROOT / "site"
 # Görünen ürün adı (Python paketi `peptidquantum` olarak kalır)
 PROJECT_DISPLAY_NAME = "PeptiProp"
+REPO_URL = "https://github.com/Atakan-Emre/PeptiProp"
 MLX_BEST = ROOT / "outputs" / "training" / "peptidquantum_v0_1_final_best_mlx_ablation"
 DEMO_CIF_URL = "https://files.rcsb.org/download/1CRN.cif"
 
@@ -112,6 +114,41 @@ def download_demo_cif(dest: Path) -> bool:
         return False
 
 
+def write_placeholder_png(path: Path, title: str, subtitle: str = "") -> bool:
+    """Eğitim/ablation PNG yoksa (ör. GitHub Actions) kırık img önlemek için yer tutucu üretir."""
+    try:
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+
+        fig, ax = plt.subplots(figsize=(7.2, 4.0), dpi=110)
+        ax.set_facecolor("#161b22")
+        fig.patch.set_facecolor("#0d1117")
+        ax.text(0.5, 0.62, title, ha="center", va="center", color="#c9d1d9", fontsize=12)
+        if subtitle:
+            ax.text(0.5, 0.42, subtitle, ha="center", va="center", color="#8b949e", fontsize=9)
+        ax.text(
+            0.5,
+            0.18,
+            "CI’da outputs/training yoksa otomatik yer tutucu — yerelde eğitim sonrası build ile değişir.",
+            ha="center",
+            va="center",
+            color="#58a6ff",
+            fontsize=8,
+        )
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1)
+        ax.axis("off")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(path, bbox_inches="tight", pad_inches=0.4, facecolor=fig.get_facecolor())
+        plt.close(fig)
+        return path.is_file()
+    except Exception as exc:
+        print(f"[WARN] Yer tutucu PNG yazılamadı ({path}): {exc}")
+        return False
+
+
 def _load_metrics_bundle(dir_path: Path) -> Dict[str, Any]:
     """metrics.json + gerekirse ranking_metrics.json içindeki test sıralama blokları."""
     m = load_metrics(dir_path / "metrics.json")
@@ -178,10 +215,14 @@ _TRAINING_FIGURE_SPECS: List[tuple[str, str, str, str]] = [
 
 def _copy_training_figures(training_out_dir: Optional[Path], img_root: Path) -> List[Dict[str, str]]:
     out: List[Dict[str, str]] = []
-    if not training_out_dir:
-        return out
     for src_name, dest_name, alt, caption in _TRAINING_FIGURE_SPECS:
-        if _copy_if(training_out_dir / src_name, img_root / dest_name):
+        dest = img_root / dest_name
+        src = training_out_dir / src_name if training_out_dir else None
+        if src is not None and src.is_file():
+            _copy_if(src, dest)
+        elif not dest.is_file():
+            write_placeholder_png(dest, alt, "Yerelde outputs/training içinden doldurulur")
+        if dest.is_file():
             out.append({"href": f"assets/img/{dest_name}", "alt": alt, "caption": caption})
     return out
 
@@ -208,7 +249,8 @@ def _render_training_gallery_section(items: List[Dict[str, str]]) -> str:
     return f"""      <section class="block" id="egitim-gorselleri">
         <h2>Eğitim ve değerlendirme görselleri</h2>
         <p class="lead-in">
-          Aşağıdaki görseller, site derlemesinde keşfedilen eğitim çıktı klasöründen (<code>metrics.json</code> ile aynı dizin) otomatik kopyalanmıştır.
+          Görseller mümkünse eğitim çıktı klasöründen (<code>metrics.json</code> ile aynı dizin) kopyalanır; GitHub Actions’ta klasör yoksa
+          <strong>yer tutucu PNG</strong> üretilir (kırık resim ve boş URL görünmez). Gerçek eğriler için yerelde eğitim sonrası yeniden derleyin.
         </p>
         <div class="grid2 training-fig-grid">
 {inner}
@@ -569,7 +611,7 @@ def write_demo_viewer(site: Path) -> None:
     setTimeout(function() { scheduleResizeViewer(); }, 200);
   });
 
-  fetch('../assets/demo/1crn.cif')
+  fetch(new URL('../assets/demo/1crn.cif', window.location.href))
     .then(function(r) { if (!r.ok) throw new Error('CIF'); return r.text(); })
     .then(initViewer)
     .catch(function() {
@@ -649,11 +691,40 @@ a:hover { text-decoration: underline; }
 code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.88em; }
 code { background: var(--card2); padding: 0.15rem 0.4rem; border-radius: 4px; border: 1px solid var(--border); }
 
-.site-toolbar {
-  position: fixed;
-  top: max(0.5rem, env(safe-area-inset-top));
-  right: max(0.5rem, env(safe-area-inset-right));
-  z-index: 200;
+.site-shell {
+  width: 100%;
+  max-width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: 0 clamp(0.5rem, 2.5vw, 1rem);
+  padding-bottom: 2rem;
+  box-sizing: border-box;
+}
+.shell-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.5rem 0 0.25rem;
+  position: sticky;
+  top: 0;
+  z-index: 150;
+  background: linear-gradient(180deg, var(--bg) 88%, transparent);
+}
+.shell-topbar .repo-link {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 0.38rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: var(--toolbar-shadow);
+}
+.shell-topbar .repo-link:hover {
+  color: var(--accent-2);
+  border-color: var(--accent);
+  text-decoration: none;
 }
 .theme-toggle {
   display: inline-flex;
@@ -684,12 +755,12 @@ code { background: var(--card2); padding: 0.15rem 0.4rem; border-radius: 4px; bo
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
   width: 100%;
-  max-width: min(1320px, 100%);
-  margin: 0 auto;
-  padding: 0 clamp(0.5rem, 2.5vw, 1rem);
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
 }
 @media (min-width: 1100px) {
-  .layout-wrap { grid-template-columns: minmax(0, 220px) minmax(0, 1fr); align-items: start; padding: 0 clamp(0.75rem, 2vw, 1.25rem); }
+  .layout-wrap { grid-template-columns: minmax(0, 200px) minmax(0, 1fr); align-items: start; }
 }
 aside.sidenav {
   position: sticky;
@@ -713,16 +784,13 @@ aside.sidenav a { display: block; padding: 0.35rem 0; color: var(--text-dim); bo
 aside.sidenav a:hover { color: var(--accent-2); border-left-color: var(--accent); text-decoration: none; }
 
 header.hero {
-  padding: clamp(1.5rem, 4vw, 2.75rem) clamp(1rem, 4vw, 1.75rem) clamp(1.25rem, 3vw, 2.25rem);
-  padding-right: clamp(1rem, 4vw, 1.75rem);
+  padding: clamp(1.15rem, 3vw, 2rem) 0 clamp(1rem, 2.5vw, 1.65rem);
   border-bottom: 1px solid var(--border);
+  border-radius: 0 0 12px 12px;
   background: radial-gradient(ellipse 120% 80% at 20% -20%, var(--hero-spot), transparent 55%),
               linear-gradient(180deg, var(--hero-mid) 0%, var(--bg) 100%);
 }
-header.hero .inner { max-width: 52rem; }
-@media (max-width: 720px) {
-  header.hero .inner { padding-right: 5.85rem; }
-}
+header.hero .inner { max-width: min(52rem, 100%); margin: 0 auto; }
 .badge-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
 .badge {
   font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em;
@@ -745,22 +813,40 @@ header.hero .lead { margin: 0 0 1.25rem; color: var(--text-dim); font-size: clam
 .btn-pill.outline:hover { border-color: var(--accent); color: var(--accent-2) !important; }
 
 nav.toc-inline {
-  display: flex; flex-wrap: wrap;
-  gap: 0.45rem 0.85rem;
-  row-gap: 0.5rem;
-  padding: clamp(0.65rem, 2vw, 0.85rem) clamp(0.75rem, 3vw, 1.75rem);
-  background: var(--card);
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.4rem 0.65rem;
+  row-gap: 0.45rem;
+  padding: clamp(0.55rem, 1.8vw, 0.75rem) 0;
+  margin: 0 0 0.35rem;
+  background: transparent;
   border-bottom: 1px solid var(--border);
-  font-size: clamp(0.8rem, 2.4vw, 0.88rem);
+  font-size: clamp(0.76rem, 2.2vw, 0.85rem);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
-nav.toc-inline a { color: var(--muted); white-space: nowrap; }
+nav.toc-inline a {
+  color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding: 0.2rem 0;
+}
 nav.toc-inline a:hover { color: var(--accent-2); }
+@media (min-width: 960px) {
+  nav.toc-inline {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    padding: clamp(0.65rem, 2vw, 0.8rem) 0;
+  }
+}
 
 main.content {
-  padding: clamp(1rem, 3.5vw, 1.75rem);
-  max-width: min(920px, 100%);
+  padding: clamp(0.85rem, 2.5vw, 1.35rem) 0 clamp(1rem, 3vw, 1.5rem);
+  max-width: min(860px, 100%);
   width: 100%;
   min-width: 0;
+  margin: 0 auto;
 }
 
 section.block {
@@ -814,7 +900,17 @@ table.data-table td { color: var(--text-dim); }
   border-radius: 8px;
   border: 1px solid var(--border);
 }
-.table-scroll table.data-table { margin: 0; min-width: 480px; }
+.table-scroll table.data-table { margin: 0; min-width: min(480px, 100%); }
+@media (max-width: 600px) {
+  .table-scroll { margin-left: 0; margin-right: 0; border-radius: 6px; }
+  .table-scroll table.data-table { font-size: 0.8rem; min-width: 0; }
+  .table-scroll table.data-table th,
+  .table-scroll table.data-table td {
+    padding: 0.45rem 0.5rem;
+    word-break: break-word;
+    hyphens: auto;
+  }
+}
 .table-scroll table.data-table th:first-child,
 .table-scroll table.data-table td:first-child { padding-left: 0.75rem; }
 .table-scroll table.data-table th:last-child,
@@ -875,13 +971,52 @@ pre.json {
   max-width: 100%;
 }
 
+.flow-diagram {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin: 0.5rem 0 0;
+}
+.flow-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.45rem 0.55rem;
+}
+.flow-node {
+  flex: 1 1 140px;
+  min-width: min(100%, 140px);
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem 0.85rem;
+  font-size: clamp(0.8rem, 2.2vw, 0.88rem);
+  color: var(--text-dim);
+  line-height: 1.45;
+}
+.flow-node strong { color: var(--accent-2); margin-right: 0.25rem; }
+.flow-arr {
+  color: var(--accent-2);
+  font-weight: 700;
+  align-self: center;
+  user-select: none;
+  padding: 0 0.15rem;
+  flex-shrink: 0;
+}
+@media (max-width: 520px) {
+  .flow-arr { display: none; }
+  .flow-row { flex-direction: column; }
+  .flow-node { min-width: 100%; }
+}
+
 footer.site-ft {
-  padding: clamp(1.25rem, 3vw, 2rem) clamp(1rem, 3vw, 1.75rem);
+  padding: clamp(1.1rem, 2.5vw, 1.65rem) 0;
+  margin-top: 1rem;
   color: var(--muted);
-  font-size: clamp(0.78rem, 2vw, 0.82rem);
+  font-size: clamp(0.76rem, 2vw, 0.82rem);
   text-align: center;
   border-top: 1px solid var(--border);
-  background: var(--card);
+  background: transparent;
 }
 """,
         encoding="utf-8",
@@ -891,6 +1026,48 @@ footer.site-ft {
 def _fmt_metric(m: Dict[str, Any], k: str) -> str:
     v = m.get(k)
     return f"{v:.4f}" if isinstance(v, (int, float)) else "—"
+
+
+def _extra_head_meta() -> str:
+    base = (os.environ.get("PEPTIPROP_SITE_URL") or "").strip().rstrip("/")
+    if not base:
+        return ""
+    esc = html_module.escape
+    og_title = esc(f"{PROJECT_DISPLAY_NAME} — PROPEDIA skorlama")
+    return (
+        f'  <link rel="canonical" href="{esc(base + "/index.html")}" />\n'
+        f'  <meta property="og:url" content="{esc(base + "/")}" />\n'
+        f'  <meta property="og:title" content="{og_title}" />\n'
+        f'  <meta name="twitter:card" content="summary" />\n'
+    )
+
+
+PIPELINE_DIAGRAM_HTML = """      <section class="block" id="akim">
+        <h2>Proje akışı</h2>
+        <p class="lead-in">
+          <a href="__REPO_URL__">PeptiProp</a> deposundaki aktif hat: PROPEDIA → kanonik veri → sızıntısız split → skorlama ve reranking → 2D/3D raporlama.
+          Adım ayrıntıları <a href="#yontem">Yöntem</a> bölümünde.
+        </p>
+        <div class="flow-diagram" role="img" aria-label="Veri, split, çift üretimi, model, metrik ve rapor adımları">
+          <div class="flow-row">
+            <div class="flow-node"><strong>1</strong> PROPEDIA ham veri</div>
+            <span class="flow-arr" aria-hidden="true">→</span>
+            <div class="flow-node"><strong>2</strong> Kanonik tablolar + PDB düzeyi split</div>
+            <span class="flow-arr" aria-hidden="true">→</span>
+            <div class="flow-node"><strong>3</strong> Aday kümesi ve negatif çiftler</div>
+          </div>
+          <div class="flow-row">
+            <div class="flow-node"><strong>4</strong> Özellik ihracı (graf / tensör)</div>
+            <span class="flow-arr" aria-hidden="true">→</span>
+            <div class="flow-node"><strong>5</strong> Model eğitimi, validasyon, eşik</div>
+            <span class="flow-arr" aria-hidden="true">→</span>
+            <div class="flow-node"><strong>6</strong> AUROC, AUPRC, MRR, Hit@k …</div>
+            <span class="flow-arr" aria-hidden="true">→</span>
+            <div class="flow-node"><strong>7</strong> HTML, JSON, PNG; bu statik site + 3D demo</div>
+          </div>
+        </div>
+      </section>
+"""
 
 
 def write_index(
@@ -905,7 +1082,10 @@ def write_index(
     idx = _INDEX_HTML_TEMPLATE
     reps = {
         "__THEME_HEAD_SCRIPT__": THEME_INLINE_HEAD,
+        "__EXTRA_HEAD_META__": _extra_head_meta(),
         "__PROJECT_NAME__": PROJECT_DISPLAY_NAME,
+        "__REPO_URL__": REPO_URL,
+        "__PIPELINE_DIAGRAM_BLOCK__": PIPELINE_DIAGRAM_HTML.replace("__REPO_URL__", html_module.escape(REPO_URL)),
         "__M_AUROC__": _fmt_metric(m, "test_auroc"),
         "__M_AUPRC__": _fmt_metric(m, "test_auprc"),
         "__M_MRR__": _fmt_metric(m, "test_mrr"),
@@ -927,11 +1107,13 @@ _INDEX_HTML_TEMPLATE = r"""<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="__PROJECT_NAME__ — PROPEDIA protein-peptid skorlama, ablasyon ve 2D/3D görselleştirme dokümantasyonu" />
   <title>__PROJECT_NAME__ — PROPEDIA skorlama &amp; görselleştirme</title>
-  <link rel="stylesheet" href="assets/css/site.css" />
+__EXTRA_HEAD_META__  <link rel="stylesheet" href="assets/css/site.css" />
 __THEME_HEAD_SCRIPT__
 </head>
 <body class="site-body">
-  <div class="site-toolbar">
+  <div class="site-shell">
+  <div class="shell-topbar">
+    <a class="repo-link" href="__REPO_URL__" target="_blank" rel="noopener noreferrer">GitHub: PeptiProp</a>
     <button type="button" class="theme-toggle" data-theme-toggle aria-pressed="false" aria-label="Açık temaya geç">
       <span class="theme-toggle-text">Gündüz modu</span>
     </button>
@@ -957,6 +1139,7 @@ __THEME_HEAD_SCRIPT__
     </div>
   </header>
   <nav class="toc-inline" aria-label="Sayfa içi">
+    <a href="#akim">Akış</a>
     <a href="#amac">Amaç</a>
     <a href="#yontem">Yöntem</a>
     <a href="#veri">Veri</a>
@@ -974,6 +1157,7 @@ __THEME_HEAD_SCRIPT__
   <div class="layout-wrap">
     <aside class="sidenav" aria-label="İçindekiler">
       <strong>İçindekiler</strong>
+      <a href="#akim">Proje akışı</a>
       <a href="#amac">Amaç &amp; görev</a>
       <a href="#yontem">İş akışı</a>
       <a href="#veri">Veri katmanı</a>
@@ -989,6 +1173,7 @@ __THEME_HEAD_SCRIPT__
     </aside>
 
     <main class="content">
+__PIPELINE_DIAGRAM_BLOCK__
       <section class="block" id="amac">
         <h2>Amaç ve görev tanımı</h2>
         <p class="lead-in">
@@ -1141,8 +1326,8 @@ __SITE_EXTRA_VIZ__
 
       <section class="block" id="sss">
         <h2>Sık sorulanlar</h2>
-        <details class="expand"><summary>GitHub Pages’te görseller neden boş?</summary>
-          <div class="inner">CI, repo içindeki <code>outputs/...</code> dosyalarını kopyalar; klasör yoksa sadece metin ve demo 3D çalışır. Yerelde eğitim/ablation sonrası <code>build_pages_site.py</code> çalıştırıp commit öncesi artifact’ı kontrol edin.</div>
+        <details class="expand"><summary>GitHub Pages’te grafikler gerçek veri gibi görünmüyor?</summary>
+          <div class="inner">CI’da <code>outputs/training/</code> olmayabilir; derleme <strong>yer tutucu PNG</strong> üretir (kırık resim olmaz). Gerçek ROC/ablation görselleri için yerelde eğitim/ablation sonrası <code>build_pages_site.py</code> çalıştırın. 3D demo her zaman <code>assets/demo/1crn.cif</code> ile çalışır.</div>
         </details>
         <details class="expand"><summary>2D ile skor üretiliyor mu?</summary>
           <div class="inner">Hayır; 2D görsel raporlama içindir. Skorlar yapı/seq özelliklerinden gelen modele aittir.</div>
@@ -1165,7 +1350,9 @@ __SITE_EXTRA_VIZ__
   <footer class="site-ft">
     __PROJECT_NAME__ — statik site <code>scripts/build_pages_site.py</code> ile üretilir.
     Workflow: <code>.github/workflows/pages.yml</code>
+    · Yayın: <a href="https://atakan-emre.github.io/PeptiProp/">atakan-emre.github.io/PeptiProp</a>
   </footer>
+  </div>
   <script src="assets/js/site-theme.js" defer></script>
 </body>
 </html>
@@ -1184,9 +1371,16 @@ def main() -> None:
 
     img = SITE / "assets" / "img"
     img.mkdir(parents=True, exist_ok=True)
-    if training_dir:
-        _copy_if(training_dir / "ablation_heatmap.png", img / "ablation_heatmap.png")
-        _copy_if(training_dir / "model_family_comparison.png", img / "model_family_comparison.png")
+    for fname, label in (
+        ("ablation_heatmap.png", "Ablasyon ısı haritası (validation MRR)"),
+        ("model_family_comparison.png", "Model ailesi karşılaştırması"),
+    ):
+        dest = img / fname
+        src = training_dir / fname if training_dir else None
+        if src is not None and src.is_file():
+            _copy_if(src, dest)
+        elif not dest.is_file():
+            write_placeholder_png(dest, label, "Yerelde ablation / eğitim çıktısı gerekir")
     training_fig_items = _copy_training_figures(training_dir, img)
     manifest["training_figure_assets"] = [x["href"] for x in training_fig_items]
     gallery_section = _render_training_gallery_section(training_fig_items)
@@ -1197,8 +1391,11 @@ def main() -> None:
             "outputs/analysis_propedia*/**/peptide_2d.png",
         ]
     )
+    p2d_dest = img / "peptide_2d_example.png"
     if p2d:
-        _copy_if(p2d, img / "peptide_2d_example.png")
+        _copy_if(p2d, p2d_dest)
+    elif not p2d_dest.is_file():
+        write_placeholder_png(p2d_dest, "Örnek peptit 2D PNG", "Pipeline veya sanity çıktısı gerekir")
 
     site_extra_html = ""
     try:
@@ -1210,9 +1407,31 @@ def main() -> None:
         extra_manifest = generate_site_extra_assets(ROOT, SITE)
         manifest["site_extra_figures"] = extra_manifest.get("site_extra_figures", [])
         manifest["site_extra_pages"] = extra_manifest.get("site_extra_pages", [])
-        site_extra_html = html_extra_viz_section(SITE)
     except Exception as exc:
         print(f"[WARN] Ek site görselleri atlandı: {exc}")
+        manifest.setdefault("site_extra_figures", [])
+        manifest.setdefault("site_extra_pages", [])
+
+    for fname, t1, t2 in (
+        ("peptide_length_histogram.png", "Peptit uzunluk dağılımı", "Kanonik parquet veya yer tutucu"),
+        ("interaction_summary_panel.png", "Etkileşim özet paneli", "analysis_propedia çıktısı veya yer tutucu"),
+    ):
+        pth = img / fname
+        if not pth.is_file():
+            write_placeholder_png(pth, t1, t2)
+
+    try:
+        from peptidquantum.visualization.plots.site_extras import html_extra_viz_section
+
+        site_extra_html = html_extra_viz_section(SITE)
+    except Exception:
+        site_extra_html = ""
+
+    extra_seen = set(manifest.get("site_extra_figures") or [])
+    for fn in ("peptide_length_histogram.png", "interaction_summary_panel.png"):
+        if (img / fn).is_file():
+            extra_seen.add(f"assets/img/{fn}")
+    manifest["site_extra_figures"] = sorted(extra_seen)
 
     demo_cif = SITE / "assets" / "demo" / "1crn.cif"
     if not demo_cif.is_file():

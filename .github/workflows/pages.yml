@@ -25,7 +25,12 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Site derleme bağımlılıkları
+        run: pip install -r scripts/requirements-pages.txt
+
       - name: Üret (site/)
+        env:
+          PEPTIPROP_SITE_URL: https://atakan-emre.github.io/PeptiProp
         run: python scripts/build_pages_site.py
 
       - name: Pages artifact yükle

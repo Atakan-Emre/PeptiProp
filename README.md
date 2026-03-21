@@ -9,16 +9,19 @@
 
 ## Canlı demo (GitHub Pages)
 
-Depoda **GitHub Actions → Pages** açıldıktan sonra kök URL’de statik site yayınlanır.
+Depoda **GitHub Actions → Pages** açıldıktan sonra statik site yayınlanır.
 
-- **Ana sayfa:** mobil/tablet/masaüstüne uyumlu düzen; **gündüz / gece** tema anahtarı (tercih `localStorage`’da); veri tabloları yatay kaydırmalı; ablation + eğitim eğrileri (varsa), metrik özeti (`manifest.json` → `metrics` + `training_dir`; kaynak `metrics.json` içinde `test_metrics`, `test_ranking_metrics` vb.)
-- **3D demo:** `embed/viewer-demo.html` — aynı tema + **3Dmol.js** + `1crn.cif` (build sırasında indirilir)
+- **Yayın URL:** [atakan-emre.github.io/PeptiProp](https://atakan-emre.github.io/PeptiProp/index.html) · **Kaynak:** [github.com/Atakan-Emre/PeptiProp](https://github.com/Atakan-Emre/PeptiProp)
+- **Ana sayfa:** tek sütun hizalı düzen; üst çubukta depo bağlantısı + tema; **proje akışı** diyagramı; tablolar mobilde kaydırmalı; eğitim PNG’leri yoksa CI **yer tutucu grafik** üretir (kırık resim olmaz); metrikler `manifest.json` üzerinden
+- **3D demo:** `embed/viewer-demo.html` — **3Dmol.js** + `1crn.cif` (build sırasında indirilir)
 
 Yerelde site üretmek:
 
 ```bash
+pip install -r scripts/requirements-pages.txt   # yer tutucu PNG için matplotlib
 python scripts/build_pages_site.py
-# Çıktı: site/ — index.html, embed/viewer-demo.html, assets/css/site.css, assets/js/site-theme.js, data/manifest.json
+# İsteğe bağlı: PEPTIPROP_SITE_URL=https://atakan-emre.github.io/PeptiProp canonical/og meta
+# Çıktı: site/ — index.html, embed/, assets/, data/manifest.json
 ```
 
 Ayrıntı: [docs/GITHUB_PAGES_TR.md](docs/GITHUB_PAGES_TR.md)
