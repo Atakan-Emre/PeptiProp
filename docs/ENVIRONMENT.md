@@ -2,7 +2,7 @@
 
 This document specifies the exact environment configuration for reproducible results.
 
-> **Güncel giriş:** Apple Silicon MLX için `.venv-mlx` ve `mlx/requirements-m4.txt` kullanımı [mlx/README.md](mlx/README.md) ve kök [README.md](README.md) ile hizalanmıştır; Python sürümü burada kilitli aralıktan genişleyebilir.
+> **Güncel giriş:** Apple Silicon MLX için `.venv-mlx` ve `mlx/requirements-m4.txt` kullanımı [mlx/README.md](../mlx/README.md) ve kök [README.md](../README.md) ile hizalanmıştır; Python sürümü burada kilitli aralıktan genişleyebilir.
 
 ## Python Version
 

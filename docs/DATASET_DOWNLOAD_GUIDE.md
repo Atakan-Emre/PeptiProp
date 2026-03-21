@@ -1,6 +1,6 @@
 # Dataset Download Guide (PROPEDIA-only)
 
-This guide describes only the active v0.1 data flow. Güncel komut özeti: [README.md](README.md). Yayınlanan özet JSON: `site/data/manifest.json` (site script’i ile üretilir).
+This guide describes only the active v0.1 data flow. Güncel komut özeti: [README.md](../README.md). Yayınlanan özet JSON: `site/data/manifest.json` (site script’i ile üretilir).
 
 ## Active Dataset
 
