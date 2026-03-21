@@ -68,7 +68,7 @@ Invoke-Step "01_split" "python scripts/build_pdb_level_splits.py --canonical dat
 Invoke-Step "02_pairs" "python scripts/generate_negative_pairs.py --canonical data/canonical --splits data/canonical/splits --output data/canonical/pairs --seed 42"
 Invoke-Leakage-Tests "03_leakage_tests"
 Invoke-Step "04_ablation_smoke_mlx" "python scripts/run_final_ablation_mlx.py --smoke-only --refresh-features --smoke-epochs 8 --smoke-patience 4"
-Invoke-Step "05_ablation_full_200ep_mlx" "python scripts/run_final_ablation_mlx.py --refresh-features --full-epochs 200 --full-patience 20 --smoke-epochs 8 --smoke-patience 4 --finalists-per-family 1 --full-subset-train 60000 --full-subset-val 20000 --full-subset-test 20000"
+Invoke-Step "05_ablation_full_200ep_mlx" "python scripts/run_final_ablation_mlx.py --refresh-features --full-epochs 200 --full-patience 20 --smoke-epochs 8 --smoke-patience 4 --finalists-per-family 1"
 Invoke-Step "06_mlx_pipeline_tests" "python tests/test_propedia_active_pipeline_mlx.py"
 
 Write-Host ""

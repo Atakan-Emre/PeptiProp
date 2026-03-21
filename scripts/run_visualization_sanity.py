@@ -42,18 +42,25 @@ def main(canonical_dir: Path, sample_list: Path, output_dir: Path, limit: int) -
         pdb_id = str(row["pdb_id"])
         protein_chain = str(row["protein_chain_id"])
         peptide_chain = str(row["peptide_chain_id"])
+        structure_file = Path(str(row["structure_file"]))
+        cif_path = structure_file
+        if structure_file.suffix.lower() not in {".cif", ".mmcif"}:
+            fetched = pipeline.rcsb_fetcher.fetch_structure(pdb_id, format="cif")
+            if fetched:
+                cif_path = Path(fetched)
         print(f"[RUN] {complex_id} -> {pdb_id} {protein_chain}/{peptide_chain}")
         result = pipeline.run(
-            complex_id=pdb_id,
+            complex_id=complex_id,
+            cif_path=cif_path,
             protein_chain=protein_chain,
             peptide_chain=peptide_chain,
-            use_arpeggio=False,
-            use_plip=False,
+            use_arpeggio=True,
+            use_plip=True,
             generate_pymol=False,
             generate_report=True,
             generate_viewer=True,
         )
-        sample_output_dir = output_dir / pdb_id
+        sample_output_dir = output_dir / complex_id
         summary.append(
             {
                 "complex_id": complex_id,

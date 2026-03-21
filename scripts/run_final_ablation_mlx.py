@@ -395,9 +395,9 @@ def main():
     parser.add_argument("--smoke-subset-train", type=int, default=25000, help="Smoke subset size for train split (0 disables subsetting).")
     parser.add_argument("--smoke-subset-val", type=int, default=8000, help="Smoke subset size for val split (0 disables subsetting).")
     parser.add_argument("--smoke-subset-test", type=int, default=8000, help="Smoke subset size for test split (0 disables subsetting).")
-    parser.add_argument("--full-subset-train", type=int, default=60000, help="Full subset size for train split (0 disables subsetting).")
-    parser.add_argument("--full-subset-val", type=int, default=20000, help="Full subset size for val split (0 disables subsetting).")
-    parser.add_argument("--full-subset-test", type=int, default=20000, help="Full subset size for test split (0 disables subsetting).")
+    parser.add_argument("--full-subset-train", type=int, default=0, help="Full subset size for train split (0 disables subsetting).")
+    parser.add_argument("--full-subset-val", type=int, default=0, help="Full subset size for val split (0 disables subsetting).")
+    parser.add_argument("--full-subset-test", type=int, default=0, help="Full subset size for test split (0 disables subsetting).")
     args = parser.parse_args()
 
     template = load_template()

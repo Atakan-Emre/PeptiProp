@@ -1,0 +1,2916 @@
+{
+  "complex_id": "1AI8_H_I",
+  "total_interactions": 61,
+  "interaction_types": {
+    "van_der_waals": 61
+  },
+  "residue_pairs": [
+    {
+      "protein_chain": "H",
+      "protein_residue": 23,
+      "protein_resname": "GLU",
+      "peptide_chain": "L",
+      "peptide_residue": 14,
+      "peptide_resname": "ASP",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.492838382720947
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 25,
+      "protein_resname": "GLY",
+      "peptide_chain": "L",
+      "peptide_residue": 4,
+      "peptide_resname": "ARG",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.274148464202881
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 25,
+      "protein_resname": "GLY",
+      "peptide_chain": "L",
+      "peptide_residue": 5,
+      "peptide_resname": "PRO",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.5260090827941895
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 25,
+      "protein_resname": "GLY",
+      "peptide_chain": "L",
+      "peptide_residue": 6,
+      "peptide_resname": "LEU",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 5.928127765655518
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 25,
+      "protein_resname": "GLY",
+      "peptide_chain": "L",
+      "peptide_residue": 7,
+      "peptide_resname": "PHE",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.838109970092773
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 26,
+      "protein_resname": "MET",
+      "peptide_chain": "L",
+      "peptide_residue": 4,
+      "peptide_resname": "ARG",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.348040580749512
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 26,
+      "protein_resname": "MET",
+      "peptide_chain": "L",
+      "peptide_residue": 6,
+      "peptide_resname": "LEU",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.454075813293457
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 26,
+      "protein_resname": "MET",
+      "peptide_chain": "L",
+      "peptide_residue": 7,
+      "peptide_resname": "PHE",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.447319507598877
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 26,
+      "protein_resname": "MET",
+      "peptide_chain": "L",
+      "peptide_residue": 14,
+      "peptide_resname": "ASP",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.112425327301025
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 27,
+      "protein_resname": "SER",
+      "peptide_chain": "L",
+      "peptide_residue": 4,
+      "peptide_resname": "ARG",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.845128059387207
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 28,
+      "protein_resname": "PRO",
+      "peptide_chain": "L",
+      "peptide_residue": 4,
+      "peptide_resname": "ARG",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 6.9585700035095215
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 47,
+      "protein_resname": "ILE",
+      "peptide_chain": "L",
+      "peptide_residue": 1,
+      "peptide_resname": "CYS",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.81438684463501
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 115,
+      "protein_resname": "SER",
+      "peptide_chain": "L",
+      "peptide_residue": 5,
+      "peptide_resname": "PRO",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.548648834228516
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 116,
+      "protein_resname": "ASP",
+      "peptide_chain": "L",
+      "peptide_residue": 4,
+      "peptide_resname": "ARG",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.620547771453857
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 116,
+      "protein_resname": "ASP",
+      "peptide_chain": "L",
+      "peptide_residue": 5,
+      "peptide_resname": "PRO",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 5.0682291984558105
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 116,
+      "protein_resname": "ASP",
+      "peptide_chain": "L",
+      "peptide_residue": 6,
+      "peptide_resname": "LEU",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 6.231706142425537
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 117,
+      "protein_resname": "TYR",
+      "peptide_chain": "L",
+      "peptide_residue": 5,
+      "peptide_resname": "PRO",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.467932224273682
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 117,
+      "protein_resname": "TYR",
+      "peptide_chain": "L",
+      "peptide_residue": 6,
+      "peptide_resname": "LEU",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.923637866973877
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 119,
+      "protein_resname": "HIS",
+      "peptide_chain": "L",
+      "peptide_residue": 1,
+      "peptide_resname": "CYS",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.240870475769043
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 119,
+      "protein_resname": "HIS",
+      "peptide_chain": "L",
+      "peptide_residue": 2,
+      "peptide_resname": "GLY",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.594268321990967
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 119,
+      "protein_resname": "HIS",
+      "peptide_chain": "L",
+      "peptide_residue": 3,
+      "peptide_resname": "LEU",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.911248207092285
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 119,
+      "protein_resname": "HIS",
+      "peptide_chain": "L",
+      "peptide_residue": 4,
+      "peptide_resname": "ARG",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 6.928447246551514
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 119,
+      "protein_resname": "HIS",
+      "peptide_chain": "L",
+      "peptide_residue": 5,
+      "peptide_resname": "PRO",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.718128204345703
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 120,
+      "protein_resname": "PRO",
+      "peptide_chain": "L",
+      "peptide_residue": 1,
+      "peptide_resname": "CYS",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 5.19780158996582
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 120,
+      "protein_resname": "PRO",
+      "peptide_chain": "L",
+      "peptide_residue": 2,
+      "peptide_resname": "GLY",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 6.103687286376953
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 121,
+      "protein_resname": "VAL",
+      "peptide_chain": "L",
+      "peptide_residue": 1,
+      "peptide_resname": "CYS",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 5.029096603393555
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 121,
+      "protein_resname": "VAL",
+      "peptide_chain": "L",
+      "peptide_residue": 2,
+      "peptide_resname": "GLY",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 4.243001937866211
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 121,
+      "protein_resname": "VAL",
+      "peptide_chain": "L",
+      "peptide_residue": 3,
+      "peptide_resname": "LEU",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.649677753448486
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 122,
+      "protein_resname": "CYS",
+      "peptide_chain": "L",
+      "peptide_residue": 1,
+      "peptide_resname": "CYS",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 4.944672107696533
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 122,
+      "protein_resname": "CYS",
+      "peptide_chain": "L",
+      "peptide_residue": 2,
+      "peptide_resname": "GLY",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 5.152008533477783
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 129,
+      "protein_resname": "LEU",
+      "peptide_chain": "L",
+      "peptide_residue": 14,
+      "peptide_resname": "TYR",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.265342712402344
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 133,
+      "protein_resname": "GLY",
+      "peptide_chain": "L",
+      "peptide_residue": 14,
+      "peptide_resname": "SER",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 6.643149375915527
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 134,
+      "protein_resname": "TYR",
+      "peptide_chain": "L",
+      "peptide_residue": 14,
+      "peptide_resname": "SER",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 5.081831932067871
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 135,
+      "protein_resname": "LYS",
+      "peptide_chain": "L",
+      "peptide_residue": 14,
+      "peptide_resname": "LEU",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 5.248547554016113
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 136,
+      "protein_resname": "GLY",
+      "peptide_chain": "L",
+      "peptide_residue": 14,
+      "peptide_resname": "LEU",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 6.609642028808594
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 159,
+      "protein_resname": "ASN",
+      "peptide_chain": "L",
+      "peptide_residue": 14,
+      "peptide_resname": "LEU",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.421121597290039
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 201,
+      "protein_resname": "MET",
+      "peptide_chain": "L",
+      "peptide_residue": 14,
+      "peptide_resname": "LEU",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.4488983154296875
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 202,
+      "protein_resname": "LYS",
+      "peptide_chain": "L",
+      "peptide_residue": 14,
+      "peptide_resname": "LEU",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.302009105682373
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 204,
+      "protein_resname": "PRO",
+      "peptide_chain": "L",
+      "peptide_residue": 14,
+      "peptide_resname": "LEU",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 6.649926662445068
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 205,
+      "protein_resname": "ASN",
+      "peptide_chain": "L",
+      "peptide_residue": 3,
+      "peptide_resname": "LEU",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.93103551864624
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 205,
+      "protein_resname": "ASN",
+      "peptide_chain": "L",
+      "peptide_residue": 8,
+      "peptide_resname": "GLU",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.90988302230835
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 206,
+      "protein_resname": "ARG",
+      "peptide_chain": "L",
+      "peptide_residue": 1,
+      "peptide_resname": "CYS",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.3989787101745605
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 206,
+      "protein_resname": "ARG",
+      "peptide_chain": "L",
+      "peptide_residue": 2,
+      "peptide_resname": "GLY",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 4.779115676879883
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 206,
+      "protein_resname": "ARG",
+      "peptide_chain": "L",
+      "peptide_residue": 3,
+      "peptide_resname": "LEU",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 5.617807388305664
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 207,
+      "protein_resname": "TRP",
+      "peptide_chain": "L",
+      "peptide_residue": 1,
+      "peptide_resname": "CYS",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.708438873291016
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 207,
+      "protein_resname": "TRP",
+      "peptide_chain": "L",
+      "peptide_residue": 2,
+      "peptide_resname": "GLY",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 4.322280406951904
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 207,
+      "protein_resname": "TRP",
+      "peptide_chain": "L",
+      "peptide_residue": 3,
+      "peptide_resname": "LEU",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 6.725865364074707
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 208,
+      "protein_resname": "TYR",
+      "peptide_chain": "L",
+      "peptide_residue": 2,
+      "peptide_resname": "GLY",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 6.3348002433776855
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 36,
+      "protein_resname": "LYS",
+      "peptide_chain": "I",
+      "peptide_residue": 64,
+      "peptide_resname": "LEU",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.1387834548950195
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 38,
+      "protein_resname": "GLN",
+      "peptide_chain": "I",
+      "peptide_residue": 56,
+      "peptide_resname": "PHE",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 6.960850715637207
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 39,
+      "protein_resname": "GLU",
+      "peptide_chain": "I",
+      "peptide_residue": 56,
+      "peptide_resname": "PHE",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 6.930663585662842
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 73,
+      "protein_resname": "ARG",
+      "peptide_chain": "I",
+      "peptide_residue": 56,
+      "peptide_resname": "PHE",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.873917579650879
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 74,
+      "protein_resname": "THR",
+      "peptide_chain": "I",
+      "peptide_residue": 55,
+      "peptide_resname": "ASP",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 6.472116947174072
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 74,
+      "protein_resname": "THR",
+      "peptide_chain": "I",
+      "peptide_residue": 56,
+      "peptide_resname": "PHE",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 4.424140930175781
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 74,
+      "protein_resname": "THR",
+      "peptide_chain": "I",
+      "peptide_residue": 57,
+      "peptide_resname": "GLU",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 5.867771625518799
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 75,
+      "protein_resname": "ARG",
+      "peptide_chain": "I",
+      "peptide_residue": 56,
+      "peptide_resname": "PHE",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 6.390480995178223
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 75,
+      "protein_resname": "ARG",
+      "peptide_chain": "I",
+      "peptide_residue": 57,
+      "peptide_resname": "GLU",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 5.223581790924072
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 76,
+      "protein_resname": "TYR",
+      "peptide_chain": "I",
+      "peptide_residue": 56,
+      "peptide_resname": "PHE",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 7.959650039672852
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 76,
+      "protein_resname": "TYR",
+      "peptide_chain": "I",
+      "peptide_residue": 57,
+      "peptide_resname": "GLU",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 5.889206409454346
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 76,
+      "protein_resname": "TYR",
+      "peptide_chain": "I",
+      "peptide_residue": 58,
+      "peptide_resname": "GLU",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 6.883347511291504
+    },
+    {
+      "protein_chain": "H",
+      "protein_residue": 76,
+      "protein_resname": "TYR",
+      "peptide_chain": "I",
+      "peptide_residue": 59,
+      "peptide_resname": "ILE",
+      "num_interactions": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "min_distance": 6.156075477600098
+    }
+  ],
+  "protein_residues": [
+    {
+      "interaction_count": 5,
+      "interaction_types": [
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 1,
+          "residue_name": "CYS"
+        },
+        {
+          "chain": "L",
+          "residue_id": 2,
+          "residue_name": "GLY"
+        },
+        {
+          "chain": "L",
+          "residue_id": 3,
+          "residue_name": "LEU"
+        },
+        {
+          "chain": "L",
+          "residue_id": 4,
+          "residue_name": "ARG"
+        },
+        {
+          "chain": "L",
+          "residue_id": 5,
+          "residue_name": "PRO"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 119,
+      "residue_name": "HIS",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 4,
+      "interaction_types": [
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 4,
+          "residue_name": "ARG"
+        },
+        {
+          "chain": "L",
+          "residue_id": 5,
+          "residue_name": "PRO"
+        },
+        {
+          "chain": "L",
+          "residue_id": 6,
+          "residue_name": "LEU"
+        },
+        {
+          "chain": "L",
+          "residue_id": 7,
+          "residue_name": "PHE"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 25,
+      "residue_name": "GLY",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 4,
+      "interaction_types": [
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 4,
+          "residue_name": "ARG"
+        },
+        {
+          "chain": "L",
+          "residue_id": 6,
+          "residue_name": "LEU"
+        },
+        {
+          "chain": "L",
+          "residue_id": 7,
+          "residue_name": "PHE"
+        },
+        {
+          "chain": "L",
+          "residue_id": 14,
+          "residue_name": "ASP"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 26,
+      "residue_name": "MET",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 4,
+      "interaction_types": [
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "I",
+          "residue_id": 56,
+          "residue_name": "PHE"
+        },
+        {
+          "chain": "I",
+          "residue_id": 57,
+          "residue_name": "GLU"
+        },
+        {
+          "chain": "I",
+          "residue_id": 58,
+          "residue_name": "GLU"
+        },
+        {
+          "chain": "I",
+          "residue_id": 59,
+          "residue_name": "ILE"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 76,
+      "residue_name": "TYR",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 3,
+      "interaction_types": [
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 4,
+          "residue_name": "ARG"
+        },
+        {
+          "chain": "L",
+          "residue_id": 5,
+          "residue_name": "PRO"
+        },
+        {
+          "chain": "L",
+          "residue_id": 6,
+          "residue_name": "LEU"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 116,
+      "residue_name": "ASP",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 3,
+      "interaction_types": [
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 1,
+          "residue_name": "CYS"
+        },
+        {
+          "chain": "L",
+          "residue_id": 2,
+          "residue_name": "GLY"
+        },
+        {
+          "chain": "L",
+          "residue_id": 3,
+          "residue_name": "LEU"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 121,
+      "residue_name": "VAL",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 3,
+      "interaction_types": [
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 1,
+          "residue_name": "CYS"
+        },
+        {
+          "chain": "L",
+          "residue_id": 2,
+          "residue_name": "GLY"
+        },
+        {
+          "chain": "L",
+          "residue_id": 3,
+          "residue_name": "LEU"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 206,
+      "residue_name": "ARG",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 3,
+      "interaction_types": [
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 1,
+          "residue_name": "CYS"
+        },
+        {
+          "chain": "L",
+          "residue_id": 2,
+          "residue_name": "GLY"
+        },
+        {
+          "chain": "L",
+          "residue_id": 3,
+          "residue_name": "LEU"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 207,
+      "residue_name": "TRP",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 3,
+      "interaction_types": [
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "I",
+          "residue_id": 55,
+          "residue_name": "ASP"
+        },
+        {
+          "chain": "I",
+          "residue_id": 56,
+          "residue_name": "PHE"
+        },
+        {
+          "chain": "I",
+          "residue_id": 57,
+          "residue_name": "GLU"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 74,
+      "residue_name": "THR",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 2,
+      "interaction_types": [
+        "van_der_waals",
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 5,
+          "residue_name": "PRO"
+        },
+        {
+          "chain": "L",
+          "residue_id": 6,
+          "residue_name": "LEU"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 117,
+      "residue_name": "TYR",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 2,
+      "interaction_types": [
+        "van_der_waals",
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 1,
+          "residue_name": "CYS"
+        },
+        {
+          "chain": "L",
+          "residue_id": 2,
+          "residue_name": "GLY"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 120,
+      "residue_name": "PRO",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 2,
+      "interaction_types": [
+        "van_der_waals",
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 1,
+          "residue_name": "CYS"
+        },
+        {
+          "chain": "L",
+          "residue_id": 2,
+          "residue_name": "GLY"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 122,
+      "residue_name": "CYS",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 2,
+      "interaction_types": [
+        "van_der_waals",
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 3,
+          "residue_name": "LEU"
+        },
+        {
+          "chain": "L",
+          "residue_id": 8,
+          "residue_name": "GLU"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 205,
+      "residue_name": "ASN",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 2,
+      "interaction_types": [
+        "van_der_waals",
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "I",
+          "residue_id": 56,
+          "residue_name": "PHE"
+        },
+        {
+          "chain": "I",
+          "residue_id": 57,
+          "residue_name": "GLU"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 75,
+      "residue_name": "ARG",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 14,
+          "residue_name": "ASP"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 23,
+      "residue_name": "GLU",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 4,
+          "residue_name": "ARG"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 27,
+      "residue_name": "SER",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 4,
+          "residue_name": "ARG"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 28,
+      "residue_name": "PRO",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 1,
+          "residue_name": "CYS"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 47,
+      "residue_name": "ILE",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 5,
+          "residue_name": "PRO"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 115,
+      "residue_name": "SER",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 14,
+          "residue_name": "TYR"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 129,
+      "residue_name": "LEU",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 14,
+          "residue_name": "SER"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 133,
+      "residue_name": "GLY",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 14,
+          "residue_name": "SER"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 134,
+      "residue_name": "TYR",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 14,
+          "residue_name": "LEU"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 135,
+      "residue_name": "LYS",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 14,
+          "residue_name": "LEU"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 136,
+      "residue_name": "GLY",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 14,
+          "residue_name": "LEU"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 159,
+      "residue_name": "ASN",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 14,
+          "residue_name": "LEU"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 201,
+      "residue_name": "MET",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 14,
+          "residue_name": "LEU"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 202,
+      "residue_name": "LYS",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 14,
+          "residue_name": "LEU"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 204,
+      "residue_name": "PRO",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "L",
+          "residue_id": 2,
+          "residue_name": "GLY"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 208,
+      "residue_name": "TYR",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "I",
+          "residue_id": 64,
+          "residue_name": "LEU"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 36,
+      "residue_name": "LYS",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "I",
+          "residue_id": 56,
+          "residue_name": "PHE"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 38,
+      "residue_name": "GLN",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "I",
+          "residue_id": 56,
+          "residue_name": "PHE"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 39,
+      "residue_name": "GLU",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "I",
+          "residue_id": 56,
+          "residue_name": "PHE"
+        }
+      ],
+      "chain": "H",
+      "residue_id": 73,
+      "residue_name": "ARG",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    }
+  ],
+  "peptide_residues": [
+    {
+      "interaction_count": 11,
+      "interaction_types": [
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "H",
+          "residue_id": 23,
+          "residue_name": "GLU"
+        },
+        {
+          "chain": "H",
+          "residue_id": 26,
+          "residue_name": "MET"
+        },
+        {
+          "chain": "H",
+          "residue_id": 129,
+          "residue_name": "LEU"
+        },
+        {
+          "chain": "H",
+          "residue_id": 133,
+          "residue_name": "GLY"
+        },
+        {
+          "chain": "H",
+          "residue_id": 134,
+          "residue_name": "TYR"
+        },
+        {
+          "chain": "H",
+          "residue_id": 135,
+          "residue_name": "LYS"
+        },
+        {
+          "chain": "H",
+          "residue_id": 136,
+          "residue_name": "GLY"
+        },
+        {
+          "chain": "H",
+          "residue_id": 159,
+          "residue_name": "ASN"
+        },
+        {
+          "chain": "H",
+          "residue_id": 201,
+          "residue_name": "MET"
+        },
+        {
+          "chain": "H",
+          "residue_id": 202,
+          "residue_name": "LYS"
+        },
+        {
+          "chain": "H",
+          "residue_id": 204,
+          "residue_name": "PRO"
+        }
+      ],
+      "chain": "L",
+      "residue_id": 14,
+      "residue_name": "LEU",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 7,
+      "interaction_types": [
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "H",
+          "residue_id": 47,
+          "residue_name": "ILE"
+        },
+        {
+          "chain": "H",
+          "residue_id": 119,
+          "residue_name": "HIS"
+        },
+        {
+          "chain": "H",
+          "residue_id": 120,
+          "residue_name": "PRO"
+        },
+        {
+          "chain": "H",
+          "residue_id": 121,
+          "residue_name": "VAL"
+        },
+        {
+          "chain": "H",
+          "residue_id": 122,
+          "residue_name": "CYS"
+        },
+        {
+          "chain": "H",
+          "residue_id": 206,
+          "residue_name": "ARG"
+        },
+        {
+          "chain": "H",
+          "residue_id": 207,
+          "residue_name": "TRP"
+        }
+      ],
+      "chain": "L",
+      "residue_id": 1,
+      "residue_name": "CYS",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 7,
+      "interaction_types": [
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "H",
+          "residue_id": 119,
+          "residue_name": "HIS"
+        },
+        {
+          "chain": "H",
+          "residue_id": 120,
+          "residue_name": "PRO"
+        },
+        {
+          "chain": "H",
+          "residue_id": 121,
+          "residue_name": "VAL"
+        },
+        {
+          "chain": "H",
+          "residue_id": 122,
+          "residue_name": "CYS"
+        },
+        {
+          "chain": "H",
+          "residue_id": 206,
+          "residue_name": "ARG"
+        },
+        {
+          "chain": "H",
+          "residue_id": 207,
+          "residue_name": "TRP"
+        },
+        {
+          "chain": "H",
+          "residue_id": 208,
+          "residue_name": "TYR"
+        }
+      ],
+      "chain": "L",
+      "residue_id": 2,
+      "residue_name": "GLY",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 6,
+      "interaction_types": [
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "H",
+          "residue_id": 25,
+          "residue_name": "GLY"
+        },
+        {
+          "chain": "H",
+          "residue_id": 26,
+          "residue_name": "MET"
+        },
+        {
+          "chain": "H",
+          "residue_id": 27,
+          "residue_name": "SER"
+        },
+        {
+          "chain": "H",
+          "residue_id": 28,
+          "residue_name": "PRO"
+        },
+        {
+          "chain": "H",
+          "residue_id": 116,
+          "residue_name": "ASP"
+        },
+        {
+          "chain": "H",
+          "residue_id": 119,
+          "residue_name": "HIS"
+        }
+      ],
+      "chain": "L",
+      "residue_id": 4,
+      "residue_name": "ARG",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 6,
+      "interaction_types": [
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "H",
+          "residue_id": 38,
+          "residue_name": "GLN"
+        },
+        {
+          "chain": "H",
+          "residue_id": 39,
+          "residue_name": "GLU"
+        },
+        {
+          "chain": "H",
+          "residue_id": 73,
+          "residue_name": "ARG"
+        },
+        {
+          "chain": "H",
+          "residue_id": 74,
+          "residue_name": "THR"
+        },
+        {
+          "chain": "H",
+          "residue_id": 75,
+          "residue_name": "ARG"
+        },
+        {
+          "chain": "H",
+          "residue_id": 76,
+          "residue_name": "TYR"
+        }
+      ],
+      "chain": "I",
+      "residue_id": 56,
+      "residue_name": "PHE",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 5,
+      "interaction_types": [
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "H",
+          "residue_id": 25,
+          "residue_name": "GLY"
+        },
+        {
+          "chain": "H",
+          "residue_id": 115,
+          "residue_name": "SER"
+        },
+        {
+          "chain": "H",
+          "residue_id": 116,
+          "residue_name": "ASP"
+        },
+        {
+          "chain": "H",
+          "residue_id": 117,
+          "residue_name": "TYR"
+        },
+        {
+          "chain": "H",
+          "residue_id": 119,
+          "residue_name": "HIS"
+        }
+      ],
+      "chain": "L",
+      "residue_id": 5,
+      "residue_name": "PRO",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 5,
+      "interaction_types": [
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "H",
+          "residue_id": 119,
+          "residue_name": "HIS"
+        },
+        {
+          "chain": "H",
+          "residue_id": 121,
+          "residue_name": "VAL"
+        },
+        {
+          "chain": "H",
+          "residue_id": 205,
+          "residue_name": "ASN"
+        },
+        {
+          "chain": "H",
+          "residue_id": 206,
+          "residue_name": "ARG"
+        },
+        {
+          "chain": "H",
+          "residue_id": 207,
+          "residue_name": "TRP"
+        }
+      ],
+      "chain": "L",
+      "residue_id": 3,
+      "residue_name": "LEU",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 4,
+      "interaction_types": [
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "H",
+          "residue_id": 25,
+          "residue_name": "GLY"
+        },
+        {
+          "chain": "H",
+          "residue_id": 26,
+          "residue_name": "MET"
+        },
+        {
+          "chain": "H",
+          "residue_id": 116,
+          "residue_name": "ASP"
+        },
+        {
+          "chain": "H",
+          "residue_id": 117,
+          "residue_name": "TYR"
+        }
+      ],
+      "chain": "L",
+      "residue_id": 6,
+      "residue_name": "LEU",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 3,
+      "interaction_types": [
+        "van_der_waals",
+        "van_der_waals",
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "H",
+          "residue_id": 74,
+          "residue_name": "THR"
+        },
+        {
+          "chain": "H",
+          "residue_id": 75,
+          "residue_name": "ARG"
+        },
+        {
+          "chain": "H",
+          "residue_id": 76,
+          "residue_name": "TYR"
+        }
+      ],
+      "chain": "I",
+      "residue_id": 57,
+      "residue_name": "GLU",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 2,
+      "interaction_types": [
+        "van_der_waals",
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "H",
+          "residue_id": 25,
+          "residue_name": "GLY"
+        },
+        {
+          "chain": "H",
+          "residue_id": 26,
+          "residue_name": "MET"
+        }
+      ],
+      "chain": "L",
+      "residue_id": 7,
+      "residue_name": "PHE",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "H",
+          "residue_id": 205,
+          "residue_name": "ASN"
+        }
+      ],
+      "chain": "L",
+      "residue_id": 8,
+      "residue_name": "GLU",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "H",
+          "residue_id": 36,
+          "residue_name": "LYS"
+        }
+      ],
+      "chain": "I",
+      "residue_id": 64,
+      "residue_name": "LEU",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "H",
+          "residue_id": 74,
+          "residue_name": "THR"
+        }
+      ],
+      "chain": "I",
+      "residue_id": 55,
+      "residue_name": "ASP",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "H",
+          "residue_id": 76,
+          "residue_name": "TYR"
+        }
+      ],
+      "chain": "I",
+      "residue_id": 58,
+      "residue_name": "GLU",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    },
+    {
+      "interaction_count": 1,
+      "interaction_types": [
+        "van_der_waals"
+      ],
+      "partner_residues": [
+        {
+          "chain": "H",
+          "residue_id": 76,
+          "residue_name": "TYR"
+        }
+      ],
+      "chain": "I",
+      "residue_id": 59,
+      "residue_name": "ILE",
+      "unique_interaction_types": [
+        "van_der_waals"
+      ]
+    }
+  ],
+  "interaction_network": {
+    "nodes": {
+      "protein": [
+        {
+          "id": "H:23",
+          "chain": "H",
+          "residue_id": 23,
+          "residue_name": "GLU"
+        },
+        {
+          "id": "H:25",
+          "chain": "H",
+          "residue_id": 25,
+          "residue_name": "GLY"
+        },
+        {
+          "id": "H:26",
+          "chain": "H",
+          "residue_id": 26,
+          "residue_name": "MET"
+        },
+        {
+          "id": "H:27",
+          "chain": "H",
+          "residue_id": 27,
+          "residue_name": "SER"
+        },
+        {
+          "id": "H:28",
+          "chain": "H",
+          "residue_id": 28,
+          "residue_name": "PRO"
+        },
+        {
+          "id": "H:36",
+          "chain": "H",
+          "residue_id": 36,
+          "residue_name": "LYS"
+        },
+        {
+          "id": "H:38",
+          "chain": "H",
+          "residue_id": 38,
+          "residue_name": "GLN"
+        },
+        {
+          "id": "H:39",
+          "chain": "H",
+          "residue_id": 39,
+          "residue_name": "GLU"
+        },
+        {
+          "id": "H:47",
+          "chain": "H",
+          "residue_id": 47,
+          "residue_name": "ILE"
+        },
+        {
+          "id": "H:73",
+          "chain": "H",
+          "residue_id": 73,
+          "residue_name": "ARG"
+        },
+        {
+          "id": "H:74",
+          "chain": "H",
+          "residue_id": 74,
+          "residue_name": "THR"
+        },
+        {
+          "id": "H:75",
+          "chain": "H",
+          "residue_id": 75,
+          "residue_name": "ARG"
+        },
+        {
+          "id": "H:76",
+          "chain": "H",
+          "residue_id": 76,
+          "residue_name": "TYR"
+        },
+        {
+          "id": "H:115",
+          "chain": "H",
+          "residue_id": 115,
+          "residue_name": "SER"
+        },
+        {
+          "id": "H:116",
+          "chain": "H",
+          "residue_id": 116,
+          "residue_name": "ASP"
+        },
+        {
+          "id": "H:117",
+          "chain": "H",
+          "residue_id": 117,
+          "residue_name": "TYR"
+        },
+        {
+          "id": "H:119",
+          "chain": "H",
+          "residue_id": 119,
+          "residue_name": "HIS"
+        },
+        {
+          "id": "H:120",
+          "chain": "H",
+          "residue_id": 120,
+          "residue_name": "PRO"
+        },
+        {
+          "id": "H:121",
+          "chain": "H",
+          "residue_id": 121,
+          "residue_name": "VAL"
+        },
+        {
+          "id": "H:122",
+          "chain": "H",
+          "residue_id": 122,
+          "residue_name": "CYS"
+        },
+        {
+          "id": "H:129",
+          "chain": "H",
+          "residue_id": 129,
+          "residue_name": "LEU"
+        },
+        {
+          "id": "H:133",
+          "chain": "H",
+          "residue_id": 133,
+          "residue_name": "GLY"
+        },
+        {
+          "id": "H:134",
+          "chain": "H",
+          "residue_id": 134,
+          "residue_name": "TYR"
+        },
+        {
+          "id": "H:135",
+          "chain": "H",
+          "residue_id": 135,
+          "residue_name": "LYS"
+        },
+        {
+          "id": "H:136",
+          "chain": "H",
+          "residue_id": 136,
+          "residue_name": "GLY"
+        },
+        {
+          "id": "H:159",
+          "chain": "H",
+          "residue_id": 159,
+          "residue_name": "ASN"
+        },
+        {
+          "id": "H:201",
+          "chain": "H",
+          "residue_id": 201,
+          "residue_name": "MET"
+        },
+        {
+          "id": "H:202",
+          "chain": "H",
+          "residue_id": 202,
+          "residue_name": "LYS"
+        },
+        {
+          "id": "H:204",
+          "chain": "H",
+          "residue_id": 204,
+          "residue_name": "PRO"
+        },
+        {
+          "id": "H:205",
+          "chain": "H",
+          "residue_id": 205,
+          "residue_name": "ASN"
+        },
+        {
+          "id": "H:206",
+          "chain": "H",
+          "residue_id": 206,
+          "residue_name": "ARG"
+        },
+        {
+          "id": "H:207",
+          "chain": "H",
+          "residue_id": 207,
+          "residue_name": "TRP"
+        },
+        {
+          "id": "H:208",
+          "chain": "H",
+          "residue_id": 208,
+          "residue_name": "TYR"
+        }
+      ],
+      "peptide": [
+        {
+          "id": "I:55",
+          "chain": "I",
+          "residue_id": 55,
+          "residue_name": "ASP"
+        },
+        {
+          "id": "I:56",
+          "chain": "I",
+          "residue_id": 56,
+          "residue_name": "PHE"
+        },
+        {
+          "id": "I:57",
+          "chain": "I",
+          "residue_id": 57,
+          "residue_name": "GLU"
+        },
+        {
+          "id": "I:58",
+          "chain": "I",
+          "residue_id": 58,
+          "residue_name": "GLU"
+        },
+        {
+          "id": "I:59",
+          "chain": "I",
+          "residue_id": 59,
+          "residue_name": "ILE"
+        },
+        {
+          "id": "I:64",
+          "chain": "I",
+          "residue_id": 64,
+          "residue_name": "LEU"
+        },
+        {
+          "id": "L:1",
+          "chain": "L",
+          "residue_id": 1,
+          "residue_name": "CYS"
+        },
+        {
+          "id": "L:2",
+          "chain": "L",
+          "residue_id": 2,
+          "residue_name": "GLY"
+        },
+        {
+          "id": "L:3",
+          "chain": "L",
+          "residue_id": 3,
+          "residue_name": "LEU"
+        },
+        {
+          "id": "L:4",
+          "chain": "L",
+          "residue_id": 4,
+          "residue_name": "ARG"
+        },
+        {
+          "id": "L:5",
+          "chain": "L",
+          "residue_id": 5,
+          "residue_name": "PRO"
+        },
+        {
+          "id": "L:6",
+          "chain": "L",
+          "residue_id": 6,
+          "residue_name": "LEU"
+        },
+        {
+          "id": "L:7",
+          "chain": "L",
+          "residue_id": 7,
+          "residue_name": "PHE"
+        },
+        {
+          "id": "L:8",
+          "chain": "L",
+          "residue_id": 8,
+          "residue_name": "GLU"
+        },
+        {
+          "id": "L:14",
+          "chain": "L",
+          "residue_id": 14,
+          "residue_name": "ASP"
+        },
+        {
+          "id": "L:14",
+          "chain": "L",
+          "residue_id": 14,
+          "residue_name": "LEU"
+        },
+        {
+          "id": "L:14",
+          "chain": "L",
+          "residue_id": 14,
+          "residue_name": "SER"
+        },
+        {
+          "id": "L:14",
+          "chain": "L",
+          "residue_id": 14,
+          "residue_name": "TYR"
+        }
+      ]
+    },
+    "edges": [
+      {
+        "source": "H:23",
+        "target": "L:14",
+        "interaction_type": "van_der_waals",
+        "distance": 7.492838382720947,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:25",
+        "target": "L:4",
+        "interaction_type": "van_der_waals",
+        "distance": 7.274148464202881,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:25",
+        "target": "L:5",
+        "interaction_type": "van_der_waals",
+        "distance": 7.5260090827941895,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:25",
+        "target": "L:6",
+        "interaction_type": "van_der_waals",
+        "distance": 5.928127765655518,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:25",
+        "target": "L:7",
+        "interaction_type": "van_der_waals",
+        "distance": 7.838109970092773,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:26",
+        "target": "L:4",
+        "interaction_type": "van_der_waals",
+        "distance": 7.348040580749512,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:26",
+        "target": "L:6",
+        "interaction_type": "van_der_waals",
+        "distance": 7.454075813293457,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:26",
+        "target": "L:7",
+        "interaction_type": "van_der_waals",
+        "distance": 7.447319507598877,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:26",
+        "target": "L:14",
+        "interaction_type": "van_der_waals",
+        "distance": 7.112425327301025,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:27",
+        "target": "L:4",
+        "interaction_type": "van_der_waals",
+        "distance": 7.845128059387207,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:28",
+        "target": "L:4",
+        "interaction_type": "van_der_waals",
+        "distance": 6.9585700035095215,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:47",
+        "target": "L:1",
+        "interaction_type": "van_der_waals",
+        "distance": 7.81438684463501,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:115",
+        "target": "L:5",
+        "interaction_type": "van_der_waals",
+        "distance": 7.548648834228516,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:116",
+        "target": "L:4",
+        "interaction_type": "van_der_waals",
+        "distance": 7.620547771453857,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:116",
+        "target": "L:5",
+        "interaction_type": "van_der_waals",
+        "distance": 5.0682291984558105,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:116",
+        "target": "L:6",
+        "interaction_type": "van_der_waals",
+        "distance": 6.231706142425537,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:117",
+        "target": "L:5",
+        "interaction_type": "van_der_waals",
+        "distance": 7.467932224273682,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:117",
+        "target": "L:6",
+        "interaction_type": "van_der_waals",
+        "distance": 7.923637866973877,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:119",
+        "target": "L:1",
+        "interaction_type": "van_der_waals",
+        "distance": 7.240870475769043,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:119",
+        "target": "L:2",
+        "interaction_type": "van_der_waals",
+        "distance": 7.594268321990967,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:119",
+        "target": "L:3",
+        "interaction_type": "van_der_waals",
+        "distance": 7.911248207092285,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:119",
+        "target": "L:4",
+        "interaction_type": "van_der_waals",
+        "distance": 6.928447246551514,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:119",
+        "target": "L:5",
+        "interaction_type": "van_der_waals",
+        "distance": 7.718128204345703,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:120",
+        "target": "L:1",
+        "interaction_type": "van_der_waals",
+        "distance": 5.19780158996582,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:120",
+        "target": "L:2",
+        "interaction_type": "van_der_waals",
+        "distance": 6.103687286376953,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:121",
+        "target": "L:1",
+        "interaction_type": "van_der_waals",
+        "distance": 5.029096603393555,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:121",
+        "target": "L:2",
+        "interaction_type": "van_der_waals",
+        "distance": 4.243001937866211,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:121",
+        "target": "L:3",
+        "interaction_type": "van_der_waals",
+        "distance": 7.649677753448486,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:122",
+        "target": "L:1",
+        "interaction_type": "van_der_waals",
+        "distance": 4.944672107696533,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:122",
+        "target": "L:2",
+        "interaction_type": "van_der_waals",
+        "distance": 5.152008533477783,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:129",
+        "target": "L:14",
+        "interaction_type": "van_der_waals",
+        "distance": 7.265342712402344,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:133",
+        "target": "L:14",
+        "interaction_type": "van_der_waals",
+        "distance": 6.643149375915527,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:134",
+        "target": "L:14",
+        "interaction_type": "van_der_waals",
+        "distance": 5.081831932067871,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:135",
+        "target": "L:14",
+        "interaction_type": "van_der_waals",
+        "distance": 5.248547554016113,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:136",
+        "target": "L:14",
+        "interaction_type": "van_der_waals",
+        "distance": 6.609642028808594,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:159",
+        "target": "L:14",
+        "interaction_type": "van_der_waals",
+        "distance": 7.421121597290039,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:201",
+        "target": "L:14",
+        "interaction_type": "van_der_waals",
+        "distance": 7.4488983154296875,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:202",
+        "target": "L:14",
+        "interaction_type": "van_der_waals",
+        "distance": 7.302009105682373,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:204",
+        "target": "L:14",
+        "interaction_type": "van_der_waals",
+        "distance": 6.649926662445068,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:205",
+        "target": "L:3",
+        "interaction_type": "van_der_waals",
+        "distance": 7.93103551864624,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:205",
+        "target": "L:8",
+        "interaction_type": "van_der_waals",
+        "distance": 7.90988302230835,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:206",
+        "target": "L:1",
+        "interaction_type": "van_der_waals",
+        "distance": 7.3989787101745605,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:206",
+        "target": "L:2",
+        "interaction_type": "van_der_waals",
+        "distance": 4.779115676879883,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:206",
+        "target": "L:3",
+        "interaction_type": "van_der_waals",
+        "distance": 5.617807388305664,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:207",
+        "target": "L:1",
+        "interaction_type": "van_der_waals",
+        "distance": 7.708438873291016,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:207",
+        "target": "L:2",
+        "interaction_type": "van_der_waals",
+        "distance": 4.322280406951904,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:207",
+        "target": "L:3",
+        "interaction_type": "van_der_waals",
+        "distance": 6.725865364074707,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:208",
+        "target": "L:2",
+        "interaction_type": "van_der_waals",
+        "distance": 6.3348002433776855,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:36",
+        "target": "I:64",
+        "interaction_type": "van_der_waals",
+        "distance": 7.1387834548950195,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:38",
+        "target": "I:56",
+        "interaction_type": "van_der_waals",
+        "distance": 6.960850715637207,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:39",
+        "target": "I:56",
+        "interaction_type": "van_der_waals",
+        "distance": 6.930663585662842,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:73",
+        "target": "I:56",
+        "interaction_type": "van_der_waals",
+        "distance": 7.873917579650879,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:74",
+        "target": "I:55",
+        "interaction_type": "van_der_waals",
+        "distance": 6.472116947174072,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:74",
+        "target": "I:56",
+        "interaction_type": "van_der_waals",
+        "distance": 4.424140930175781,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:74",
+        "target": "I:57",
+        "interaction_type": "van_der_waals",
+        "distance": 5.867771625518799,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:75",
+        "target": "I:56",
+        "interaction_type": "van_der_waals",
+        "distance": 6.390480995178223,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:75",
+        "target": "I:57",
+        "interaction_type": "van_der_waals",
+        "distance": 5.223581790924072,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:76",
+        "target": "I:56",
+        "interaction_type": "van_der_waals",
+        "distance": 7.959650039672852,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:76",
+        "target": "I:57",
+        "interaction_type": "van_der_waals",
+        "distance": 5.889206409454346,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:76",
+        "target": "I:58",
+        "interaction_type": "van_der_waals",
+        "distance": 6.883347511291504,
+        "source_tool": "geometric_fallback"
+      },
+      {
+        "source": "H:76",
+        "target": "I:59",
+        "interaction_type": "van_der_waals",
+        "distance": 6.156075477600098,
+        "source_tool": "geometric_fallback"
+      }
+    ],
+    "num_protein_nodes": 33,
+    "num_peptide_nodes": 18,
+    "num_edges": 61
+  },
+  "statistics": {
+    "num_unique_residue_pairs": 61,
+    "num_interaction_types": 1,
+    "interactions_per_residue_pair": 1.0,
+    "mean_distance": 6.691509043584104,
+    "min_distance": 4.243001937866211,
+    "max_distance": 7.959650039672852
+  }
+}

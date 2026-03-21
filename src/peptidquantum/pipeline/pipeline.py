@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Optional, Dict, List, Tuple
 import shutil
 
+import numpy as np
+
 from ..data.models import Complex, StructureSource, StructureOrigin
 from ..data.fetchers.rcsb_fetcher import RCSBFetcher
 from ..structure.parsers.mmcif_parser import StructureParser
@@ -15,7 +17,9 @@ from ..interaction import (
     InteractionMerger,
     ContactMatrixGenerator,
     InteractionFingerprintBuilder,
-    InteractionSet
+    InteractionSet,
+    InteractionType,
+    StandardizedInteraction,
 )
 from ..visualization import (
     ContactMapPlotter,
@@ -361,10 +365,90 @@ class PeptidQuantumPipeline:
             merged_set = self.merger.merge(*interaction_sets, strategy="union")
             logger.info(f"✓ Total interactions: {len(merged_set.interactions)}")
         else:
-            logger.warning("No interaction extractors ran successfully")
-            merged_set = InteractionSet(complex_id=complex_obj.complex_id, interactions=[])
+            logger.warning("No interaction extractors ran successfully, using geometric fallback")
+            merged_set = self._build_geometric_fallback(
+                complex_obj=complex_obj,
+                distance_cutoff=8.0,
+            )
+            if len(merged_set.interactions) > 0:
+                logger.info(f"✓ Geometric fallback interactions: {len(merged_set.interactions)}")
+            else:
+                logger.warning("Geometric fallback produced no contacts")
         
         return merged_set
+
+    def _build_geometric_fallback(self, complex_obj: Complex, distance_cutoff: float = 8.0) -> InteractionSet:
+        """
+        Build a residue-contact interaction set from C-alpha distances.
+
+        This keeps visualization/report generation useful even when Arpeggio/PLIP
+        are unavailable on local machines.
+        """
+        if distance_cutoff <= 0:
+            return InteractionSet(complex_id=complex_obj.complex_id, interactions=[])
+
+        # Keep the minimum distance for each residue pair.
+        pair_to_entry: Dict[Tuple[str, int, str, int], Dict[str, object]] = {}
+
+        for protein_chain in complex_obj.protein_chains:
+            if not protein_chain.residues:
+                continue
+            protein_coords = np.array([[r.x, r.y, r.z] for r in protein_chain.residues], dtype=np.float32)
+
+            for peptide_chain in complex_obj.peptide_chains:
+                if not peptide_chain.residues:
+                    continue
+                peptide_coords = np.array([[r.x, r.y, r.z] for r in peptide_chain.residues], dtype=np.float32)
+
+                # Shape: [n_protein_res, n_peptide_res]
+                dists = np.linalg.norm(
+                    protein_coords[:, None, :] - peptide_coords[None, :, :],
+                    axis=2,
+                )
+                protein_idx, peptide_idx = np.where(dists <= float(distance_cutoff))
+                for p_i, pep_i in zip(protein_idx.tolist(), peptide_idx.tolist()):
+                    p_res = protein_chain.residues[p_i]
+                    pep_res = peptide_chain.residues[pep_i]
+                    dist = float(dists[p_i, pep_i])
+                    key = (
+                        str(protein_chain.chain_id),
+                        int(p_res.residue_number),
+                        str(peptide_chain.chain_id),
+                        int(pep_res.residue_number),
+                    )
+                    prev = pair_to_entry.get(key)
+                    if prev is None or dist < float(prev["distance"]):
+                        pair_to_entry[key] = {
+                            "protein_chain": str(protein_chain.chain_id),
+                            "protein_residue_id": int(p_res.residue_number),
+                            "protein_residue_name": str(p_res.residue_name),
+                            "peptide_chain": str(peptide_chain.chain_id),
+                            "peptide_residue_id": int(pep_res.residue_number),
+                            "peptide_residue_name": str(pep_res.residue_name),
+                            "distance": dist,
+                        }
+
+        interactions: List[StandardizedInteraction] = []
+        for entry in pair_to_entry.values():
+            dist = float(entry["distance"])
+            confidence = max(0.1, 1.0 - (dist / float(distance_cutoff)))
+            interactions.append(
+                StandardizedInteraction(
+                    protein_chain=entry["protein_chain"],
+                    protein_residue_id=entry["protein_residue_id"],
+                    protein_residue_name=entry["protein_residue_name"],
+                    peptide_chain=entry["peptide_chain"],
+                    peptide_residue_id=entry["peptide_residue_id"],
+                    peptide_residue_name=entry["peptide_residue_name"],
+                    interaction_type=InteractionType.VDW,
+                    distance=dist,
+                    source_tool="geometric_fallback",
+                    confidence=float(confidence),
+                    raw_type="geometric_contact",
+                )
+            )
+
+        return InteractionSet(complex_id=complex_obj.complex_id, interactions=interactions)
     
     def _build_analysis(
         self,

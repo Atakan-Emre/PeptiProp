@@ -1,8 +1,8 @@
 {
-  "best_f1_threshold": 0.38000000000000006,
-  "best_f1": 0.43412715752676423,
-  "best_mcc_threshold": 0.6100000000000001,
-  "best_mcc": 0.30185490115420316,
+  "best_f1_threshold": 0.33000000000000007,
+  "best_f1": 0.47482372459560346,
+  "best_mcc_threshold": 0.6200000000000001,
+  "best_mcc": 0.3591634306877018,
   "selected_metric": "mcc",
-  "selected_threshold": 0.6100000000000001
+  "selected_threshold": 0.6200000000000001
 }
