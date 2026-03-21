@@ -78,7 +78,7 @@ def _peptide_one_letter_sequence(
     return None
 
 
-def _pick_ranked_variant_rows(preview: List[Dict[str, Any]], max_n: int = 4) -> List[Dict[str, Any]]:
+def _pick_ranked_variant_rows(preview: List[Dict[str, Any]], max_n: int = 5) -> List[Dict[str, Any]]:
     if not preview:
         return []
     pos = [r for r in preview if _row_label_eval(r) == 1]
@@ -113,6 +113,11 @@ def _pick_ranked_variant_rows(preview: List[Dict[str, Any]], max_n: int = 4) -> 
         shortest = min(rest_all, key=lambda r: int(r.get("peptide_length", 999) or 999))
         if int(shortest.get("peptide_length", 0) or 0) >= 2:
             add(shortest)
+    rest_all = [r for r in preview if str(r.get("pair_id", "")) not in used]
+    if rest_all and len(picked) < max_n:
+        scores = sorted(rest_all, key=lambda r: float(r.get("score", 0)))
+        mid = scores[len(scores) // 2]
+        add(mid)
     return picked[:max_n]
 
 
@@ -131,7 +136,7 @@ def generate_peptide_2d_variant_assets(root: Path, site: Path) -> Dict[str, Any]
     try:
         raw = json.loads(tr_path.read_text(encoding="utf-8"))
         preview = raw.get("top_ranked_candidates_preview") or []
-        rows = _pick_ranked_variant_rows(preview, 4)
+        rows = _pick_ranked_variant_rows(preview, 5)
         if not rows:
             return out
         chains_df = pd.read_parquet(ch_path)

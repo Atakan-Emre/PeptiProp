@@ -30,7 +30,7 @@ python scripts/train_scoring_model.py --config configs/train_v0_1_final_best_cla
 
 Output: `outputs/training/peptidquantum_v0_1_final_best_classical_100ep_r2/`
 
-**MLX (M4, ayrı venv):** bkz. `mlx/README.md` — `run_final_ablation_mlx.py` ile duman + tam ablation; senkron klasör `outputs/training/peptidquantum_v0_1_final_best_mlx_ablation/`.
+**MLX (M4, ayrı venv):** bkz. `mlx/README.md` — eğitim çıktısı `outputs/training/peptidquantum_v0_1_final_mlx_m4/`.
 
 ## 4. Analyze Last Training Graphs
 

@@ -33,6 +33,14 @@ class TestPropediaActivePipelineCanonical(unittest.TestCase):
         self.assertGreaterEqual(self.complexes["pdb_id"].nunique(), 13000)
         self.assertTrue(set(self.complexes["quality_flag"].unique()).issubset({"clean", "warning"}))
 
+    def test_residues_have_interface_and_pocket_annotations(self):
+        res = pd.read_parquet(CANONICAL_DIR / "residues.parquet", columns=["is_interface", "is_pocket"])
+        intf_count = int(res["is_interface"].sum())
+        pocket_count = int(res["is_pocket"].sum())
+        self.assertGreater(intf_count, 0, "is_interface is all-zero — annotate_interface_pocket.py not run?")
+        self.assertGreater(pocket_count, 0, "is_pocket is all-zero — annotate_interface_pocket.py not run?")
+        self.assertGreater(pocket_count, intf_count, "pocket set should be larger than interface set")
+
     def test_split_metadata_matches_files(self):
         for split_name in ("train", "val", "test"):
             split_ids = {

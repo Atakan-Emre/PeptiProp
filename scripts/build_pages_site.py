@@ -24,7 +24,7 @@ SITE = ROOT / "site"
 # Görünen ürün adı (Python paketi `peptidquantum` olarak kalır)
 PROJECT_DISPLAY_NAME = "PeptiProp"
 REPO_URL = "https://github.com/Atakan-Emre/PeptiProp"
-MLX_BEST = ROOT / "outputs" / "training" / "peptidquantum_v0_1_final_best_mlx_ablation"
+MLX_BEST = ROOT / "outputs" / "training" / "peptidquantum_v0_1_final_mlx_m4"
 # GitHub Actions’ta outputs/ yok; metrik + PNG’ler buradan kopyalanır (sync betiği ile güncellenir).
 PAGES_TRAINING_BUNDLE = ROOT / "publish" / "github_pages_training_bundle"
 DEMO_CIF_URL = "https://files.rcsb.org/download/1CRN.cif"
@@ -67,11 +67,23 @@ def _normalize_training_metrics(raw: Dict[str, Any]) -> Dict[str, Any]:
         return None
 
     hit3 = first(raw.get("test_hit3"), tr.get("hit@3"), tr.get("hit_3"))
+
+    cal = raw.get("calibration") if isinstance(raw.get("calibration"), dict) else {}
     return {
         "test_auroc": first(raw.get("test_auroc"), tm.get("auroc")),
         "test_auprc": first(raw.get("test_auprc"), tm.get("auprc")),
+        "test_f1": first(raw.get("test_f1"), tm.get("f1")),
+        "test_mcc": first(raw.get("test_mcc"), tm.get("mcc")),
+        "test_brier": first(raw.get("test_brier"), cal.get("brier_score")),
         "test_mrr": first(raw.get("test_mrr"), tr.get("mrr")),
+        "test_hit1": first(raw.get("test_hit1"), tr.get("hit@1"), tr.get("hit_1")),
         "test_hit3": hit3,
+        "test_hit5": first(raw.get("test_hit5"), tr.get("hit@5"), tr.get("hit_5")),
+        "epochs": raw.get("epochs_completed"),
+        "threshold": raw.get("selected_threshold"),
+        "train_groups": (raw.get("candidate_group_integrity", {}).get("train", {}) or {}).get("total_groups"),
+        "val_groups": (raw.get("candidate_group_integrity", {}).get("val", {}) or {}).get("total_groups"),
+        "test_groups": (raw.get("candidate_group_integrity", {}).get("test", {}) or {}).get("total_groups"),
     }
 
 
@@ -1023,6 +1035,183 @@ footer.site-ft {
   border-top: 1px solid var(--border);
   background: transparent;
 }
+.footer-inner {
+  display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; justify-content: center; align-items: center;
+}
+
+/* --- Topbar nav --- */
+.topbar-nav { display: flex; gap: 0.5rem; margin-right: auto; margin-left: 0.75rem; }
+.topbar-nav a {
+  font-size: 0.76rem; font-weight: 600; color: var(--muted); padding: 0.3rem 0.6rem;
+  border-radius: 6px; border: 1px solid transparent;
+}
+.topbar-nav a:hover { color: var(--accent-2); border-color: var(--border); text-decoration: none; }
+
+/* --- Hero metrics strip --- */
+.hero-metrics-strip {
+  display: flex; flex-wrap: wrap; gap: 0.65rem; margin: 0 0 1.25rem;
+}
+.hm {
+  display: flex; flex-direction: column; align-items: center; padding: 0.65rem 1rem;
+  border-radius: 10px; background: var(--card); border: 1px solid var(--border);
+  min-width: 80px;
+}
+.hm-val { font-size: 1.3rem; font-weight: 700; color: var(--accent-2); line-height: 1.2; }
+.hm-key { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-top: 0.15rem; }
+
+/* --- Pipeline grid --- */
+.pipeline-grid {
+  display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: stretch; margin: 1rem 0;
+}
+.pipe-node {
+  flex: 1 1 120px; min-width: min(100%, 120px);
+  display: flex; align-items: flex-start; gap: 0.55rem;
+  padding: 0.65rem 0.75rem; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--card2);
+}
+.pipe-node.pipe-data { border-left: 3px solid var(--ok); }
+.pipe-node.pipe-process { border-left: 3px solid var(--accent); }
+.pipe-node.pipe-model { border-left: 3px solid var(--warn); }
+.pipe-node.pipe-result { border-left: 3px solid #a371f7; }
+.pipe-num {
+  flex-shrink: 0; width: 1.5rem; height: 1.5rem; border-radius: 50%;
+  background: var(--accent); color: #fff; font-weight: 700; font-size: 0.75rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.pipe-body { display: flex; flex-direction: column; gap: 0.1rem; }
+.pipe-body strong { font-size: 0.82rem; color: var(--text); }
+.pipe-body span { font-size: 0.75rem; color: var(--muted); line-height: 1.35; }
+.pipe-arrow {
+  flex-shrink: 0; width: 16px; align-self: center;
+  background: linear-gradient(90deg, var(--accent) 40%, transparent 100%);
+  height: 2px; border-radius: 1px;
+}
+@media (max-width: 600px) {
+  .pipeline-grid { flex-direction: column; }
+  .pipe-arrow { width: 2px; height: 12px; align-self: flex-start; margin-left: 1.3rem;
+    background: linear-gradient(180deg, var(--accent) 40%, transparent 100%); }
+}
+
+/* --- Stats bar --- */
+.stats-bar {
+  display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0 0; justify-content: center;
+}
+.stat-item {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 0.45rem 0.85rem; border-radius: 8px;
+  background: var(--card2); border: 1px solid var(--border); min-width: 70px;
+}
+.stat-val { font-size: 1.05rem; font-weight: 700; color: var(--text); }
+.stat-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+
+/* --- Metrics grid 8 --- */
+.metrics-grid-8 {
+  display: grid; gap: 0.55rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 110px), 1fr));
+  margin: 1rem 0;
+}
+.metrics-grid-8 .metric-card { text-align: center; }
+.metrics-grid-8 .metric-card .desc { font-size: 0.68rem; color: var(--muted); margin-top: 0.15rem; }
+.metric-card.primary { border-color: var(--accent); }
+.metric-card.primary .v { color: var(--accent-2); }
+.metric-card.highlight { border-color: var(--ok); background: rgba(63, 185, 80, 0.08); }
+.metric-card.highlight .v { color: var(--ok); }
+html[data-theme="light"] .metric-card.highlight { background: rgba(63, 185, 80, 0.06); }
+
+/* --- Label chips --- */
+.label-chip {
+  display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px;
+  font-size: 0.75rem; font-weight: 600;
+}
+.label-chip.pos { background: rgba(63, 185, 80, 0.15); color: var(--ok); border: 1px solid rgba(63, 185, 80, 0.3); }
+.label-chip.neg { background: rgba(210, 153, 34, 0.12); color: var(--warn); border: 1px solid rgba(210, 153, 34, 0.3); }
+html[data-theme="light"] .label-chip.pos { background: rgba(26, 127, 55, 0.1); color: #1a7f37; }
+html[data-theme="light"] .label-chip.neg { background: rgba(154, 103, 0, 0.1); color: #9a6700; }
+
+/* --- Ranked table --- */
+.ranked-table td:nth-child(5) { font-variant-numeric: tabular-nums; }
+.ranked-table code { font-size: 0.82em; }
+
+/* --- Two col info --- */
+.two-col-info { display: grid; grid-template-columns: 1fr; gap: 1rem; margin: 1rem 0; }
+@media (min-width: 600px) { .two-col-info { grid-template-columns: 1fr 1fr; } }
+.two-col-info ul { margin: 0.35rem 0 0 1.1rem; padding: 0; font-size: 0.9rem; color: var(--text-dim); }
+
+/* --- Viewer embed --- */
+.viewer-embed-wrap {
+  margin: 1rem 0; border-radius: 12px; overflow: hidden;
+  border: 1px solid var(--border); background: #fff;
+}
+.viewer-iframe {
+  width: 100%; height: 420px; border: none; display: block;
+}
+@media (min-width: 700px) { .viewer-iframe { height: 500px; } }
+
+/* --- Accent callout --- */
+.accent-callout { border-left: 3px solid var(--accent); }
+
+/* --- Compact table --- */
+table.data-table.compact { font-size: 0.84rem; }
+table.data-table.compact td { padding: 0.4rem 0.55rem; }
+
+/* --- Method diagram --- */
+.method-diagram {
+  display: flex; flex-direction: column; align-items: center; gap: 0; margin: 1.25rem 0;
+}
+.md-phase {
+  width: 100%; max-width: 520px; border-radius: 12px; padding: 0.85rem 1rem;
+  border: 1px solid var(--border); background: var(--card2); position: relative;
+}
+.md-phase[data-phase="veri"] { border-left: 3px solid var(--ok); }
+.md-phase[data-phase="split"] { border-left: 3px solid var(--accent); }
+.md-phase[data-phase="model"] { border-left: 3px solid var(--warn); }
+.md-phase[data-phase="rapor"] { border-left: 3px solid #a371f7; }
+.md-phase-title {
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--muted); margin-bottom: 0.5rem;
+}
+.md-nodes { display: flex; flex-direction: column; gap: 0; }
+.md-node {
+  padding: 0.45rem 0.6rem; background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; display: flex; flex-direction: column; gap: 0.1rem;
+}
+.md-node strong { font-size: 0.88rem; color: var(--text); }
+.md-node span { font-size: 0.78rem; color: var(--muted); line-height: 1.35; }
+.md-node em { color: var(--accent-2); font-style: normal; font-weight: 600; }
+.md-arrow-v {
+  width: 2px; height: 14px; background: var(--accent); margin: 0 auto; border-radius: 1px;
+}
+.md-connector-v {
+  width: 2px; height: 18px; background: var(--accent); margin: 0 auto; border-radius: 1px;
+}
+
+/* --- Lightbox --- */
+.lightbox-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,0.88); display: flex; align-items: center; justify-content: center;
+  padding: 1.5rem; cursor: zoom-out;
+}
+.lightbox-img {
+  max-width: 95vw; max-height: 90vh; border-radius: 10px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5); cursor: default;
+  object-fit: contain;
+}
+.lightbox-close {
+  position: absolute; top: 1rem; right: 1.5rem; font-size: 2.2rem; color: #fff;
+  background: none; border: none; cursor: pointer; line-height: 1; z-index: 10000;
+  opacity: 0.7;
+}
+.lightbox-close:hover { opacity: 1; }
+
+/* --- Viewer responsive --- */
+.viewer-responsive {
+  position: relative; width: 100%; padding-bottom: 56.25%;
+  border-radius: 12px; overflow: hidden; border: 1px solid var(--border);
+  background: #fff; margin: 0.75rem 0;
+}
+.viewer-responsive iframe {
+  position: absolute; inset: 0; width: 100%; height: 100%; border: none;
+}
 """,
         encoding="utf-8",
     )
@@ -1050,40 +1239,127 @@ def _extra_head_meta() -> str:
 PIPELINE_DIAGRAM_HTML = """      <section class="block" id="akim">
         <h2>Proje akışı</h2>
         <p class="lead-in">
-          <a href="__REPO_URL__">PeptiProp</a> deposundaki aktif hat: PROPEDIA → kanonik veri → sızıntısız split → skorlama ve reranking → 2D/3D raporlama.
-          Adım ayrıntıları <a href="#yontem">Yöntem</a> bölümünde.
+          <a href="__REPO_URL__">PeptiProp</a> deposundaki uçtan uca pipeline: PROPEDIA ham verisinden kanonik tablolara, sızıntısız sekans-küme split'lerine, aday kümesi + negatif çift üretimine, özellik ihracına, MLX model eğitimine ve son olarak 2D/3D raporlama ve bu statik siteye.
         </p>
-        <div class="flow-diagram" role="img" aria-label="Veri, split, çift üretimi, model, metrik ve rapor adımları">
-          <div class="flow-row">
-            <div class="flow-node"><strong>1</strong> PROPEDIA ham veri</div>
-            <span class="flow-arr" aria-hidden="true">→</span>
-            <div class="flow-node"><strong>2</strong> Kanonik tablolar + PDB düzeyi split</div>
-            <span class="flow-arr" aria-hidden="true">→</span>
-            <div class="flow-node"><strong>3</strong> Aday kümesi ve negatif çiftler</div>
+        <div class="pipeline-grid" role="img" aria-label="Proje pipeline diyagramı">
+          <div class="pipe-node pipe-data">
+            <div class="pipe-num">1</div>
+            <div class="pipe-body">
+              <strong>PROPEDIA</strong>
+              <span>Ham mmCIF / PDB kompleksleri</span>
+            </div>
           </div>
-          <div class="flow-row">
-            <div class="flow-node"><strong>4</strong> Özellik ihracı (graf / tensör)</div>
-            <span class="flow-arr" aria-hidden="true">→</span>
-            <div class="flow-node"><strong>5</strong> Model eğitimi, validasyon, eşik</div>
-            <span class="flow-arr" aria-hidden="true">→</span>
-            <div class="flow-node"><strong>6</strong> AUROC, AUPRC, MRR, Hit@k …</div>
-            <span class="flow-arr" aria-hidden="true">→</span>
-            <div class="flow-node"><strong>7</strong> HTML, JSON, PNG; bu statik site + 3D demo</div>
+          <div class="pipe-arrow"></div>
+          <div class="pipe-node pipe-process">
+            <div class="pipe-num">2</div>
+            <div class="pipe-body">
+              <strong>Kanonik tablolar</strong>
+              <span>complexes, chains, residues + arayüz/pocket anotasyonu</span>
+            </div>
           </div>
+          <div class="pipe-arrow"></div>
+          <div class="pipe-node pipe-process">
+            <div class="pipe-num">3</div>
+            <div class="pipe-body">
+              <strong>Sekans-küme split</strong>
+              <span>MMseqs2 (%30 kimlik); train / val / test</span>
+            </div>
+          </div>
+          <div class="pipe-arrow"></div>
+          <div class="pipe-node pipe-process">
+            <div class="pipe-num">4</div>
+            <div class="pipe-body">
+              <strong>Negatif çiftler</strong>
+              <span>Easy + Hard negatif ornekler</span>
+            </div>
+          </div>
+          <div class="pipe-arrow"></div>
+          <div class="pipe-node pipe-model">
+            <div class="pipe-num">5</div>
+            <div class="pipe-body">
+              <strong>Özellik ihracı</strong>
+              <span>Dense vektör: yapı + sekans + arayüz + yerel yoğunluk</span>
+            </div>
+          </div>
+          <div class="pipe-arrow"></div>
+          <div class="pipe-node pipe-model">
+            <div class="pipe-num">6</div>
+            <div class="pipe-body">
+              <strong>MLX eğitim</strong>
+              <span>BCE + pairwise ranking loss; erken durdurma</span>
+            </div>
+          </div>
+          <div class="pipe-arrow"></div>
+          <div class="pipe-node pipe-result">
+            <div class="pipe-num">7</div>
+            <div class="pipe-body">
+              <strong>Metrikler &amp; rapor</strong>
+              <span>AUROC, MRR, Hit@k + ROC/PR eğrileri + bu site</span>
+            </div>
+          </div>
+        </div>
+        <div class="stats-bar">
+          <div class="stat-item"><span class="stat-val">__M_TRAIN_GROUPS__</span><span class="stat-label">Train grup</span></div>
+          <div class="stat-item"><span class="stat-val">__M_VAL_GROUPS__</span><span class="stat-label">Val grup</span></div>
+          <div class="stat-item"><span class="stat-val">__M_TEST_GROUPS__</span><span class="stat-label">Test grup</span></div>
+          <div class="stat-item"><span class="stat-val">__M_EPOCHS__</span><span class="stat-label">Epoch</span></div>
+          <div class="stat-item"><span class="stat-val">__M_THRESHOLD__</span><span class="stat-label">Eşik</span></div>
         </div>
       </section>
 """
+
+
+def _build_top_ranked_table(training_dir: Optional[Path]) -> str:
+    """top_ranked_examples.json'dan ilk 10 aday satırını HTML tablo olarak döndürür."""
+    if not training_dir:
+        return ""
+    for candidate in (training_dir / "top_ranked_examples.json", ROOT / "publish" / "github_pages_training_bundle" / "top_ranked_examples.json"):
+        if candidate.is_file():
+            try:
+                data = json.loads(candidate.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            preview = data.get("top_ranked_candidates_preview") or []
+            if not preview:
+                continue
+            rows: List[str] = []
+            for r in preview[:10]:
+                pdb = html_module.escape(str(r.get("pdb_id", "—")))
+                prot_ch = html_module.escape(str(r.get("protein_chain_id", "")))
+                pep_ch = html_module.escape(str(r.get("peptide_chain_id", "")))
+                plen = r.get("peptide_length", "—")
+                score = float(r.get("score", 0))
+                label = int(r.get("label", 0))
+                rank = r.get("rank", "—")
+                neg_type = str(r.get("negative_type", "—"))
+                label_cls = "pos" if label == 1 else "neg"
+                label_txt = "Pozitif" if label == 1 else neg_type.replace("_", " ").title()
+                rows.append(
+                    f"<tr>"
+                    f'<td><code>{pdb}</code></td>'
+                    f"<td>{prot_ch}</td><td>{pep_ch}</td>"
+                    f"<td>{plen}</td>"
+                    f'<td><strong>{score:.4f}</strong></td>'
+                    f'<td><span class="label-chip {label_cls}">{label_txt}</span></td>'
+                    f"<td>{rank}</td>"
+                    f"</tr>"
+                )
+            return "\n            ".join(rows)
+    return ""
 
 
 def write_index(
     site: Path,
     manifest: Dict[str, Any],
     training_gallery_section: str,
+    training_dir: Optional[Path] = None,
     site_extra_viz_section: str = "",
     peptide_2d_variants_section: str = "",
 ) -> None:
     m = _metrics_for_index(manifest)
     manifest_esc = html_module.escape(json.dumps(manifest, indent=2, ensure_ascii=False))
+
+    top_ranked_rows = _build_top_ranked_table(training_dir)
 
     idx = _INDEX_HTML_TEMPLATE
     reps = {
@@ -1094,8 +1370,18 @@ def write_index(
         "__PIPELINE_DIAGRAM_BLOCK__": PIPELINE_DIAGRAM_HTML.replace("__REPO_URL__", html_module.escape(REPO_URL)),
         "__M_AUROC__": _fmt_metric(m, "test_auroc"),
         "__M_AUPRC__": _fmt_metric(m, "test_auprc"),
+        "__M_F1__": _fmt_metric(m, "test_f1"),
+        "__M_MCC__": _fmt_metric(m, "test_mcc"),
         "__M_MRR__": _fmt_metric(m, "test_mrr"),
+        "__M_HIT1__": _fmt_metric(m, "test_hit1"),
         "__M_HIT3__": _fmt_metric(m, "test_hit3"),
+        "__M_HIT5__": _fmt_metric(m, "test_hit5"),
+        "__M_EPOCHS__": str(m.get("epochs") or "—"),
+        "__M_THRESHOLD__": f'{m["threshold"]:.2f}' if isinstance(m.get("threshold"), (int, float)) else "—",
+        "__M_TRAIN_GROUPS__": f'{m["train_groups"]:,}' if isinstance(m.get("train_groups"), (int, float)) else "—",
+        "__M_VAL_GROUPS__": f'{m["val_groups"]:,}' if isinstance(m.get("val_groups"), (int, float)) else "—",
+        "__M_TEST_GROUPS__": f'{m["test_groups"]:,}' if isinstance(m.get("test_groups"), (int, float)) else "—",
+        "__TOP_RANKED_ROWS__": top_ranked_rows,
         "__MANIFEST_JSON__": manifest_esc,
         "__TRAINING_GALLERY_SECTION__": training_gallery_section,
         "__SITE_EXTRA_VIZ__": site_extra_viz_section,
@@ -1106,264 +1392,405 @@ def write_index(
     (site / "index.html").write_text(idx, encoding="utf-8")
 
 
-# Yer tutucular: __M_AUROC__ … __MANIFEST_JSON__
 _INDEX_HTML_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="__PROJECT_NAME__ — PROPEDIA protein-peptid skorlama, ablasyon ve 2D/3D görselleştirme dokümantasyonu" />
-  <title>__PROJECT_NAME__ — PROPEDIA skorlama &amp; görselleştirme</title>
+  <meta name="description" content="__PROJECT_NAME__ — PROPEDIA protein-peptid etkilesim skorlama, siralama ve 2D/3D gorsellestirme platformu" />
+  <title>__PROJECT_NAME__ — Protein-Peptid Etkilesim Skorlama &amp; Reranking</title>
 __EXTRA_HEAD_META__  <link rel="stylesheet" href="assets/css/site.css" />
 __THEME_HEAD_SCRIPT__
 </head>
 <body class="site-body">
   <div class="site-shell">
   <div class="shell-topbar">
-    <a class="repo-link" href="__REPO_URL__" target="_blank" rel="noopener noreferrer">GitHub: PeptiProp</a>
-    <button type="button" class="theme-toggle" data-theme-toggle aria-pressed="false" aria-label="Açık temaya geç">
-      <span class="theme-toggle-text">Gündüz modu</span>
+    <a class="repo-link" href="__REPO_URL__" target="_blank" rel="noopener noreferrer">GitHub: __PROJECT_NAME__</a>
+    <nav class="topbar-nav">
+      <a href="#metrikler">Metrikler</a>
+      <a href="#gorsel-2d">2D</a>
+      <a href="#gorsel-3d">3D</a>
+    </nav>
+    <button type="button" class="theme-toggle" data-theme-toggle aria-pressed="false" aria-label="Acik temaya gec">
+      <span class="theme-toggle-text">Gunduz modu</span>
     </button>
   </div>
+
   <header class="hero">
     <div class="inner">
       <div class="badge-row">
         <span class="badge accent">PROPEDIA</span>
-        <span class="badge">Leakage-free split</span>
+        <span class="badge">Leakage-free Split</span>
+        <span class="badge">MLX / Apple Silicon</span>
         <span class="badge">Reranking</span>
-        <span class="badge">Model eğitimi</span>
+        <span class="badge">2D + 3D</span>
       </div>
       <h1>__PROJECT_NAME__</h1>
       <p class="lead">
-        Yapısal protein–peptid komplekslerinde <strong>skor üretimi</strong>, aynı protein için üretilmiş
-        <strong>aday peptitler arasında sıralama</strong> ve sonuçların <strong>2D kimya + 3D yapı</strong> ile
-        raporlanması. Bu sayfa projenin amacını, veri/metod özünü, metrikleri ve görsel çıktıların ne anlama geldiğini özetler.
+        Yapisal protein-peptid komplekslerinde <strong>skor uretimi</strong>, aday peptitler arasinda
+        <strong>siralama (reranking)</strong> ve sonuclarin <strong>2D kimya + 3D yapi</strong> ile
+        raporlanmasi. Sekans-kume tabanli sizintisiz split, arayuz/pocket anotasyonu ve
+        BCE + pairwise ranking loss ile egitilmis MLP modeli.
       </p>
+      <div class="hero-metrics-strip">
+        <div class="hm"><span class="hm-val">__M_AUROC__</span><span class="hm-key">AUROC</span></div>
+        <div class="hm"><span class="hm-val">__M_MRR__</span><span class="hm-key">MRR</span></div>
+        <div class="hm"><span class="hm-val">__M_HIT3__</span><span class="hm-key">Hit@3</span></div>
+        <div class="hm"><span class="hm-val">__M_HIT5__</span><span class="hm-key">Hit@5</span></div>
+      </div>
       <div class="hero-cta">
-        <a class="btn-pill" href="embed/viewer-demo.html">İnteraktif 3D demosu</a>
+        <a class="btn-pill" href="embed/viewer-demo.html">Interaktif 3D Demo</a>
+        <a class="btn-pill outline" href="#metrikler">Tum Metrikler</a>
         <a class="btn-pill outline" href="data/manifest.json">manifest.json</a>
       </div>
     </div>
   </header>
-  <nav class="toc-inline" aria-label="Sayfa içi">
-    <a href="#akim">Akış</a>
-    <a href="#amac">Amaç</a>
-    <a href="#yontem">Yöntem</a>
+
+  <nav class="toc-inline" aria-label="Sayfa ici">
+    <a href="#akim">Pipeline</a>
+    <a href="#amac">Amac</a>
+    <a href="#yontem">Yontem</a>
     <a href="#veri">Veri</a>
-    <a href="#ablation">Ablasyon</a>
     <a href="#metrikler">Metrikler</a>
-    <a href="#egitim-gorselleri">Eğitim PNG</a>
-    <a href="#ek-gorseller">Ek görseller</a>
-    <a href="#gorsel-2d">2D peptit</a>
-    <a href="#peptit-skor-paneli">2D+skor</a>
-    <a href="#gorsel-3d">3D yapı</a>
+    <a href="#top-ranked">Top Ranked</a>
+    <a href="#egitim-gorselleri">Egitim Gorselleri</a>
+    <a href="#ek-gorseller">Ek Gorseller</a>
+    <a href="#gorsel-2d">2D Peptit</a>
+    <a href="#peptit-skor-paneli">2D + Skor</a>
+    <a href="#gorsel-3d">3D Yapi</a>
     <a href="#ciktilar">Dosyalar</a>
     <a href="#sss">SSS</a>
-    <a href="#manifest">manifest</a>
   </nav>
 
   <div class="layout-wrap">
-    <aside class="sidenav" aria-label="İçindekiler">
-      <strong>İçindekiler</strong>
-      <a href="#akim">Proje akışı</a>
-      <a href="#amac">Amaç &amp; görev</a>
-      <a href="#yontem">İş akışı</a>
-      <a href="#veri">Veri katmanı</a>
-      <a href="#ablation">Ablasyon görselleri</a>
-      <a href="#metrikler">Metrik sözlüğü</a>
-      <a href="#egitim-gorselleri">Eğitim görselleri</a>
-      <a href="#ek-gorseller">Ek görseller</a>
-      <a href="#gorsel-2d">2D: ne, neden</a>
-      <a href="#peptit-skor-paneli">2D + skor örnekleri</a>
-      <a href="#gorsel-3d">3D: ne, neden</a>
-      <a href="#ciktilar">Çıktı dosyaları</a>
+    <aside class="sidenav" aria-label="Icindekiler">
+      <strong>Icindekiler</strong>
+      <a href="#akim">Pipeline akisi</a>
+      <a href="#amac">Amac &amp; gorev</a>
+      <a href="#yontem">Yontem</a>
+      <a href="#veri">Veri katmani</a>
+      <a href="#metrikler">Test metrikleri</a>
+      <a href="#top-ranked">Top ranked ornekler</a>
+      <a href="#egitim-gorselleri">Egitim gorselleri</a>
+      <a href="#ek-gorseller">Ek gorseller</a>
+      <a href="#gorsel-2d">2D peptit</a>
+      <a href="#peptit-skor-paneli">2D + skor</a>
+      <a href="#gorsel-3d">3D yapi</a>
+      <a href="#ciktilar">Cikti dosyalari</a>
       <a href="#sss">SSS</a>
-      <a href="#manifest">Ham manifest</a>
+      <a href="#manifest">manifest.json</a>
     </aside>
 
     <main class="content">
 __PIPELINE_DIAGRAM_BLOCK__
+
       <section class="block" id="amac">
-        <h2>Amaç ve görev tanımı</h2>
+        <h2>Amac ve gorev tanimi</h2>
         <p class="lead-in">
-          Model yalnızca “bu çift bağlanır mı?” demekle kalmaz; her <strong>protein için bir aday kümesi</strong>
-          (genelde 1 gerçek + birkaç negatif) içinde pozitifi <strong>üst sıralara</strong> taşımayı hedefler.
-          Bu yüzden sıralama tarafında öne çıkan metrikler <strong>MRR</strong> ve <strong>Hit@k</strong> iken, eşik seçimi için
-          <strong>AUROC / AUPRC / MCC / Brier</strong> gibi ikili sınıflandırma ve kalibrasyon metrikleri de raporlanır.
+          Model yalnizca "bu cift baglanir mi?" sorusunu yanitmaz; her <strong>protein icin bir aday kumesi</strong>
+          (genelde 1 gercek + birkac negatif) icinde pozitifi <strong>ust siralara</strong> tasir.
+          Siralama icin <strong>MRR</strong> ve <strong>Hit@k</strong> kullanilirken, esik secimi icin
+          <strong>AUROC / AUPRC / MCC</strong> gibi ikili siniflandirma metrikleri de raporlanir.
         </p>
-        <div class="callout">
-          <strong>Özet cümle:</strong> Yapı ve sekans özelliklerinden skor → adaylar arasında sıralama → HTML/PNG/JSON ile
-          izlenebilir, tekrarlanabilir rapor.
+        <div class="callout accent-callout">
+          <strong>Ozet:</strong> Yapi + sekans ozelliklerinden skor &rarr; adaylar arasinda siralama &rarr;
+          HTML / PNG / JSON ile izlenebilir, tekrarlanabilir rapor.
         </div>
       </section>
 
       <section class="block" id="yontem">
-        <h2>Yöntem — uçtan uca akış</h2>
-        <p class="lead-in">Aşağıdaki adımlar sırayla çalıştırılır; ara ürünler JSON/Parquet ile denetlenir.</p>
-        <div class="flow-steps">
-          <div class="step">Ham PROPEDIA → kanonik tablolar (<code>complexes</code>, <code>chains</code>, yapı dosyaları)</div>
-          <div class="step">PDB düzeyinde yapı-temelli train / val / test ayrımı (sızıntı kontrolü)</div>
-          <div class="step">Split-içi negatif üretimi: easy, hard (ve isteğe bağlı structure-hard); oranlar split’e göre ayarlanabilir</div>
-          <div class="step">Özellik ihracı (grafik veya dense tensör yolu — kullanılan eğitim yığınına bağlı)</div>
-          <div class="step">Model eğitimi; <strong>validasyon</strong> metrikleri ile erken durdurma ve eşik seçimi</div>
-          <div class="step">Test raporu, eğriler, top-k tabloları; isteğe bağlı görsel sanity (2D/3D)</div>
+        <h2>Yontem — uctan uca akis</h2>
+        <p class="lead-in">Her adimin ciktisi bir sonrakinin girdisidir. Ara urunler JSON/Parquet ile denetlenir.</p>
+        <div class="method-diagram" role="img" aria-label="Yontem akis diyagrami">
+          <div class="md-phase" data-phase="veri">
+            <div class="md-phase-title">Veri Hazirligi</div>
+            <div class="md-nodes">
+              <div class="md-node"><strong>PROPEDIA mmCIF</strong><span>Ham yapisal dosyalar</span></div>
+              <div class="md-arrow-v"></div>
+              <div class="md-node"><strong>Kanonik tablolar</strong><span><code>complexes</code>, <code>chains</code>, <code>residues</code> Parquet</span></div>
+              <div class="md-arrow-v"></div>
+              <div class="md-node"><strong>Arayuz + Pocket</strong><span>5&#197; arayuz, 8&#197; pocket mesafe anotasyonu</span></div>
+            </div>
+          </div>
+          <div class="md-connector-v"></div>
+          <div class="md-phase" data-phase="split">
+            <div class="md-phase-title">Split &amp; Negatif Uretimi</div>
+            <div class="md-nodes">
+              <div class="md-node"><strong>Sekans-kume split</strong><span>MMseqs2 %30 kimlik &rarr; train / val / test</span></div>
+              <div class="md-arrow-v"></div>
+              <div class="md-node"><strong>Negatif ciftler</strong><span><em>Easy:</em> rastgele peptit &middot; <em>Hard:</em> ayni protein ailesi</span></div>
+            </div>
+          </div>
+          <div class="md-connector-v"></div>
+          <div class="md-phase" data-phase="model">
+            <div class="md-phase-title">Model Egitimi</div>
+            <div class="md-nodes">
+              <div class="md-node"><strong>Ozellik ihraci</strong><span>Yapi + sekans + arayuz + yerel yogunluk &rarr; dense vektor</span></div>
+              <div class="md-arrow-v"></div>
+              <div class="md-node"><strong>MLX MLP egitimi</strong><span>BCE + pairwise ranking loss; val MRR ile erken durdurma</span></div>
+            </div>
+          </div>
+          <div class="md-connector-v"></div>
+          <div class="md-phase" data-phase="rapor">
+            <div class="md-phase-title">Degerlendirme &amp; Rapor</div>
+            <div class="md-nodes">
+              <div class="md-node"><strong>Test metrikleri</strong><span>AUROC, MRR, Hit@k, F1, MCC</span></div>
+              <div class="md-arrow-v"></div>
+              <div class="md-node"><strong>Rapor &amp; site</strong><span>ROC/PR egrileri, 2D peptit, 3D viewer, bu site</span></div>
+            </div>
+          </div>
         </div>
-        <h3>Eğitim</h3>
-        <p class="lead-in">Aynı veri ve split üzerinde model eğitimi; çıktılar <code>metrics.json</code>, eğriler ve sıralama raporları ile sabitlenir. Depoda donanıma göre farklı eğitim betikleri olabilir; statik site yalnızca keşfedilen <strong>tek bir</strong> çıktı klasöründen özet üretir.</p>
       </section>
 
       <section class="block" id="veri">
-        <h2>Veri</h2>
+        <h2>Veri katmani</h2>
         <div class="table-scroll">
         <table class="data-table">
-          <thead><tr><th>Bileşen</th><th>Konum</th><th>Not</th></tr></thead>
+          <thead><tr><th>Bilesen</th><th>Konum</th><th>Aciklama</th></tr></thead>
           <tbody>
-            <tr><td>Kanonik kompleksler</td><td><code>data/canonical/</code></td><td>Tek doğruluk kaynağı</td></tr>
-            <tr><td>Split kimlikleri</td><td><code>data/canonical/splits/*.txt</code></td><td>Train/val/test PDB ayrımı</td></tr>
-            <tr><td>Çiftler + negatifler</td><td><code>data/canonical/pairs/*.parquet</code></td><td>Rapor: <code>pair_data_report.json</code></td></tr>
-            <tr><td>Aday seti raporu</td><td><code>candidate_set_report.json</code></td><td>Hard shortfall, oranlar</td></tr>
+            <tr><td>Kanonik kompleksler</td><td><code>data/canonical/complexes.parquet</code></td><td>Protein-peptid ciftlerinin ana tablosu</td></tr>
+            <tr><td>Zincir bilgileri</td><td><code>data/canonical/chains.parquet</code></td><td>Sekans, uzunluk, zincir turu (protein/peptit)</td></tr>
+            <tr><td>Rezidu detaylari</td><td><code>data/canonical/residues.parquet</code></td><td>Koordinat, is_interface, is_pocket, local_density</td></tr>
+            <tr><td>Sekans-kume split</td><td><code>data/canonical/splits/*.txt</code></td><td>Kume-bazli train/val/test PDB ayirimi</td></tr>
+            <tr><td>Ciftler + negatifler</td><td><code>data/canonical/pairs/*.parquet</code></td><td>Pozitif + easy / hard negatif ciftler</td></tr>
+            <tr><td>Veri raporlari</td><td><code>pair_data_report.json</code></td><td>Dagilim ve butunluk kontrol raporlari</td></tr>
           </tbody>
         </table>
         </div>
-        <p class="lead-in">Bu statik sitedeki özet: <a href="data/manifest.json"><code>data/manifest.json</code></a> (CI/yerel build üretir).</p>
-      </section>
-
-      <section class="block" id="ablation">
-        <h2>Ablasyon ve model karşılaştırma görselleri</h2>
-        <p class="lead-in">
-          <strong>Isı haritası:</strong> duman (smoke) aşamasında denenen hücrelerin <strong>validation MRR</strong> değerlerini gösterir;
-          eksenlerde model ailesi, özellik seti (F1/F2), kayıp (L1/L2) ve müfredat (C0/C1) kombinasyonları bulunur.
-          <strong>Model family comparison:</strong> tam eğitimden sonra her aileden seçilen en iyi koşunun test metriklerini yan yana koyar.
-        </p>
-        <div class="grid2">
-          <figure class="media">
-            <img src="assets/img/ablation_heatmap.png" alt="Ablasyon ısı haritası (validation MRR)" loading="lazy" />
-            <figcaption>Görsel yoksa: yerelde ablasyon betiğini (ör. <code>run_final_ablation_mlx.py</code>) tamamlayıp <code>build_pages_site.py</code> ile siteyi yeniden üretin.</figcaption>
-          </figure>
-          <figure class="media">
-            <img src="assets/img/model_family_comparison.png" alt="Model ailesi karşılaştırması" loading="lazy" />
-            <figcaption>Bar grafik: seçilen full koşuların test özetleri (MRR, Hit@3, AUROC).</figcaption>
-          </figure>
+        <div class="stats-bar">
+          <div class="stat-item"><span class="stat-val">__M_TRAIN_GROUPS__</span><span class="stat-label">Train grup</span></div>
+          <div class="stat-item"><span class="stat-val">__M_VAL_GROUPS__</span><span class="stat-label">Val grup</span></div>
+          <div class="stat-item"><span class="stat-val">__M_TEST_GROUPS__</span><span class="stat-label">Test grup</span></div>
         </div>
       </section>
 
       <section class="block" id="metrikler">
-        <h2>Metrikler — hızlı özet ve anlam</h2>
-        <div class="metrics-grid">
-          <div class="metric-card"><div class="k">AUROC</div><div class="v">__M_AUROC__</div></div>
-          <div class="metric-card"><div class="k">AUPRC</div><div class="v">__M_AUPRC__</div></div>
-          <div class="metric-card"><div class="k">MRR</div><div class="v">__M_MRR__</div></div>
-          <div class="metric-card"><div class="k">Hit@3</div><div class="v">__M_HIT3__</div></div>
+        <h2>Test metrikleri</h2>
+        <p class="lead-in">En iyi modelin <strong>test kumesi</strong> uzerindeki performansi.
+          Kartlarda <strong>&mdash;</strong> gorunuyorsa build sirasinda <code>metrics.json</code> bulunamadi.</p>
+        <div class="metrics-grid-8">
+          <div class="metric-card primary"><div class="k">AUROC</div><div class="v">__M_AUROC__</div><div class="desc">Ikili ayirilabilirlik</div></div>
+          <div class="metric-card"><div class="k">AUPRC</div><div class="v">__M_AUPRC__</div><div class="desc">Dengesiz sinif</div></div>
+          <div class="metric-card primary"><div class="k">MRR</div><div class="v">__M_MRR__</div><div class="desc">Ort. ters sira</div></div>
+          <div class="metric-card"><div class="k">Hit@1</div><div class="v">__M_HIT1__</div><div class="desc">Ilk sirada pozitif</div></div>
+          <div class="metric-card highlight"><div class="k">Hit@3</div><div class="v">__M_HIT3__</div><div class="desc">Ilk 3te pozitif</div></div>
+          <div class="metric-card"><div class="k">Hit@5</div><div class="v">__M_HIT5__</div><div class="desc">Ilk 5te pozitif</div></div>
+          <div class="metric-card"><div class="k">F1</div><div class="v">__M_F1__</div><div class="desc">Esik-bazli F1</div></div>
+          <div class="metric-card"><div class="k">MCC</div><div class="v">__M_MCC__</div><div class="desc">Matthews kor.</div></div>
         </div>
-        <p class="metric-empty-hint">Kartlarda <strong>—</strong> görünüyorsa build sırasında okunabilir bir <code>metrics.json</code> yoktu (GitHub Actions’ta <code>outputs/training/</code> çoğu zaman depoda yoktur). Yerelde eğitim sonrası siteyi yeniden üretin.</p>
         <div class="table-scroll">
         <table class="data-table">
-          <thead><tr><th>Metrik</th><th>Ne ölçer?</th><th>Neden önemli?</th></tr></thead>
+          <thead><tr><th>Metrik</th><th>Ne olcer?</th><th>Neden onemli?</th></tr></thead>
           <tbody>
-            <tr><td>MRR</td><td>Doğru adayın sıralamadaki ters sırası (ortalama)</td><td>Reranking ana göstergesi</td></tr>
-            <tr><td>Hit@k</td><td>İlk k aday içinde pozitif var mı?</td><td>Pratik “kısa liste” başarısı</td></tr>
-            <tr><td>AUROC / AUPRC</td><td>Skor ile ikili ayırılabilirlik</td><td>Eşik seçimi ve dengesiz sınıflar</td></tr>
-            <tr><td>MCC / F1</td><td>Kesin sınıflandırma (seçilen eşikte)</td><td>Operasyonel karar eşiği</td></tr>
-            <tr><td>Brier</td><td>Olasılık kalibrasyonu</td><td>Skorların güvenilirliği</td></tr>
+            <tr><td><strong>MRR</strong></td><td>Dogru adayin siralamadaki ters ortalamasidir</td><td>Reranking performansinin ana gostergesi</td></tr>
+            <tr><td><strong>Hit@k</strong></td><td>Ilk k aday icinde pozitif var mi?</td><td>Pratik kisa liste basarisi</td></tr>
+            <tr><td><strong>AUROC</strong></td><td>Skor ile ikili ayirilabilirlik (esik bagimsiz)</td><td>Genel siniflandirma gucu</td></tr>
+            <tr><td><strong>AUPRC</strong></td><td>Precision-recall egrisi altindaki alan</td><td>Dengesiz sinif senaryolari icin tamamlayici</td></tr>
+            <tr><td><strong>F1 / MCC</strong></td><td>Secilen esikte kesin siniflandirma</td><td>Operasyonel karar esigi basarisi</td></tr>
           </tbody>
         </table>
         </div>
-        <p class="lead-in">Tam sayılar: <code>manifest.json</code> içindeki <code>metrics</code> ve kaynak <code>training_dir</code> altındaki <code>metrics.json</code> (gerekirse <code>ranking_metrics.json</code>). Eski manifest’lerde <code>metrics_primary</code> vb. anahtarlar olabilir.</p>
+      </section>
+
+      <section class="block" id="top-ranked">
+        <h2>Top ranked tahmin ornekleri</h2>
+        <p class="lead-in">Test kumesinden aday gruplarin ilk siralamadaki ornekleri. <span class="label-chip pos">Pozitif</span> = native kristal cifti,
+          <span class="label-chip neg">Negatif</span> = dekoy ornegi. Skor: model uretimi baglanti olasiligi (0-1).</p>
+        <div class="table-scroll">
+        <table class="data-table ranked-table">
+          <thead>
+            <tr>
+              <th>PDB</th><th>Protein</th><th>Peptit</th><th>Uzunluk</th>
+              <th>Skor</th><th>Etiket</th><th>Sira</th>
+            </tr>
+          </thead>
+          <tbody>
+            __TOP_RANKED_ROWS__
+          </tbody>
+        </table>
+        </div>
+        <p class="lead-in" style="margin-top:0.75rem;font-size:0.88rem">Tam liste: <code>top_ranked_examples.json</code> dosyasindaki <code>top_ranked_candidates_preview</code> alani.</p>
       </section>
 
 __TRAINING_GALLERY_SECTION__
+
+      <section class="block" id="ablation">
+        <h2>Ablasyon ve model karsilastirma gorselleri</h2>
+        <p class="lead-in">
+          <strong>Isi haritasi:</strong> smoke asamasinda denenen kosullarin <strong>validation MRR</strong> degerleri.
+          <strong>Model karsilastirma:</strong> tam egitimden sonra secilen en iyi kosullarin test metrikleri.
+        </p>
+        <div class="grid2">
+          <figure class="media">
+            <img src="assets/img/ablation_heatmap.png" alt="Ablasyon isi haritasi" loading="lazy" />
+            <figcaption>Ablasyon isi haritasi (validation MRR)</figcaption>
+          </figure>
+          <figure class="media">
+            <img src="assets/img/model_family_comparison.png" alt="Model ailesi karsilastirmasi" loading="lazy" />
+            <figcaption>Test metrikleri karsilastirmasi (MRR, Hit@3, AUROC)</figcaption>
+          </figure>
+        </div>
+      </section>
+
 __SITE_EXTRA_VIZ__
 
       <section class="block" id="gorsel-2d">
-        <h2>2D peptit görseli — ne, nasıl, neden?</h2>
+        <h2>2D peptit gorselleri</h2>
         <p class="lead-in">
-          <strong>Ne?</strong> RDKit ile tek harf aminoasit dizisinden türetilen <strong>2D bağ yapısı</strong> (keküle benzeri çizim).
-          Çıktı dosyası genelde <code>figures/peptide_2d.png</code>.
+          RDKit ile tek harf aminoasit dizisinden turetilen <strong>2D bag yapisi</strong>.
+          Her gorselde peptidin PDB kodu, zincir kimligi, sekans, model skoru ve etiket bilgisi yer alir.
         </p>
-        <h3>Amaç</h3>
-        <ul>
-          <li>Peptidin <strong>kimyasal bağ bağlamını</strong> raporda hızlıca göstermek (özellikle sunum ve ek materyal).</li>
-          <li>3D yapı dosyası açılmadan bile okuyucuya <strong>hangi zincirin</strong> analiz edildiğini hatırlatmak.</li>
-        </ul>
-        <h3>Başlık (title) satırı</h3>
-        <p class="lead-in">Üretimde başlık şu bilgileri birleştirir: <code>complex_id | Protein &lt;zincir&gt; | Peptide &lt;zincir&gt;: &lt;Sekans&gt;</code>.
-        Böylece görsel tek başına <strong>hangi kompleks ve hangi peptit zinciri</strong> için olduğu anlaşılır.</p>
-        <h3>3D’den farkı</h3>
-        <p class="lead-in">2D çizim <strong>yapısal konformasyonu veya bağ arayüzünü</strong> göstermez; bağlanma yüzeyi, hidrojen bağları vb. için
-        <strong>3D viewer</strong> ve isteğe bağlı PLIP/Arpeggio tabanlı etkileşim çizgileri kullanılır.</p>
+        <div class="two-col-info">
+          <div>
+            <h3>Amac</h3>
+            <ul>
+              <li>Peptidin <strong>kimyasal bag baglamini</strong> hizlica gostermek</li>
+              <li>3D yapi dosyasi acilmadan <strong>hangi zincirin</strong> analiz edildigini hatirlatmak</li>
+              <li>Farkli uzunluk ve skorlardaki peptitleri karsilastirmak</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Gorsel icerigi</h3>
+            <ul>
+              <li><strong>pair_id:</strong> Benzersiz cift tanimlayicisi</li>
+              <li><strong>PDB + zincir:</strong> Kaynak yapisal veri</li>
+              <li><strong>Skor:</strong> Model uretimi baglanti olasiligi (0&ndash;1)</li>
+              <li><strong>Etiket:</strong> Pozitif (native) veya negatif (decoy)</li>
+            </ul>
+          </div>
+        </div>
         <figure class="media">
-          <img src="assets/img/peptide_2d_example.png" alt="Örnek peptide 2D PNG" loading="lazy" />
-          <figcaption>Örnek: pipeline veya sanity çıktısından otomatik kopyalanır. Yoksa görsel eksiktir — yerelde sanity çalıştırıp siteyi yeniden üretin.</figcaption>
+          <img src="assets/img/peptide_2d_example.png" alt="Ornek peptide 2D PNG" loading="lazy" />
+          <figcaption>Genel ornek 2D peptit gorseli. Asagida farkli skor ve uzunluklarda ornekler bulunur.</figcaption>
         </figure>
 __PEPTIDE_2D_VARIANTS__
       </section>
 
       <section class="block" id="gorsel-3d">
-        <h2>3D yapı görüntüleme — ne, nasıl, neden?</h2>
-        <p class="lead-in">
-          <strong>Ne?</strong> Tarayıcıda <strong>3Dmol.js</strong> ile mmCIF/PDB okuma, protein için cartoon (+isteğe VDW yüzeyi),
-          peptit için stick ve (varsa) kalıntı çiftleri arasında <strong>silindir</strong> ile etkileşim gösterimi.
+        <h2>3D yapi goruntuleme</h2>
+        <div class="callout accent-callout">
+          <strong>Demo yapisi:</strong> Asagidaki onizleme RCSB <strong>1CRN</strong> (Crambin, 46 aa, tek zincir kucuk protein) yapisini gosterir.
+          Gercek pipeline ciktisinda her protein-peptit cifti icin ayri viewer uretilir; protein ve peptit farkli renklerde boyanir,
+          etkilesim ciftleri silindir ile gosterilir.
+        </div>
+        <div class="viewer-responsive">
+          <iframe src="embed/viewer-demo.html" loading="lazy" title="3D yapi demo goruntuleyici"></iframe>
+        </div>
+        <p class="lead-in" style="margin-top:0.75rem">
+          <strong>3Dmol.js</strong> ile tarayici icinde canli 3D goruntuleme. Fare ile dondurme, zoom, ve kontrol panelini kullanabilirsiniz.
+          Tam ekran icin asagidaki butona basin.
         </p>
-        <h3>Dosyalar</h3>
-        <div class="table-scroll">
-        <table class="data-table">
-          <thead><tr><th>Dosya</th><th>İçerik</th></tr></thead>
-          <tbody>
-            <tr><td><code>viewer.html</code></td><td>Tam ekran görüntüleyici; kontrol düğmeleri (görünüm, yüzey, arka plan)</td></tr>
-            <tr><td><code>data/viewer_state.json</code></td><td><code>complex_id</code>, <code>structure_format</code> (pdb|cif), <code>structure_basename</code>, <code>chains[]</code>, <code>interactions[]</code>, <code>view_config</code></td></tr>
-            <tr><td><code>data/interaction_provenance.json</code></td><td>PLIP/Arpeggio oranları, fallback bilgisi</td></tr>
-            <tr><td><code>report.html</code></td><td>Özet + gömülü viewer + 2D şekil</td></tr>
-          </tbody>
-        </table>
+        <div class="grid2" style="margin-top:1rem">
+          <div>
+            <h3>Pipeline cikti dosyalari</h3>
+            <div class="table-scroll">
+            <table class="data-table compact">
+              <tbody>
+                <tr><td><code>viewer.html</code></td><td>Tam ekran gorsel; cartoon/stick/sphere kontrolleri</td></tr>
+                <tr><td><code>viewer_state.json</code></td><td>Kompleks kimlik, zincir bilgisi, etkilesim listesi</td></tr>
+                <tr><td><code>interaction_provenance.json</code></td><td>PLIP/Arpeggio veya geometrik fallback bilgisi</td></tr>
+                <tr><td><code>report.html</code></td><td>Ozet rapor: 2D gorsel + gomulu 3D viewer</td></tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
+          <div>
+            <h3>Gorunum kontrolleri</h3>
+            <ul>
+              <li><strong>Cartoon:</strong> Ikincil yapi seridi (helix, sheet, loop)</li>
+              <li><strong>Stick:</strong> Atom baglari; detay icin</li>
+              <li><strong>Sphere:</strong> Atom merkezleri; VDW yaricapi</li>
+              <li><strong>Yuzey:</strong> Van der Waals yuzey kaplamasiyla</li>
+              <li><strong>Arka plan:</strong> Beyaz, siyah veya lacivert</li>
+            </ul>
+          </div>
         </div>
-        <div class="callout">
-          <strong>Canlı demo:</strong> Bu depoda Pages ile yayınlanan <a href="embed/viewer-demo.html">embed/viewer-demo.html</a>
-          aynı kontrol ailesini (cartoon/stick/sphere/line, yüzey, arka plan, sıfırlama) gösterir; örnek yapı 1CRN’dir.
-          Tam protein–peptit renk ayrımı ve etkileşim çizgileri için yerel pipeline çıktılarına bakın.
+        <div class="hero-cta" style="margin-top:1rem">
+          <a class="btn-pill" href="embed/viewer-demo.html">Tam ekran 3D demo</a>
         </div>
-        <a class="btn-pill" href="embed/viewer-demo.html">3D demosunu aç</a>
       </section>
 
       <section class="block" id="ciktilar">
-        <h2>Tipik eğitim çıktıları</h2>
-        <ul>
-          <li><code>metrics.json</code>, <code>ranking_metrics.json</code>, <code>calibration_metrics.json</code></li>
-          <li><code>train_log.csv</code>, ROC/PR/karmaşa/kalibrasyon PNG</li>
-          <li><code>test_topk_positive_hits.csv</code>, <code>top_ranked_examples.json</code></li>
-          <li><code>selection_summary.json</code> (validasyonla seçim politikası)</li>
-        </ul>
+        <h2>Tipik egitim ciktilari</h2>
+        <div class="grid2">
+          <div>
+            <h3>Metrikler &amp; raporlar</h3>
+            <ul>
+              <li><code>metrics.json</code> — tum test/val metrikleri</li>
+              <li><code>ranking_metrics.json</code> — MRR, Hit@k detaylari</li>
+              <li><code>calibration_metrics.json</code> — Brier skoru</li>
+              <li><code>selection_summary.json</code> — secim politikasi</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Gorseller &amp; tablolar</h3>
+            <ul>
+              <li><code>roc_curve.png</code>, <code>pr_curve.png</code></li>
+              <li><code>confusion_matrix.png</code>, <code>calibration_curve.png</code></li>
+              <li><code>score_histogram_pos_neg.png</code></li>
+              <li><code>train_log.csv</code>, <code>top_ranked_examples.json</code></li>
+            </ul>
+          </div>
+        </div>
       </section>
 
       <section class="block" id="sss">
-        <h2>Sık sorulanlar</h2>
-        <details class="expand"><summary>GitHub Pages’te grafikler gerçek veri gibi görünmüyor?</summary>
-          <div class="inner">CI’da <code>outputs/training/</code> olmayabilir; derleme <strong>yer tutucu PNG</strong> üretir (kırık resim olmaz). Gerçek ROC/ablation görselleri için yerelde eğitim/ablation sonrası <code>build_pages_site.py</code> çalıştırın. 3D demo her zaman <code>assets/demo/1crn.cif</code> ile çalışır.</div>
+        <h2>Sik sorulanlar</h2>
+        <details class="expand"><summary>GitHub Pages'te grafikler yer tutucu gorunuyor?</summary>
+          <div class="inner">CI ortaminda <code>outputs/training/</code> olmayabilir. Derleme yer tutucu PNG uretir. Gercek gorseller icin yerelde egitimi tamamlayip <code>python scripts/build_pages_site.py</code> calistirin.</div>
         </details>
-        <details class="expand"><summary>2D ile skor üretiliyor mu?</summary>
-          <div class="inner">Hayır; 2D görsel raporlama içindir. Skorlar yapı/seq özelliklerinden gelen modele aittir.</div>
+        <details class="expand"><summary>2D gorsel ile skor uretiliyor mu?</summary>
+          <div class="inner">Hayir. 2D gorsel yalnizca raporlama icindir. Skorlar yapi/sekans ozelliklerinden gelen model ciktisidir.</div>
         </details>
-        <details class="expand"><summary>viewer_state.json içinde yapı metni var mı?</summary>
-          <div class="inner">Hayır; dosya yolu ve format bilgisi tutulur. Yapı metni <code>viewer.html</code> içinde güvenli şekilde gömülüdür.</div>
+        <details class="expand"><summary>Sizinti-siz split nasil calisiyor?</summary>
+          <div class="inner">MMseqs2 ile protein sekanslari %30 kimlik esiginde kumelenir. Ayni kumedeki tum kompleksler ayni split'e atanir, boylece egitim ve test arasinda homoloji sizintisi onlenir.</div>
         </details>
-        <details class="expand"><summary>PLIP / Arpeggio neden hiç çalışmamış gibi görünüyor?</summary>
-          <div class="inner">Pipeline yalnızca <code>plip</code> ve <code>arpeggio</code> komutları <code>PATH</code>’te ve <code>--help</code> başarılı ise çalıştırır (<code>pipeline.py</code>). Aksi halde doğrudan <strong>geometrik fallback</strong> (Cα mesafesi) kullanılır; <code>interaction_provenance.json</code> içinde <code>tools_succeeded</code> boş kalır. Kurulum: <code>scripts/verify_external_tools.py</code> ve <code>EXTERNAL_TOOLS.md</code>.</div>
+        <details class="expand"><summary>PLIP / Arpeggio neden calismamis gorunuyor?</summary>
+          <div class="inner">Pipeline yalnizca <code>plip</code> ve <code>arpeggio</code> komutlari PATH'te ve basarili ise calistirir. Aksi halde geometrik fallback kullanilir.</div>
+        </details>
+        <details class="expand"><summary>Etiket 1 (pozitif) ne anlama geliyor?</summary>
+          <div class="inner">Etiket 1 = kristalde birlikte gozlenen (native/co-crystal) protein-peptit cifti. Model bu cifti tanimayi ve aday kumesi icinde ust siralara tasimayi ogrenir.</div>
         </details>
       </section>
 
       <section class="block" id="manifest">
-        <h2>manifest.json (kaçışlı)</h2>
+        <h2>manifest.json</h2>
         <pre class="json">__MANIFEST_JSON__</pre>
       </section>
     </main>
   </div>
 
   <footer class="site-ft">
-    __PROJECT_NAME__ — statik site <code>scripts/build_pages_site.py</code> ile üretilir.
-    Workflow: <code>.github/workflows/pages.yml</code>
-    · Yayın: <a href="https://atakan-emre.github.io/PeptiProp/">atakan-emre.github.io/PeptiProp</a>
+    <div class="footer-inner">
+      <span>__PROJECT_NAME__ v0.1</span>
+      <span>Statik site: <code>scripts/build_pages_site.py</code></span>
+      <span><a href="__REPO_URL__">GitHub</a></span>
+      <span><a href="https://atakan-emre.github.io/PeptiProp/">Pages</a></span>
+    </div>
   </footer>
   </div>
+  <div class="lightbox-overlay" id="lightbox" role="dialog" aria-modal="true" aria-label="Gorsel onizleme" style="display:none">
+    <button class="lightbox-close" aria-label="Kapat">&times;</button>
+    <img class="lightbox-img" id="lightbox-img" src="" alt="" />
+  </div>
   <script src="assets/js/site-theme.js" defer></script>
+  <script>
+(function(){
+  var overlay=document.getElementById('lightbox'),img=document.getElementById('lightbox-img');
+  document.querySelectorAll('figure.media img').forEach(function(el){
+    el.style.cursor='zoom-in';
+    el.addEventListener('click',function(){
+      img.src=el.src; img.alt=el.alt;
+      overlay.style.display='flex';
+      document.body.style.overflow='hidden';
+    });
+  });
+  function closeLb(){overlay.style.display='none';document.body.style.overflow='';}
+  overlay.addEventListener('click',function(e){if(e.target!==img)closeLb();});
+  document.querySelector('.lightbox-close').addEventListener('click',closeLb);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLb();});
+})();
+  </script>
 </body>
 </html>
 """
@@ -1458,7 +1885,7 @@ def main() -> None:
         json.dump(manifest, f, indent=2, ensure_ascii=False)
 
     write_demo_viewer(SITE)
-    write_index(SITE, manifest, gallery_section, site_extra_html, peptide_variants_html)
+    write_index(SITE, manifest, gallery_section, training_dir, site_extra_html, peptide_variants_html)
     print(f"[OK] GitHub Pages site: {SITE}")
 
 

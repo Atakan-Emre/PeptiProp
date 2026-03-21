@@ -5,10 +5,9 @@
 Repository is stabilized on a PROPEDIA-only, leakage-free scoring stack (classical + optional MLX on Apple Silicon).
 
 - dataset: PROPEDIA
-- split: PDB-level structure-aware
+- split: sekans-küme bazlı (MMseqs2 %30 kimlik)
 - task: interaction scoring + candidate reranking
-- classical final: `outputs/training/peptidquantum_v0_1_final_best_classical_100ep_r2`
-- MLX ablation sync: `outputs/training/peptidquantum_v0_1_final_best_mlx_ablation` (when `run_final_ablation_mlx.py` completed)
+- MLX eğitim: `outputs/training/peptidquantum_v0_1_final_mlx_m4`
 - web: GitHub Pages via `scripts/build_pages_site.py` + `.github/workflows/pages.yml`
 - 3D viewer: PDB/mmCIF-aware `addModel`, safe JSON embedding, fixed embedded-report `div_id` handling (`viewer_3dmol.py`)
 

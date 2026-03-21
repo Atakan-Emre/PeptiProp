@@ -70,6 +70,7 @@ function Invoke-Leakage-Tests {
     Write-Host ("[{0}] OK -> {1}" -f $Name, $logFile) -ForegroundColor Green
 }
 
+Invoke-Step "00_annotate" "python scripts/annotate_interface_pocket.py --canonical data/canonical"
 if (-not $SkipSplit) {
     Invoke-Step "01_split" "python scripts/build_pdb_level_splits.py --canonical data/canonical --propedia-meta data/raw/propedia --out data/canonical/splits --seed 42"
 }

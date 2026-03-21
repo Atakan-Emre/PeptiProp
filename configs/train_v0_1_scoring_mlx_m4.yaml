@@ -7,7 +7,7 @@ data:
   quality_filter: clean
 
 features:
-  use_local_density: false
+  use_local_density: true
   local_density_radius: 8.0
 
 model:

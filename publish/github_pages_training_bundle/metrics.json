@@ -1,54 +1,54 @@
 {
   "validation_metrics_at_selected_threshold": {
-    "auroc": 0.7964497090979339,
-    "auprc": 0.447553860283327,
-    "f1": 0.4974325459807674,
-    "mcc": 0.3839851703157017,
-    "precision": 0.41475945819710414,
-    "recall": 0.621268656716418
+    "auroc": 0.8549264698705465,
+    "auprc": 0.46304706411638097,
+    "f1": 0.5310734463276836,
+    "mcc": 0.4504021228138967,
+    "precision": 0.383952551477171,
+    "recall": 0.860978670012547
   },
   "test_metrics": {
-    "auroc": 0.8009163688136731,
-    "auprc": 0.4455624341971029,
-    "f1": 0.49103556382874497,
-    "mcc": 0.37588379526788224,
-    "precision": 0.4140095820254419,
-    "recall": 0.6032739528165624
+    "auroc": 0.8387957934573742,
+    "auprc": 0.43477299141790066,
+    "f1": 0.5074216602528862,
+    "mcc": 0.41344470867721617,
+    "precision": 0.36868384262033155,
+    "recall": 0.8135742617893346
   },
   "val_ranking_metrics": {
-    "mrr": 0.6880130597014925,
-    "hit@1": 0.5167910447761194,
-    "hit@3": 0.8134328358208955,
-    "hit@5": 0.9787779850746269,
-    "groups_evaluated": 4288
+    "mrr": 0.7452530322040987,
+    "hit@1": 0.5628607277289837,
+    "hit@3": 0.9397741530740276,
+    "hit@5": 0.9967377666248431,
+    "groups_evaluated": 3985
   },
   "test_ranking_metrics": {
-    "mrr": 0.6847897608730541,
-    "hit@1": 0.5084256138661531,
-    "hit@3": 0.8208955223880597,
-    "hit@5": 0.9797785267212326,
-    "groups_evaluated": 4154
+    "mrr": 0.711950932863229,
+    "hit@1": 0.5121198765976201,
+    "hit@3": 0.9275011018069634,
+    "hit@5": 0.9951520493609519,
+    "groups_evaluated": 4538
   },
-  "selected_threshold": 0.5300000000000001,
+  "selected_threshold": 0.5900000000000001,
   "threshold_selection_metric": "mcc",
-  "best_val_monitor_metric": 0.6880130597014925,
-  "epochs_completed": 62,
+  "best_val_monitor_metric": 0.7452530322040987,
+  "epochs_completed": 68,
   "candidate_group_integrity": {
     "train": {
-      "total_groups": 19623,
-      "valid_groups": 19623,
+      "total_groups": 19542,
+      "valid_groups": 19542,
       "groups_without_positive": 0,
       "groups_without_negative": 0
     },
     "val": {
-      "total_groups": 4288,
-      "valid_groups": 4288,
+      "total_groups": 3985,
+      "valid_groups": 3985,
       "groups_without_positive": 0,
       "groups_without_negative": 0
     },
     "test": {
-      "total_groups": 4154,
-      "valid_groups": 4154,
+      "total_groups": 4538,
+      "valid_groups": 4538,
       "groups_without_positive": 0,
       "groups_without_negative": 0
     }

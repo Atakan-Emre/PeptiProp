@@ -544,7 +544,6 @@ def backfill_negative_type_mix(
                     donor_idx,
                     split_name=split_name,
                 )
-                new_record["pair_id"] = old_record["pair_id"]
                 all_negatives[donor_idx] = new_record
 
                 generated_counts[target_type] += 1

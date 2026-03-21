@@ -66,8 +66,8 @@ Per protein:
 
 Target negative mix:
 
-- train: `50% easy / 30% hard / 20% structure_hard`
-- val/test: `70% easy / 30% hard`
+- train: `~70% easy / ~30% hard`
+- val/test: `~80% easy / ~20% hard`
 
 If target ratio cannot be reached, shortfall is reported in:
 

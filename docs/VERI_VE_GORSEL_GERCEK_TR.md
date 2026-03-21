@@ -6,8 +6,8 @@ Bu not, **amacınızla uyumluluk** ve **2D/3D çıktıların ne ölçtüğü** s
 
 - **Kaynak:** Aktif hat **PROPEDIA** → `data/canonical/` (tek doğruluk kaynağı). `DATA_ARCHITECTURE.md` ile hizalı.
 - **Çiftler:** `data/canonical/pairs/pair_data_report.json` gerçek sayımları içerir (örnek, bu repoda görülen özet):
-  - **Train:** 117 738 çift (19 623 pozitif, 98 115 negatif), duplicate 0, hepsi `clean`.
-  - **Val / test:** benzer şekilde raporlanmış; sızıntı politikası dokümante.
+  - **Train:** 117,252 çift (19,542 pozitif, 97,710 negatif), duplicate 0, hepsi `clean`.
+  - **Val:** 23,910 çift · **Test:** 27,228 çift; sızıntı koruması: MMseqs2 sekans-küme bazlı split.
 - **Sonuç:** Pozitif/negatif etiketler **kristal yapıdan türetilmiş kanonik şema** ile tanımlı; model çıktısı “uydurma PDB” değildir. Halüsinasyon riski başlıca **tahmin aşamasında** (yanlış sıralama/eşik), veri tablosunun kendisinde değil.
 
 ## 2. “Bağlanma oranı” derken ne kastedilmeli?
@@ -16,7 +16,7 @@ Bu not, **amacınızla uyumluluk** ve **2D/3D çıktıların ne ölçtüğü** s
 
 | Ne | Anlamı | Örnek (bu repoda) |
 |----|--------|-------------------|
-| **Model performansı** | Pozitif/negatif veya sıralama başarısı | Test **AUROC ≈ 0.79**, **MRR ≈ 0.68** (`metrics.json` özetleri) |
+| **Model performansı** | Pozitif/negatif veya sıralama başarısı | Test **AUROC ≈ 0.84**, **MRR ≈ 0.71**, **Hit@3 ≈ 0.93** (`metrics.json` özetleri) |
 | **Etkileşim tespiti (3D çizim)** | PLIP/Arpeggio veya geometrik fallback ile çizilen temas/çizgi sayısı | Kompleks başına değişir; **“% kaç bağ bulundu”** tek cümlede anlamlı değildir (eşik, mesafe, kaynak aracı değişir) |
 
 Yani **2D şekil** veya **3D silindir sayısı**, “model %X bağlanma buldu” anlamına gelmez; **görselleştirme veya geometri özetidir**.

@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 from typing import List, Dict, Optional
+import numpy as np
 import pandas as pd
 from datetime import datetime
 
@@ -15,6 +16,9 @@ from ..canonical.schema import (
     ComplexRecord, ChainRecord, ResidueRecord, ProvenanceRecord,
     SourceDatabase, SplitTag, QualityFlag, EntityType, CanonicalSchema
 )
+
+INTERFACE_DISTANCE_CUTOFF = 5.0   # Å – heavy-atom distance between chains
+POCKET_DISTANCE_CUTOFF = 8.0      # Å – protein residues near any peptide atom
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +131,45 @@ class CanonicalBuilder:
         logger.info(f"  Output: {self.canonical_dir}")
         logger.info(f"{'='*60}")
     
+    @staticmethod
+    def _annotate_interface_pocket(
+        residue_records: List[ResidueRecord],
+        protein_chain_id: str,
+        peptide_chain_id: str,
+    ) -> None:
+        """Mark interface and pocket residues using distance-based criteria.
+
+        A residue pair (one from each chain) is considered an interface contact
+        when the Euclidean distance between their centroids is ≤ INTERFACE_DISTANCE_CUTOFF.
+        Pocket residues are protein residues within POCKET_DISTANCE_CUTOFF of any
+        peptide residue centroid.
+        """
+        prot_res = [r for r in residue_records if r.chain_id == protein_chain_id]
+        pep_res = [r for r in residue_records if r.chain_id == peptide_chain_id]
+
+        if not prot_res or not pep_res:
+            return
+
+        prot_coords = np.array([[r.x, r.y, r.z] for r in prot_res], dtype=np.float64)
+        pep_coords = np.array([[r.x, r.y, r.z] for r in pep_res], dtype=np.float64)
+
+        # pairwise distance matrix (n_prot × n_pep)
+        diff = prot_coords[:, None, :] - pep_coords[None, :, :]
+        dists = np.sqrt((diff ** 2).sum(axis=-1))
+
+        min_dist_per_prot = dists.min(axis=1)
+        min_dist_per_pep = dists.min(axis=0)
+
+        for i, r in enumerate(prot_res):
+            if min_dist_per_prot[i] <= INTERFACE_DISTANCE_CUTOFF:
+                r.is_interface = True
+            if min_dist_per_prot[i] <= POCKET_DISTANCE_CUTOFF:
+                r.is_pocket = True
+
+        for j, r in enumerate(pep_res):
+            if min_dist_per_pep[j] <= INTERFACE_DISTANCE_CUTOFF:
+                r.is_interface = True
+
     def _process_file(self, cif_file: Path, source_db: SourceDatabase) -> bool:
         """
         Process single mmCIF file
@@ -239,7 +282,8 @@ class CanonicalBuilder:
             
             self.complex_records.append(complex_record)
             
-            # Create chain records
+            # Create chain records and collect residues for interface annotation
+            pair_residues: List[ResidueRecord] = []
             for chain in [pair.protein_chain, pair.peptide_chain]:
                 entity_type = EntityType.PROTEIN if chain == pair.protein_chain else EntityType.PEPTIDE
                 
@@ -271,7 +315,14 @@ class CanonicalBuilder:
                     )
                     
                     self.residue_records.append(residue_record)
+                    pair_residues.append(residue_record)
             
+            self._annotate_interface_pocket(
+                pair_residues,
+                pair.protein_chain.chain_id_auth,
+                pair.peptide_chain.chain_id_auth,
+            )
+
             # Create provenance record
             provenance_record = ProvenanceRecord(
                 complex_id=complex_id,

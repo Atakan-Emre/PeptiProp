@@ -59,14 +59,14 @@ Dosyalar:
 
 Doğrulanan dağılımlar:
 
-- Train: `114366` (pos `19061`, neg `95305`)
-- Val: `25542` (pos `4257`, neg `21285`)
-- Test: `24414` (pos `4069`, neg `20345`)
+- Train: `117252` (pos `19542`, neg `97710` — 68,397 easy + 29,313 hard)
+- Val: `23910` (pos `3985`, neg `19925` — 15,940 easy + 3,985 hard)
+- Test: `27228` (pos `4538`, neg `22690` — 18,152 easy + 4,538 hard)
 - Tüm splitlerde `split_column_consistent = true`, `duplicate_pair_count = 0`
 
 Negatif tip oranı (mevcut koşu):
 
-- Hedef: train/val/test için `easy-hard` ağırlıklı (structure_hard=0)
+- Hedef: train/val/test için `easy + hard` ağırlıklı negatif dağılımı
 - Gerçekleşen:
   - Train hard shortfall ~ `0.0` (hedefe çok yakın)
   - Val hard shortfall ~ `0.0886`

@@ -34,7 +34,7 @@ python scripts/run_final_ablation_mlx.py \
   --finalists-per-family 2
 ```
 
-Seçilen en iyi çalışma: `outputs/training/peptidquantum_v0_1_final_best_mlx_ablation/` (`ablation_heatmap.png`, `metrics.json`, …). Statik site bu klasörden görselleri kopyalayabilir: `python scripts/build_pages_site.py` — `docs/GITHUB_PAGES_TR.md`.
+Seçilen en iyi çalışma: `outputs/training/peptidquantum_v0_1_final_mlx_m4/` (`metrics.json`, ROC/PR eğrileri, …). Statik site bu klasörden görselleri kopyalar: `python scripts/build_pages_site.py` — `docs/GITHUB_PAGES_TR.md`.
 
 ## Çıktılar (tek MLX koşusu örneği)
 

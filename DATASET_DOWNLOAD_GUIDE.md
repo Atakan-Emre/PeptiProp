@@ -31,7 +31,7 @@ python scripts/fetch_wwpdb_mmcif.py --pdb-id 1ABT --output data/raw/propedia/com
 python scripts/build_pdb_level_splits.py --canonical data/canonical --propedia-meta data/raw/propedia --out data/canonical/splits --seed 42
 ```
 
-This step enforces PDB-level split consistency.
+Split stratejisi: MMseqs2 ile protein sekansları %30 kimlik eşiğinde kümelenir; aynı kümedeki tüm kompleksler aynı split'e atanır (homoloji sızıntısı önleme). MMseqs2 yoksa exact-sequence fallback kullanılır.
 
 ## 3) Generate Candidate/Negative Pairs
 
@@ -53,15 +53,15 @@ Before training, verify:
 - quality flag includes only `clean`
 - candidate set size is stable (`6`: 1 positive + 5 negatives)
 
-## 5) Train Final Classical Model
+## 5) Train Model
 
 ```bash
-python scripts/train_scoring_model.py --config configs/train_v0_1_final_best_classical_100ep.yaml
+# MLX (Apple Silicon)
+python scripts/export_mlx_features.py --config configs/train_v0_1_scoring_mlx_m4.yaml
+python scripts/train_scoring_mlx.py --config configs/train_v0_1_scoring_mlx_m4.yaml
 ```
 
-Final outputs:
-
-- `outputs/training/peptidquantum_v0_1_final_best_classical_100ep_r2/`
+Final outputs: `outputs/training/peptidquantum_v0_1_final_mlx_m4/`
 
 ## Notes
 
