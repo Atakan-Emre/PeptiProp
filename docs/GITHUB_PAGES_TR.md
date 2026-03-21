@@ -18,6 +18,10 @@ Workflow `.github/workflows/pages.yml` her `main` (veya `master`) push’ında:
 
 > `site/` `.gitignore` içindedir; **yayınlanan dosyalar CI ürünüdür**, repoya commit edilmesi gerekmez.
 
+### 2D peptit + skor paneli (test örnekleri)
+
+`top_ranked_examples.json` + `data/canonical/chains.parquet` + **RDKit** ile derleme sırasında `peptide_2d_v1…v4.png` üretilir. CI’da `chains.parquet` yoksa veya RDKit kurulu değilse bu alt bölüm atlanır; yerelde `build_pages_site.py` çalıştırıp üretilen `site/` önizleyin veya bu PNG’leri repoya (bundle dışında) eklemeyi tercih edin.
+
 ### Metrik ve eğitim görselleri neden yerelde dolu, CI’da boştu?
 
 `outputs/training/` `.gitignore` ile repoda yok. **Çözüm:** `publish/github_pages_training_bundle/` içine `metrics.json`, `ranking_metrics.json` ve ilgili PNG’leri commit edin. `build_pages_site.py` önce yerel `outputs/training/` arar; yoksa bu paketi kullanır.

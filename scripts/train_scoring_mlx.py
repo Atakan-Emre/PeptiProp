@@ -402,6 +402,7 @@ def build_topk_artifacts(cfg: dict, test_payload: Dict[str, np.ndarray], test_sc
             "peptide_complex_id",
             "peptide_chain_id",
             "score",
+            "label_eval",
             "label",
             "rank",
             "candidate_size",

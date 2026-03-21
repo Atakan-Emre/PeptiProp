@@ -1,6 +1,7 @@
 """HTML report generator for protein-peptide complexes"""
 from __future__ import annotations
 
+import html as html_stdlib
 import json
 from pathlib import Path
 from typing import Optional, Dict, List
@@ -26,6 +27,7 @@ class ReportBuilder:
         output_html: str | Path,
         include_viewer: bool = True,
         interaction_provenance: Optional[Dict] = None,
+        prediction_meta: Optional[Dict] = None,
     ):
         """
         Build complete HTML report
@@ -50,7 +52,9 @@ class ReportBuilder:
         
         # 2. Overview section
         sections.append(
-            self._generate_overview_section(complex_obj, interaction_set, interaction_provenance)
+            self._generate_overview_section(
+                complex_obj, interaction_set, interaction_provenance, prediction_meta=prediction_meta
+            )
         )
         
         # 3. Interactive viewer
@@ -121,6 +125,7 @@ class ReportBuilder:
         complex_obj: Complex,
         interaction_set: InteractionSet,
         interaction_provenance: Optional[Dict] = None,
+        prediction_meta: Optional[Dict] = None,
     ) -> str:
         """Generate overview section"""
         # Count chains
@@ -159,7 +164,34 @@ class ReportBuilder:
                     <p style="font-size: 0.9em; line-height: 1.6;">{frac_lines or "N/A"}</p>
                 </div>
             """
-        
+
+        score_html = ""
+        if prediction_meta:
+            rows = []
+            for key in (
+                "pair_id",
+                "model_score",
+                "training_label",
+                "negative_type",
+                "protein_complex_id",
+                "peptide_complex_id",
+                "peptide_chain_id",
+                "note",
+            ):
+                if key in prediction_meta and prediction_meta[key] is not None:
+                    val = html_stdlib.escape(str(prediction_meta[key]))
+                    rows.append(f"<p><strong>{html_stdlib.escape(key)}:</strong> {val}</p>")
+            if rows:
+                score_html = (
+                    '<div class="info-card">'
+                    "<h3>Scoring / training context (optional)</h3>"
+                    f'{"".join(rows)}'
+                    "<p style=\"font-size:0.85em;color:#666;\">"
+                    "training_label 1 = structural positive (native co-crystal peptide in this pair table); "
+                    "model_score is the trained predictor output, not the label.</p>"
+                    "</div>"
+                )
+
         return f"""
         <div class="section">
             <h2>Overview</h2>
@@ -182,6 +214,7 @@ class ReportBuilder:
                     <p style="font-size: 0.9em; line-height: 1.6;">{type_list}</p>
                 </div>
                 {prov_html}
+                {score_html}
             </div>
         </div>
         """

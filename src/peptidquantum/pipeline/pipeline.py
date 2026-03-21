@@ -91,7 +91,8 @@ class PeptidQuantumPipeline:
         use_plip: bool = True,
         generate_pymol: bool = True,
         generate_report: bool = True,
-        generate_viewer: bool = True
+        generate_viewer: bool = True,
+        report_metadata: Optional[Dict] = None,
     ) -> Dict:
         """
         Run complete pipeline
@@ -186,6 +187,7 @@ class PeptidQuantumPipeline:
             generate_report=generate_report,
             generate_viewer=generate_viewer,
             interaction_provenance=interaction_provenance,
+            report_metadata=report_metadata,
         )
         
         logger.info("="*60)
@@ -680,6 +682,7 @@ class PeptidQuantumPipeline:
         generate_report: bool,
         generate_viewer: bool,
         interaction_provenance: Optional[Dict[str, object]] = None,
+        report_metadata: Optional[Dict] = None,
     ) -> Dict:
         """Stage 7: Build report"""
         logger.info("Stage 7: Building report...")
@@ -711,6 +714,7 @@ class PeptidQuantumPipeline:
                     output_html=output_dir / "report.html",
                     include_viewer=True,
                     interaction_provenance=interaction_provenance,
+                    prediction_meta=report_metadata,
                 )
                 results['report'] = True
             except Exception as e:

@@ -20,7 +20,7 @@ DEST = ROOT / "publish" / "github_pages_training_bundle"
 DEFAULT_SRC = ROOT / "outputs" / "training" / "peptidquantum_v0_1_final_best_mlx_ablation"
 
 # Site derlemesi + manifest birleştirme için yeterli; gereksiz ağır dosya kopyalanmaz.
-ALLOW_JSON = frozenset({"metrics.json", "ranking_metrics.json"})
+ALLOW_JSON = frozenset({"metrics.json", "ranking_metrics.json", "top_ranked_examples.json"})
 
 
 def main() -> None:

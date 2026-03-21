@@ -44,6 +44,178 @@ _AA3_TO_1: Dict[str, str] = {
 }
 
 
+def resolve_top_ranked_examples_path(root: Path) -> Optional[Path]:
+    """Yerel eğitim veya Pages bundle içinde top_ranked_examples.json."""
+    bundle = root / "publish" / "github_pages_training_bundle" / "top_ranked_examples.json"
+    if bundle.is_file():
+        return bundle
+    found = list(root.glob("outputs/training/**/top_ranked_examples.json"))
+    if not found:
+        return None
+    return max(found, key=lambda p: p.stat().st_mtime)
+
+
+def _row_label_eval(rec: Dict[str, Any]) -> int:
+    if rec.get("label_eval") is not None:
+        return int(rec["label_eval"])
+    return int(rec.get("label", 0))
+
+
+def _peptide_one_letter_sequence(
+    chains_df: pd.DataFrame, peptide_complex_id: str, peptide_chain_id: str
+) -> Optional[str]:
+    cid, pid = str(peptide_complex_id), str(peptide_chain_id)
+    for col in ("chain_id_auth", "chain_id"):
+        if col not in chains_df.columns:
+            continue
+        sel = chains_df[(chains_df["complex_id"].astype(str) == cid) & (chains_df[col].astype(str) == pid)]
+        if sel.empty:
+            continue
+        seq = sel.iloc[0].get("sequence")
+        if pd.isna(seq):
+            continue
+        return triseq_to_oneletter(str(seq))
+    return None
+
+
+def _pick_ranked_variant_rows(preview: List[Dict[str, Any]], max_n: int = 4) -> List[Dict[str, Any]]:
+    if not preview:
+        return []
+    pos = [r for r in preview if _row_label_eval(r) == 1]
+    neg = [r for r in preview if _row_label_eval(r) == 0]
+    picked: List[Dict[str, Any]] = []
+    used: set[str] = set()
+
+    def add(r: Optional[Dict[str, Any]]) -> None:
+        if r is None or len(picked) >= max_n:
+            return
+        pid = str(r.get("pair_id", ""))
+        if not pid or pid in used:
+            return
+        picked.append(r)
+        used.add(pid)
+
+    if pos:
+        add(max(pos, key=lambda r: float(r.get("score", 0))))
+    if pos and len(picked) < max_n:
+        rest = [r for r in pos if str(r.get("pair_id", "")) not in used]
+        if rest:
+            add(min(rest, key=lambda r: float(r.get("score", 1))))
+    if neg and len(picked) < max_n:
+        rest = [r for r in neg if str(r.get("pair_id", "")) not in used]
+        if rest:
+            add(max(rest, key=lambda r: float(r.get("score", 0))))
+    rest_all = [r for r in preview if str(r.get("pair_id", "")) not in used]
+    if rest_all and len(picked) < max_n:
+        add(max(rest_all, key=lambda r: int(r.get("peptide_length", 0) or 0)))
+    rest_all = [r for r in preview if str(r.get("pair_id", "")) not in used]
+    if rest_all and len(picked) < max_n:
+        shortest = min(rest_all, key=lambda r: int(r.get("peptide_length", 999) or 999))
+        if int(shortest.get("peptide_length", 0) or 0) >= 2:
+            add(shortest)
+    return picked[:max_n]
+
+
+def generate_peptide_2d_variant_assets(root: Path, site: Path) -> Dict[str, Any]:
+    """top_ranked_examples + chains → peptide_2d_v*.png + data/peptide_2d_variants.json (RDKit gerekir)."""
+    out: Dict[str, Any] = {"peptide_2d_variants": [], "files": []}
+    tr_path = resolve_top_ranked_examples_path(root)
+    ch_path = root / "data" / "canonical" / "chains.parquet"
+    if not tr_path or not ch_path.is_file():
+        return out
+    try:
+        from peptidquantum.visualization.chemistry.peptide_2d import Peptide2DRenderer
+    except ImportError:
+        return out
+
+    try:
+        raw = json.loads(tr_path.read_text(encoding="utf-8"))
+        preview = raw.get("top_ranked_candidates_preview") or []
+        rows = _pick_ranked_variant_rows(preview, 4)
+        if not rows:
+            return out
+        chains_df = pd.read_parquet(ch_path)
+        img_dir = site / "assets" / "img"
+        data_dir = site / "data"
+        img_dir.mkdir(parents=True, exist_ok=True)
+        data_dir.mkdir(parents=True, exist_ok=True)
+        renderer = Peptide2DRenderer(img_size=(720, 380))
+        variants: List[Dict[str, Any]] = []
+        for i, row in enumerate(rows, start=1):
+            pcx = str(row.get("peptide_complex_id", ""))
+            pch = str(row.get("peptide_chain_id", ""))
+            seq = _peptide_one_letter_sequence(chains_df, pcx, pch)
+            if not seq:
+                continue
+            score = float(row.get("score", 0))
+            lab = _row_label_eval(row)
+            plen = int(row.get("peptide_length", len(seq)) or len(seq))
+            pair_id = str(row.get("pair_id", ""))
+            pdb = str(row.get("pdb_id", ""))
+            neg_t = str(row.get("negative_type", ""))
+            fname = f"peptide_2d_v{i}.png"
+            dest = img_dir / fname
+            seq_short = seq[:45] + ("…" if len(seq) > 45 else "")
+            title = (
+                f"{pair_id} | PDB {pdb} chain {pch} | len {plen} | "
+                f"score={score:.4f} label={lab} | {seq_short}"
+            )
+            renderer.from_sequence(seq, dest, title=title)
+            if not dest.is_file():
+                continue
+            href = f"assets/img/{fname}"
+            cap = (
+                f"<code>{html_module.escape(pair_id)}</code> · PDB {html_module.escape(pdb)} · "
+                f"peptit {html_module.escape(pch)} · uzunluk {plen} · "
+                f"model skoru <strong>{score:.4f}</strong> · etiket <strong>{lab}</strong> "
+                f"({'yapısal pozitif' if lab == 1 else html_module.escape(neg_t or 'negatif')}) · "
+                f"<code>{html_module.escape(seq[:40])}{'…' if len(seq) > 40 else ''}</code>"
+            )
+            variants.append({"file": href, "caption_html": cap, "alt": f"Peptit 2D {pair_id}"})
+            out["files"].append(href)
+        if variants:
+            (data_dir / "peptide_2d_variants.json").write_text(
+                json.dumps({"variants": variants}, indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            out["peptide_2d_variants"] = variants
+    except Exception:
+        return out
+    return out
+
+
+def html_peptide_2d_variants_section(site: Path) -> str:
+    man_path = site / "data" / "peptide_2d_variants.json"
+    if not man_path.is_file():
+        return ""
+    try:
+        payload = json.loads(man_path.read_text(encoding="utf-8"))
+    except Exception:
+        return ""
+    variants = payload.get("variants") or []
+    if not variants:
+        return ""
+    doc_url = "https://github.com/Atakan-Emre/PeptiProp/blob/main/docs/POZITIF_PEPTIT_VE_SKOR_TR.md"
+    lines: List[str] = [
+        '        <h3 id="peptit-skor-paneli">Test örnekleri: farklı skor, etiket ve uzunlukta 2D peptitler</h3>',
+        '        <p class="lead-in"><strong>Etiket 1</strong> = kristalde birlikte görünen (native) peptit; '
+        "<strong>skor</strong> = model çıktısı. "
+        "<code>top_ranked_examples.json</code> + <code>chains.parquet</code> gerekir (RDKit ile site derlemesinde üretilir). "
+        f'<a href="{html_module.escape(doc_url)}">Pozitif peptit ve skor (TR)</a></p>',
+        '        <div class="grid2 training-fig-grid">',
+    ]
+    for v in variants:
+        href = html_module.escape(v.get("file", ""))
+        alt = html_module.escape(v.get("alt", "Peptit 2D"))
+        cap = v.get("caption_html", "")
+        lines.append('        <figure class="media">')
+        lines.append(f'          <img src="{href}" alt="{alt}" loading="lazy" />')
+        lines.append(f"          <figcaption>{cap}</figcaption>")
+        lines.append("        </figure>")
+    lines.append("        </div>")
+    return "\n".join(lines) + "\n"
+
+
 def triseq_to_oneletter(seq3: str) -> str:
     s = (seq3 or "").strip().upper()
     if not s:
@@ -247,6 +419,11 @@ def generate_site_extra_assets(root: Path, site: Path) -> Dict[str, Any]:
 
     if write_complex_cards_html(root, site / "embed", cx, ch):
         out["site_extra_pages"].append("embed/complex-cards.html")
+
+    vart = generate_peptide_2d_variant_assets(root, site)
+    for rel in vart.get("files") or []:
+        if rel not in out["site_extra_figures"]:
+            out["site_extra_figures"].append(rel)
 
     return out
 

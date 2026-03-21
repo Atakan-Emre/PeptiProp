@@ -1080,6 +1080,7 @@ def write_index(
     manifest: Dict[str, Any],
     training_gallery_section: str,
     site_extra_viz_section: str = "",
+    peptide_2d_variants_section: str = "",
 ) -> None:
     m = _metrics_for_index(manifest)
     manifest_esc = html_module.escape(json.dumps(manifest, indent=2, ensure_ascii=False))
@@ -1098,6 +1099,7 @@ def write_index(
         "__MANIFEST_JSON__": manifest_esc,
         "__TRAINING_GALLERY_SECTION__": training_gallery_section,
         "__SITE_EXTRA_VIZ__": site_extra_viz_section,
+        "__PEPTIDE_2D_VARIANTS__": peptide_2d_variants_section,
     }
     for k, v in reps.items():
         idx = idx.replace(k, v)
@@ -1153,6 +1155,7 @@ __THEME_HEAD_SCRIPT__
     <a href="#egitim-gorselleri">Eğitim PNG</a>
     <a href="#ek-gorseller">Ek görseller</a>
     <a href="#gorsel-2d">2D peptit</a>
+    <a href="#peptit-skor-paneli">2D+skor</a>
     <a href="#gorsel-3d">3D yapı</a>
     <a href="#ciktilar">Dosyalar</a>
     <a href="#sss">SSS</a>
@@ -1171,6 +1174,7 @@ __THEME_HEAD_SCRIPT__
       <a href="#egitim-gorselleri">Eğitim görselleri</a>
       <a href="#ek-gorseller">Ek görseller</a>
       <a href="#gorsel-2d">2D: ne, neden</a>
+      <a href="#peptit-skor-paneli">2D + skor örnekleri</a>
       <a href="#gorsel-3d">3D: ne, neden</a>
       <a href="#ciktilar">Çıktı dosyaları</a>
       <a href="#sss">SSS</a>
@@ -1291,6 +1295,7 @@ __SITE_EXTRA_VIZ__
           <img src="assets/img/peptide_2d_example.png" alt="Örnek peptide 2D PNG" loading="lazy" />
           <figcaption>Örnek: pipeline veya sanity çıktısından otomatik kopyalanır. Yoksa görsel eksiktir — yerelde sanity çalıştırıp siteyi yeniden üretin.</figcaption>
         </figure>
+__PEPTIDE_2D_VARIANTS__
       </section>
 
       <section class="block" id="gorsel-3d">
@@ -1405,11 +1410,9 @@ def main() -> None:
         write_placeholder_png(p2d_dest, "Örnek peptit 2D PNG", "Pipeline veya sanity çıktısı gerekir")
 
     site_extra_html = ""
+    peptide_variants_html = ""
     try:
-        from peptidquantum.visualization.plots.site_extras import (
-            generate_site_extra_assets,
-            html_extra_viz_section,
-        )
+        from peptidquantum.visualization.plots.site_extras import generate_site_extra_assets
 
         extra_manifest = generate_site_extra_assets(ROOT, SITE)
         manifest["site_extra_figures"] = extra_manifest.get("site_extra_figures", [])
@@ -1428,16 +1431,23 @@ def main() -> None:
             write_placeholder_png(pth, t1, t2)
 
     try:
-        from peptidquantum.visualization.plots.site_extras import html_extra_viz_section
+        from peptidquantum.visualization.plots.site_extras import (
+            html_extra_viz_section,
+            html_peptide_2d_variants_section,
+        )
 
         site_extra_html = html_extra_viz_section(SITE)
+        peptide_variants_html = html_peptide_2d_variants_section(SITE)
     except Exception:
         site_extra_html = ""
+        peptide_variants_html = ""
 
     extra_seen = set(manifest.get("site_extra_figures") or [])
     for fn in ("peptide_length_histogram.png", "interaction_summary_panel.png"):
         if (img / fn).is_file():
             extra_seen.add(f"assets/img/{fn}")
+    for vp in sorted(img.glob("peptide_2d_v*.png")):
+        extra_seen.add(f"assets/img/{vp.name}")
     manifest["site_extra_figures"] = sorted(extra_seen)
 
     demo_cif = SITE / "assets" / "demo" / "1crn.cif"
@@ -1448,7 +1458,7 @@ def main() -> None:
         json.dump(manifest, f, indent=2, ensure_ascii=False)
 
     write_demo_viewer(SITE)
-    write_index(SITE, manifest, gallery_section, site_extra_html)
+    write_index(SITE, manifest, gallery_section, site_extra_html, peptide_variants_html)
     print(f"[OK] GitHub Pages site: {SITE}")
 
 

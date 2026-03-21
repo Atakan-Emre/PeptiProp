@@ -6,6 +6,7 @@
 
 - İsim gerekçesi: [docs/PROJE_ADI_TR.md](docs/PROJE_ADI_TR.md)
 - Veri / 2D–3D gerçekleri ve “bağlanma oranı”: [docs/VERI_VE_GORSEL_GERCEK_TR.md](docs/VERI_VE_GORSEL_GERCEK_TR.md)
+- **Etiket 1 (pozitif) vs model skoru:** [docs/POZITIF_PEPTIT_VE_SKOR_TR.md](docs/POZITIF_PEPTIT_VE_SKOR_TR.md)
 
 ## Canlı demo (GitHub Pages)
 
@@ -108,6 +109,7 @@ python scripts/run_visualization_sanity.py \
 | [docs/GITHUB_PAGES_TR.md](docs/GITHUB_PAGES_TR.md) | Pages yayını |
 | [docs/PROJE_ADI_TR.md](docs/PROJE_ADI_TR.md) | Ürün adı (PeptiProp) |
 | [docs/VERI_VE_GORSEL_GERCEK_TR.md](docs/VERI_VE_GORSEL_GERCEK_TR.md) | Veri doğruluğu, 2D/3D anlamı |
+| [docs/POZITIF_PEPTIT_VE_SKOR_TR.md](docs/POZITIF_PEPTIT_VE_SKOR_TR.md) | Etiket 1 (native) vs model skoru |
 | [docs/PROJECT_OBJECTIVES_TR.md](docs/PROJECT_OBJECTIVES_TR.md) | Bilimsel hedefler (TR, kısmen tarihsel) |
 
 ## Lisans
