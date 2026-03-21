@@ -1,4 +1,6 @@
-# PeptidQuantum Data Architecture (Active v0.1)
+# PeptiProp — veri mimarisi (Active v0.1)
+
+*(Kod paketi: `peptidquantum`.)*
 
 ## Scope
 

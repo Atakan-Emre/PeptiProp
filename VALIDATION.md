@@ -18,6 +18,10 @@ Expected:
 - negative pair features do not depend on native peptide
 - negative protein graph does not depend on native peptide
 
+**Tam birim test paketi:** `PYTHONPATH=src python -m unittest discover -s tests -p 'test_*.py' -v` (klasik eğitim çıktısı gerektiren testler yoksa atlanır).
+
+**Golden E2E (pytest):** `unittest` keşfi `tests/golden_set_e2e_pytest.py` dosyasını yüklemez; `pip install pytest` sonrası `pytest tests/golden_set_e2e_pytest.py -v`.
+
 ## 2) Data Integrity Checks
 
 Use reports:

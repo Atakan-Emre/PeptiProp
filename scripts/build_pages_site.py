@@ -10,14 +10,19 @@ from __future__ import annotations
 import html as html_module
 import json
 import shutil
+import sys
 import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 ROOT = Path(__file__).resolve().parents[1]
+_SRC = ROOT / "src"
+if _SRC.is_dir() and str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
 SITE = ROOT / "site"
+# Görünen ürün adı (Python paketi `peptidquantum` olarak kalır)
+PROJECT_DISPLAY_NAME = "PeptiProp"
 MLX_BEST = ROOT / "outputs" / "training" / "peptidquantum_v0_1_final_best_mlx_ablation"
-CLASSICAL_BEST = ROOT / "outputs" / "training" / "peptidquantum_v0_1_final_best_classical_100ep_r2"
 DEMO_CIF_URL = "https://files.rcsb.org/download/1CRN.cif"
 
 
@@ -82,7 +87,8 @@ def _pick_training_dir(*name_tokens: str) -> Optional[Path]:
     return max(pool, key=lambda p: (p / "metrics.json").stat().st_mtime)
 
 
-def _resolve_mlx_dir() -> Optional[Path]:
+def _resolve_primary_training_dir() -> Optional[Path]:
+    """Site görselleri / metrik özeti için tercih edilen eğitim çıktısı (klasör adında sıkça 'mlx' geçer; bu yalnızca keşif ipucu)."""
     if MLX_BEST.is_dir() and (MLX_BEST / "metrics.json").is_file():
         return MLX_BEST
     d = _pick_training_dir("mlx")
@@ -93,25 +99,6 @@ def _resolve_mlx_dir() -> Optional[Path]:
         return None
     any_m = [x for x in td.iterdir() if x.is_dir() and (x / "metrics.json").is_file()]
     return max(any_m, key=lambda p: (p / "metrics.json").stat().st_mtime) if any_m else None
-
-
-def _resolve_classical_dir() -> Optional[Path]:
-    if CLASSICAL_BEST.is_dir() and (CLASSICAL_BEST / "metrics.json").is_file():
-        return CLASSICAL_BEST
-    d = _pick_training_dir("classical")
-    if d:
-        return d
-    td = ROOT / "outputs" / "training"
-    if not td.is_dir():
-        return None
-    cands = [
-        x
-        for x in td.iterdir()
-        if x.is_dir()
-        and (x / "metrics.json").is_file()
-        and "mlx" not in x.name.lower()
-    ]
-    return max(cands, key=lambda p: (p / "metrics.json").stat().st_mtime) if cands else None
 
 
 def download_demo_cif(dest: Path) -> bool:
@@ -138,25 +125,33 @@ def _load_metrics_bundle(dir_path: Path) -> Dict[str, Any]:
     return m
 
 
-def build_manifest(mlx_dir: Optional[Path], classical_dir: Optional[Path]) -> Dict[str, Any]:
-    raw_mlx = _load_metrics_bundle(mlx_dir) if mlx_dir and (mlx_dir / "metrics.json").is_file() else {}
-    raw_cl = _load_metrics_bundle(classical_dir) if classical_dir and (classical_dir / "metrics.json").is_file() else {}
-    m_mlx = _normalize_training_metrics(raw_mlx) if raw_mlx else {}
-    m_cl = _normalize_training_metrics(raw_cl) if raw_cl else {}
+def build_manifest(training_dir: Optional[Path]) -> Dict[str, Any]:
+    raw = _load_metrics_bundle(training_dir) if training_dir and (training_dir / "metrics.json").is_file() else {}
+    m = _normalize_training_metrics(raw) if raw else {}
     manifest: Dict[str, Any] = {
-        "project": "PeptidQuantum",
+        "project": PROJECT_DISPLAY_NAME,
         "version": "0.1",
         "dataset": "PROPEDIA canonical (leakage-free splits)",
-        "mlx_final_dir": str(mlx_dir.relative_to(ROOT)) if mlx_dir and mlx_dir.exists() else None,
-        "classical_final_dir": str(classical_dir.relative_to(ROOT)) if classical_dir and classical_dir.exists() else None,
-        "metrics_mlx": m_mlx if any(v is not None for v in m_mlx.values()) else None,
-        "metrics_classical": m_cl if any(v is not None for v in m_cl.values()) else None,
+        "training_dir": str(training_dir.relative_to(ROOT)) if training_dir and training_dir.exists() else None,
+        "metrics": m if any(v is not None for v in m.values()) else None,
         "pages": {
             "viewer_demo": "embed/viewer-demo.html",
             "manifest": "data/manifest.json",
         },
     }
     return manifest
+
+
+def _metrics_for_index(manifest: Dict[str, Any]) -> Dict[str, Any]:
+    """Tek metrik satırı: yeni manifest `metrics`; eski anahtarlar için geriye dönük okuma."""
+    m = manifest.get("metrics")
+    if isinstance(m, dict) and any(v is not None for v in m.values()):
+        return m
+    for key in ("metrics_primary", "metrics_mlx", "metrics_secondary", "metrics_classical"):
+        c = manifest.get(key)
+        if isinstance(c, dict) and any(v is not None for v in c.values()):
+            return c
+    return {}
 
 
 # (kaynak dosya adı, site altındaki dosya adı, img alt, figcaption)
@@ -181,12 +176,12 @@ _TRAINING_FIGURE_SPECS: List[tuple[str, str, str, str]] = [
 ]
 
 
-def _copy_training_figures(mlx_dir: Optional[Path], img_root: Path) -> List[Dict[str, str]]:
+def _copy_training_figures(training_out_dir: Optional[Path], img_root: Path) -> List[Dict[str, str]]:
     out: List[Dict[str, str]] = []
-    if not mlx_dir:
+    if not training_out_dir:
         return out
     for src_name, dest_name, alt, caption in _TRAINING_FIGURE_SPECS:
-        if _copy_if(mlx_dir / src_name, img_root / dest_name):
+        if _copy_if(training_out_dir / src_name, img_root / dest_name):
             out.append({"href": f"assets/img/{dest_name}", "alt": alt, "caption": caption})
     return out
 
@@ -196,7 +191,7 @@ def _render_training_gallery_section(items: List[Dict[str, str]]) -> str:
         return """      <section class="block" id="egitim-gorselleri">
         <h2>Eğitim ve değerlendirme görselleri</h2>
         <p class="lead-in">
-          ROC, PR, kalibrasyon, karmaşıklık matrisi ve skor histogramları, MLX final klasöründeki PNG dosyalarından otomatik kopyalanır.
+          ROC, PR, kalibrasyon, karmaşıklık matrisi ve skor histogramları, eğitim çıktı klasöründeki PNG dosyalarından otomatik kopyalanır.
           <strong>Şu an bu dosyalar bulunamadı</strong> (ör. GitHub Actions’ta <code>outputs/training/</code> yok veya henüz eğitim çalıştırılmadı).
           Yerelde eğitim tamamlayıp <code>python scripts/build_pages_site.py</code> ile siteyi yeniden üretin.
         </p>
@@ -213,12 +208,62 @@ def _render_training_gallery_section(items: List[Dict[str, str]]) -> str:
     return f"""      <section class="block" id="egitim-gorselleri">
         <h2>Eğitim ve değerlendirme görselleri</h2>
         <p class="lead-in">
-          Aşağıdaki görseller, seçilen MLX eğitim çıktı klasöründen (<code>metrics.json</code> ile aynı dizin) otomatik kopyalanmıştır.
+          Aşağıdaki görseller, site derlemesinde keşfedilen eğitim çıktı klasöründen (<code>metrics.json</code> ile aynı dizin) otomatik kopyalanmıştır.
         </p>
         <div class="grid2 training-fig-grid">
 {inner}
         </div>
       </section>"""
+
+
+THEME_INLINE_HEAD = """  <script>
+(function(){var k='pq-site-theme',s=localStorage.getItem(k),t=(s==='light'||s==='dark')?s:(window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t);})();
+  </script>
+"""
+
+
+def write_theme_js(site: Path) -> None:
+    js = site / "assets" / "js" / "site-theme.js"
+    js.parent.mkdir(parents=True, exist_ok=True)
+    js.write_text(
+        """(function () {
+  var KEY = 'pq-site-theme';
+  var root = document.documentElement;
+
+  function applyLabels() {
+    var lightOn = root.getAttribute('data-theme') === 'light';
+    document.querySelectorAll('[data-theme-toggle]').forEach(function (btn) {
+      btn.setAttribute('aria-pressed', lightOn ? 'true' : 'false');
+      var el = btn.querySelector('.theme-toggle-text');
+      if (el) el.textContent = lightOn ? 'Gece modu' : 'Gündüz modu';
+      btn.setAttribute('aria-label', lightOn ? 'Koyu temaya geç' : 'Açık temaya geç');
+    });
+  }
+
+  function toggle() {
+    var t = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    var next = t === 'light' ? 'dark' : 'light';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem(KEY, next); } catch (e) {}
+    applyLabels();
+  }
+
+  function init() {
+    applyLabels();
+    document.querySelectorAll('[data-theme-toggle]').forEach(function (b) {
+      b.addEventListener('click', toggle);
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+""",
+        encoding="utf-8",
+    )
 
 
 def write_demo_viewer(site: Path) -> None:
@@ -228,10 +273,15 @@ def write_demo_viewer(site: Path) -> None:
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PeptidQuantum — 3D görüntüleyici demosu (1CRN)</title>
+  <title>__PROJECT_NAME__ — 3D görüntüleyici demosu (1CRN)</title>
   <script src="https://3Dmol.csb.pitt.edu/build/3Dmol-min.js"></script>
   <link rel="stylesheet" href="../assets/css/site.css" />
-  <style>
+"""
+    demo_html = (
+        demo_html.rstrip()
+        + "\n"
+        + THEME_INLINE_HEAD
+        + r"""  <style>
     .demo-page { max-width: 1600px; margin: 0 auto; padding: 0 1rem 2rem; width: 100%; box-sizing: border-box; }
     .demo-top {
       display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start;
@@ -304,9 +354,21 @@ def write_demo_viewer(site: Path) -> None:
       border: 1px solid rgba(47, 129, 247, 0.35); border-radius: 8px; font-size: 0.82rem; color: var(--text-dim);
     }
     code.inline { font-size: 0.84em; background: var(--card2); padding: 0.12rem 0.35rem; border-radius: 4px; }
+    html[data-theme="light"] .hint-bar {
+      background: rgba(9, 105, 218, 0.08);
+      border: 1px solid rgba(9, 105, 218, 0.28);
+    }
+    @media (max-width: 720px) {
+      .demo-top .sub, .demo-top h1 { padding-right: 4.5rem; }
+    }
   </style>
 </head>
 <body class="site-body">
+  <div class="site-toolbar">
+    <button type="button" class="theme-toggle" data-theme-toggle aria-pressed="false" aria-label="Açık temaya geç">
+      <span class="theme-toggle-text">Gündüz modu</span>
+    </button>
+  </div>
   <div class="demo-page">
     <div class="demo-top">
       <div>
@@ -515,12 +577,14 @@ def write_demo_viewer(site: Path) -> None:
     });
 })();
   </script>
+  <script src="../assets/js/site-theme.js" defer></script>
 </body>
 </html>
 """
+    )
     out = site / "embed" / "viewer-demo.html"
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(demo_html, encoding="utf-8")
+    out.write_text(demo_html.replace("__PROJECT_NAME__", PROJECT_DISPLAY_NAME), encoding="utf-8")
 
 
 def write_site_css(site: Path) -> None:
@@ -528,7 +592,9 @@ def write_site_css(site: Path) -> None:
     css.parent.mkdir(parents=True, exist_ok=True)
     css.write_text(
         """
-:root {
+/* Koyu (varsayılan tokenlar); html[data-theme="light"] ile gündüz */
+:root, html[data-theme="dark"] {
+  color-scheme: dark;
   --bg: #0d1117;
   --card: #161b22;
   --card2: #21262d;
@@ -540,7 +606,35 @@ def write_site_css(site: Path) -> None:
   --accent-2: #58a6ff;
   --ok: #3fb950;
   --warn: #d29922;
+  --hero-mid: #1c2128;
+  --hero-spot: rgba(47, 129, 247, 0.2);
+  --pre-bg: #010409;
+  --badge-bg: rgba(22, 27, 34, 0.88);
+  --media-chrome: rgba(255, 255, 255, 0.04);
+  --media-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --toolbar-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
 }
+
+html[data-theme="light"] {
+  color-scheme: light;
+  --bg: #eef1f7;
+  --card: #ffffff;
+  --card2: #f0f3f9;
+  --border: #cfd7e1;
+  --text: #1a1f26;
+  --text-dim: #3a4450;
+  --muted: #5c6670;
+  --accent: #0969da;
+  --accent-2: #0550ae;
+  --hero-mid: #ffffff;
+  --hero-spot: rgba(9, 105, 218, 0.12);
+  --pre-bg: #f6f8fa;
+  --badge-bg: rgba(255, 255, 255, 0.95);
+  --media-chrome: #ffffff;
+  --media-shadow: 0 4px 18px rgba(26, 31, 38, 0.1);
+  --toolbar-shadow: 0 2px 12px rgba(26, 31, 38, 0.12);
+}
+
 * { box-sizing: border-box; }
 .site-body {
   margin: 0;
@@ -555,28 +649,63 @@ a:hover { text-decoration: underline; }
 code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.88em; }
 code { background: var(--card2); padding: 0.15rem 0.4rem; border-radius: 4px; border: 1px solid var(--border); }
 
+.site-toolbar {
+  position: fixed;
+  top: max(0.5rem, env(safe-area-inset-top));
+  right: max(0.5rem, env(safe-area-inset-right));
+  z-index: 200;
+}
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.42rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--toolbar-shadow);
+  font-family: inherit;
+}
+.theme-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent-2);
+}
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .layout-wrap {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0;
-  max-width: 1320px;
+  width: 100%;
+  max-width: min(1320px, 100%);
   margin: 0 auto;
+  padding: 0 clamp(0.5rem, 2.5vw, 1rem);
 }
 @media (min-width: 1100px) {
-  .layout-wrap { grid-template-columns: 240px minmax(0, 1fr); align-items: start; }
+  .layout-wrap { grid-template-columns: minmax(0, 220px) minmax(0, 1fr); align-items: start; padding: 0 clamp(0.75rem, 2vw, 1.25rem); }
 }
 aside.sidenav {
-  position: sticky; top: 0; z-index: 5;
-  padding: 1rem 1.25rem;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: clamp(0.85rem, 2vw, 1rem) clamp(0.75rem, 2vw, 1.25rem);
   background: var(--card);
   border-bottom: 1px solid var(--border);
-  font-size: 0.82rem;
+  font-size: clamp(0.78rem, 2.2vw, 0.82rem);
 }
 @media (min-width: 1100px) {
   aside.sidenav {
     border-right: 1px solid var(--border);
     border-bottom: none;
     min-height: 100vh;
+    align-self: start;
   }
 }
 aside.sidenav strong { display: block; margin-bottom: 0.65rem; color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; }
@@ -584,21 +713,26 @@ aside.sidenav a { display: block; padding: 0.35rem 0; color: var(--text-dim); bo
 aside.sidenav a:hover { color: var(--accent-2); border-left-color: var(--accent); text-decoration: none; }
 
 header.hero {
-  padding: 2.75rem 1.75rem 2.25rem;
+  padding: clamp(1.5rem, 4vw, 2.75rem) clamp(1rem, 4vw, 1.75rem) clamp(1.25rem, 3vw, 2.25rem);
+  padding-right: clamp(1rem, 4vw, 1.75rem);
   border-bottom: 1px solid var(--border);
-  background: radial-gradient(ellipse 120% 80% at 20% -20%, rgba(47,129,247,0.18), transparent 55%),
-              linear-gradient(180deg, #1c2128 0%, var(--bg) 100%);
+  background: radial-gradient(ellipse 120% 80% at 20% -20%, var(--hero-spot), transparent 55%),
+              linear-gradient(180deg, var(--hero-mid) 0%, var(--bg) 100%);
 }
 header.hero .inner { max-width: 52rem; }
+@media (max-width: 720px) {
+  header.hero .inner { padding-right: 5.85rem; }
+}
 .badge-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
 .badge {
   font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em;
   padding: 0.25rem 0.55rem; border-radius: 999px; border: 1px solid var(--border);
-  color: var(--muted); background: rgba(22,27,34,0.8);
+  color: var(--muted); background: var(--badge-bg);
 }
-.badge.accent { border-color: rgba(47,129,247,0.5); color: var(--accent-2); }
-header.hero h1 { margin: 0 0 0.65rem; font-size: clamp(1.75rem, 4vw, 2.35rem); font-weight: 700; letter-spacing: -0.02em; }
-header.hero .lead { margin: 0 0 1.25rem; color: var(--text-dim); font-size: 1.05rem; max-width: 48rem; }
+.badge.accent { border-color: rgba(47, 129, 247, 0.45); color: var(--accent-2); }
+html[data-theme="light"] .badge.accent { border-color: rgba(5, 80, 174, 0.35); }
+header.hero h1 { margin: 0 0 0.65rem; font-size: clamp(1.6rem, 5vw, 2.35rem); font-weight: 700; letter-spacing: -0.02em; }
+header.hero .lead { margin: 0 0 1.25rem; color: var(--text-dim); font-size: clamp(0.98rem, 2.8vw, 1.05rem); max-width: 48rem; }
 .hero-cta { display: flex; flex-wrap: wrap; gap: 0.65rem; align-items: center; }
 .btn-pill {
   display: inline-block; padding: 0.55rem 1.1rem; border-radius: 8px; font-weight: 600; font-size: 0.92rem;
@@ -611,17 +745,27 @@ header.hero .lead { margin: 0 0 1.25rem; color: var(--text-dim); font-size: 1.05
 .btn-pill.outline:hover { border-color: var(--accent); color: var(--accent-2) !important; }
 
 nav.toc-inline {
-  display: flex; flex-wrap: wrap; gap: 0.5rem 1rem;
-  padding: 0.85rem 1.75rem; background: var(--card); border-bottom: 1px solid var(--border); font-size: 0.88rem;
+  display: flex; flex-wrap: wrap;
+  gap: 0.45rem 0.85rem;
+  row-gap: 0.5rem;
+  padding: clamp(0.65rem, 2vw, 0.85rem) clamp(0.75rem, 3vw, 1.75rem);
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  font-size: clamp(0.8rem, 2.4vw, 0.88rem);
 }
-nav.toc-inline a { color: var(--muted); }
+nav.toc-inline a { color: var(--muted); white-space: nowrap; }
 nav.toc-inline a:hover { color: var(--accent-2); }
 
-main.content { padding: 1.75rem; max-width: 920px; }
+main.content {
+  padding: clamp(1rem, 3.5vw, 1.75rem);
+  max-width: min(920px, 100%);
+  width: 100%;
+  min-width: 0;
+}
 
 section.block {
-  margin-bottom: 2.25rem;
-  padding: 1.5rem 1.65rem;
+  margin-bottom: clamp(1.25rem, 3vw, 2.25rem);
+  padding: clamp(1rem, 3vw, 1.65rem);
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -643,7 +787,7 @@ section.block .lead-in { color: var(--text-dim); margin: 0 0 1rem; font-size: 0.
 
 .metrics-grid {
   display: grid; gap: 0.65rem;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 118px), 1fr));
   margin: 1rem 0;
 }
 .metric-card {
@@ -662,6 +806,19 @@ table.data-table th, table.data-table td {
 }
 table.data-table th { background: var(--card2); color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
 table.data-table td { color: var(--text-dim); }
+
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 1rem 0;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.table-scroll table.data-table { margin: 0; min-width: 480px; }
+.table-scroll table.data-table th:first-child,
+.table-scroll table.data-table td:first-child { padding-left: 0.75rem; }
+.table-scroll table.data-table th:last-child,
+.table-scroll table.data-table td:last-child { padding-right: 0.75rem; }
 
 .flow-steps {
   display: flex; flex-direction: column; gap: 0.5rem; margin: 1rem 0; counter-reset: step;
@@ -686,30 +843,42 @@ details.expand summary {
 }
 details.expand .inner { padding: 0 1rem 1rem; color: var(--text-dim); font-size: 0.9rem; }
 
-.grid2 { display: grid; gap: 1.25rem; }
-@media (min-width: 760px) { .grid2 { grid-template-columns: 1fr 1fr; } }
+.grid2 {
+  display: grid;
+  gap: clamp(0.85rem, 2vw, 1.25rem);
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 700px) { .grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 figure.media { margin: 1rem 0 0; }
 figure.media img {
-  max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--border);
+  display: block;
+  max-width: 100%;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--media-chrome);
+  box-shadow: var(--media-shadow);
 }
-figure.media figcaption { font-size: 0.82rem; color: var(--muted); margin-top: 0.45rem; line-height: 1.45; }
+figure.media figcaption { font-size: clamp(0.78rem, 2vw, 0.82rem); color: var(--muted); margin-top: 0.45rem; line-height: 1.45; }
 
 pre.json {
-  background: #010409;
-  padding: 1rem 1.15rem;
+  background: var(--pre-bg);
+  padding: clamp(0.75rem, 2vw, 1rem) clamp(0.85rem, 2vw, 1.15rem);
   border-radius: 8px;
   overflow: auto;
-  font-size: 0.78rem;
+  font-size: clamp(0.72rem, 1.8vw, 0.78rem);
   line-height: 1.45;
   border: 1px solid var(--border);
   color: var(--text-dim);
+  max-width: 100%;
 }
 
 footer.site-ft {
-  padding: 2rem 1.75rem;
+  padding: clamp(1.25rem, 3vw, 2rem) clamp(1rem, 3vw, 1.75rem);
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: clamp(0.78rem, 2vw, 0.82rem);
   text-align: center;
   border-top: 1px solid var(--border);
   background: var(--card);
@@ -724,49 +893,58 @@ def _fmt_metric(m: Dict[str, Any], k: str) -> str:
     return f"{v:.4f}" if isinstance(v, (int, float)) else "—"
 
 
-def write_index(site: Path, manifest: Dict[str, Any], training_gallery_section: str) -> None:
-    mlx = manifest.get("metrics_mlx") or {}
-    cl = manifest.get("metrics_classical") or {}
+def write_index(
+    site: Path,
+    manifest: Dict[str, Any],
+    training_gallery_section: str,
+    site_extra_viz_section: str = "",
+) -> None:
+    m = _metrics_for_index(manifest)
     manifest_esc = html_module.escape(json.dumps(manifest, indent=2, ensure_ascii=False))
 
     idx = _INDEX_HTML_TEMPLATE
     reps = {
-        "__MLX_AUROC__": _fmt_metric(mlx, "test_auroc"),
-        "__MLX_AUPRC__": _fmt_metric(mlx, "test_auprc"),
-        "__MLX_MRR__": _fmt_metric(mlx, "test_mrr"),
-        "__MLX_HIT3__": _fmt_metric(mlx, "test_hit3"),
-        "__CL_AUROC__": _fmt_metric(cl, "test_auroc"),
-        "__CL_AUPRC__": _fmt_metric(cl, "test_auprc"),
-        "__CL_MRR__": _fmt_metric(cl, "test_mrr"),
-        "__CL_HIT3__": _fmt_metric(cl, "test_hit3"),
+        "__THEME_HEAD_SCRIPT__": THEME_INLINE_HEAD,
+        "__PROJECT_NAME__": PROJECT_DISPLAY_NAME,
+        "__M_AUROC__": _fmt_metric(m, "test_auroc"),
+        "__M_AUPRC__": _fmt_metric(m, "test_auprc"),
+        "__M_MRR__": _fmt_metric(m, "test_mrr"),
+        "__M_HIT3__": _fmt_metric(m, "test_hit3"),
         "__MANIFEST_JSON__": manifest_esc,
         "__TRAINING_GALLERY_SECTION__": training_gallery_section,
+        "__SITE_EXTRA_VIZ__": site_extra_viz_section,
     }
     for k, v in reps.items():
         idx = idx.replace(k, v)
     (site / "index.html").write_text(idx, encoding="utf-8")
 
 
-# Yer tutucular: __MLX_AUROC__ … __MANIFEST_JSON__
+# Yer tutucular: __M_AUROC__ … __MANIFEST_JSON__
 _INDEX_HTML_TEMPLATE = r"""<!DOCTYPE html>
-<html lang="tr" class="site-body">
+<html lang="tr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="PeptidQuantum — PROPEDIA protein-peptid skorlama, ablasyon ve 2D/3D görselleştirme dokümantasyonu" />
-  <title>PeptidQuantum — PROPEDIA skorlama &amp; görselleştirme</title>
+  <meta name="description" content="__PROJECT_NAME__ — PROPEDIA protein-peptid skorlama, ablasyon ve 2D/3D görselleştirme dokümantasyonu" />
+  <title>__PROJECT_NAME__ — PROPEDIA skorlama &amp; görselleştirme</title>
   <link rel="stylesheet" href="assets/css/site.css" />
+__THEME_HEAD_SCRIPT__
 </head>
-<body>
+<body class="site-body">
+  <div class="site-toolbar">
+    <button type="button" class="theme-toggle" data-theme-toggle aria-pressed="false" aria-label="Açık temaya geç">
+      <span class="theme-toggle-text">Gündüz modu</span>
+    </button>
+  </div>
   <header class="hero">
     <div class="inner">
       <div class="badge-row">
         <span class="badge accent">PROPEDIA</span>
         <span class="badge">Leakage-free split</span>
         <span class="badge">Reranking</span>
-        <span class="badge">MLX + Klasik</span>
+        <span class="badge">Model eğitimi</span>
       </div>
-      <h1>PeptidQuantum</h1>
+      <h1>__PROJECT_NAME__</h1>
       <p class="lead">
         Yapısal protein–peptid komplekslerinde <strong>skor üretimi</strong>, aynı protein için üretilmiş
         <strong>aday peptitler arasında sıralama</strong> ve sonuçların <strong>2D kimya + 3D yapı</strong> ile
@@ -785,6 +963,7 @@ _INDEX_HTML_TEMPLATE = r"""<!DOCTYPE html>
     <a href="#ablation">Ablasyon</a>
     <a href="#metrikler">Metrikler</a>
     <a href="#egitim-gorselleri">Eğitim PNG</a>
+    <a href="#ek-gorseller">Ek görseller</a>
     <a href="#gorsel-2d">2D peptit</a>
     <a href="#gorsel-3d">3D yapı</a>
     <a href="#ciktilar">Dosyalar</a>
@@ -801,6 +980,7 @@ _INDEX_HTML_TEMPLATE = r"""<!DOCTYPE html>
       <a href="#ablation">Ablasyon görselleri</a>
       <a href="#metrikler">Metrik sözlüğü</a>
       <a href="#egitim-gorselleri">Eğitim görselleri</a>
+      <a href="#ek-gorseller">Ek görseller</a>
       <a href="#gorsel-2d">2D: ne, neden</a>
       <a href="#gorsel-3d">3D: ne, neden</a>
       <a href="#ciktilar">Çıktı dosyaları</a>
@@ -814,7 +994,7 @@ _INDEX_HTML_TEMPLATE = r"""<!DOCTYPE html>
         <p class="lead-in">
           Model yalnızca “bu çift bağlanır mı?” demekle kalmaz; her <strong>protein için bir aday kümesi</strong>
           (genelde 1 gerçek + birkaç negatif) içinde pozitifi <strong>üst sıralara</strong> taşımayı hedefler.
-          Bu yüzden birincil metrikler <strong>MRR</strong> ve <strong>Hit@k</strong> iken, eşik seçimi için
+          Bu yüzden sıralama tarafında öne çıkan metrikler <strong>MRR</strong> ve <strong>Hit@k</strong> iken, eşik seçimi için
           <strong>AUROC / AUPRC / MCC / Brier</strong> gibi ikili sınıflandırma ve kalibrasyon metrikleri de raporlanır.
         </p>
         <div class="callout">
@@ -830,17 +1010,17 @@ _INDEX_HTML_TEMPLATE = r"""<!DOCTYPE html>
           <div class="step">Ham PROPEDIA → kanonik tablolar (<code>complexes</code>, <code>chains</code>, yapı dosyaları)</div>
           <div class="step">PDB düzeyinde yapı-temelli train / val / test ayrımı (sızıntı kontrolü)</div>
           <div class="step">Split-içi negatif üretimi: easy, hard (ve isteğe bağlı structure-hard); oranlar split’e göre ayarlanabilir</div>
-          <div class="step">Özellik ihracı (MLX veya klasik grafik/dense yol)</div>
+          <div class="step">Özellik ihracı (grafik veya dense tensör yolu — kullanılan eğitim yığınına bağlı)</div>
           <div class="step">Model eğitimi; <strong>validasyon</strong> metrikleri ile erken durdurma ve eşik seçimi</div>
           <div class="step">Test raporu, eğriler, top-k tabloları; isteğe bağlı görsel sanity (2D/3D)</div>
         </div>
-        <h3>MLX vs klasik</h3>
-        <p class="lead-in">Apple Silicon’da <code>mlx/</code> yığını; GPU sunucuda klasik PyTorch graph encoder yolu. İkisi de aynı
-        <strong>leakage-free</strong> çift tanımını paylaşır; final klasör adları <code>README.md</code> içinde güncellenir.</p>
+        <h3>Eğitim</h3>
+        <p class="lead-in">Aynı veri ve split üzerinde model eğitimi; çıktılar <code>metrics.json</code>, eğriler ve sıralama raporları ile sabitlenir. Depoda donanıma göre farklı eğitim betikleri olabilir; statik site yalnızca keşfedilen <strong>tek bir</strong> çıktı klasöründen özet üretir.</p>
       </section>
 
       <section class="block" id="veri">
         <h2>Veri</h2>
+        <div class="table-scroll">
         <table class="data-table">
           <thead><tr><th>Bileşen</th><th>Konum</th><th>Not</th></tr></thead>
           <tbody>
@@ -850,6 +1030,7 @@ _INDEX_HTML_TEMPLATE = r"""<!DOCTYPE html>
             <tr><td>Aday seti raporu</td><td><code>candidate_set_report.json</code></td><td>Hard shortfall, oranlar</td></tr>
           </tbody>
         </table>
+        </div>
         <p class="lead-in">Bu statik sitedeki özet: <a href="data/manifest.json"><code>data/manifest.json</code></a> (CI/yerel build üretir).</p>
       </section>
 
@@ -862,8 +1043,8 @@ _INDEX_HTML_TEMPLATE = r"""<!DOCTYPE html>
         </p>
         <div class="grid2">
           <figure class="media">
-            <img src="assets/img/ablation_heatmap.png" alt="MLX ablation ısı haritası" loading="lazy" />
-            <figcaption>Görsel yoksa: yerelde <code>run_final_ablation_mlx.py</code> tamamlayıp <code>build_pages_site.py</code> yeniden çalıştırın.</figcaption>
+            <img src="assets/img/ablation_heatmap.png" alt="Ablasyon ısı haritası (validation MRR)" loading="lazy" />
+            <figcaption>Görsel yoksa: yerelde ablasyon betiğini (ör. <code>run_final_ablation_mlx.py</code>) tamamlayıp <code>build_pages_site.py</code> ile siteyi yeniden üretin.</figcaption>
           </figure>
           <figure class="media">
             <img src="assets/img/model_family_comparison.png" alt="Model ailesi karşılaştırması" loading="lazy" />
@@ -875,16 +1056,13 @@ _INDEX_HTML_TEMPLATE = r"""<!DOCTYPE html>
       <section class="block" id="metrikler">
         <h2>Metrikler — hızlı özet ve anlam</h2>
         <div class="metrics-grid">
-          <div class="metric-card"><div class="k">MLX AUROC</div><div class="v">__MLX_AUROC__</div></div>
-          <div class="metric-card"><div class="k">MLX AUPRC</div><div class="v">__MLX_AUPRC__</div></div>
-          <div class="metric-card"><div class="k">MLX MRR</div><div class="v">__MLX_MRR__</div></div>
-          <div class="metric-card"><div class="k">MLX Hit@3</div><div class="v">__MLX_HIT3__</div></div>
-          <div class="metric-card"><div class="k">Klasik AUROC</div><div class="v">__CL_AUROC__</div></div>
-          <div class="metric-card"><div class="k">Klasik AUPRC</div><div class="v">__CL_AUPRC__</div></div>
-          <div class="metric-card"><div class="k">Klasik MRR</div><div class="v">__CL_MRR__</div></div>
-          <div class="metric-card"><div class="k">Klasik Hit@3</div><div class="v">__CL_HIT3__</div></div>
+          <div class="metric-card"><div class="k">AUROC</div><div class="v">__M_AUROC__</div></div>
+          <div class="metric-card"><div class="k">AUPRC</div><div class="v">__M_AUPRC__</div></div>
+          <div class="metric-card"><div class="k">MRR</div><div class="v">__M_MRR__</div></div>
+          <div class="metric-card"><div class="k">Hit@3</div><div class="v">__M_HIT3__</div></div>
         </div>
         <p class="metric-empty-hint">Kartlarda <strong>—</strong> görünüyorsa build sırasında okunabilir bir <code>metrics.json</code> yoktu (GitHub Actions’ta <code>outputs/training/</code> çoğu zaman depoda yoktur). Yerelde eğitim sonrası siteyi yeniden üretin.</p>
+        <div class="table-scroll">
         <table class="data-table">
           <thead><tr><th>Metrik</th><th>Ne ölçer?</th><th>Neden önemli?</th></tr></thead>
           <tbody>
@@ -895,10 +1073,12 @@ _INDEX_HTML_TEMPLATE = r"""<!DOCTYPE html>
             <tr><td>Brier</td><td>Olasılık kalibrasyonu</td><td>Skorların güvenilirliği</td></tr>
           </tbody>
         </table>
-        <p class="lead-in">Tam sayılar: manifestteki <code>mlx_final_dir</code> / <code>classical_final_dir</code> altındaki <code>metrics.json</code> (ve gerekirse <code>ranking_metrics.json</code>).</p>
+        </div>
+        <p class="lead-in">Tam sayılar: <code>manifest.json</code> içindeki <code>metrics</code> ve kaynak <code>training_dir</code> altındaki <code>metrics.json</code> (gerekirse <code>ranking_metrics.json</code>). Eski manifest’lerde <code>metrics_primary</code> vb. anahtarlar olabilir.</p>
       </section>
 
 __TRAINING_GALLERY_SECTION__
+__SITE_EXTRA_VIZ__
 
       <section class="block" id="gorsel-2d">
         <h2>2D peptit görseli — ne, nasıl, neden?</h2>
@@ -930,6 +1110,7 @@ __TRAINING_GALLERY_SECTION__
           peptit için stick ve (varsa) kalıntı çiftleri arasında <strong>silindir</strong> ile etkileşim gösterimi.
         </p>
         <h3>Dosyalar</h3>
+        <div class="table-scroll">
         <table class="data-table">
           <thead><tr><th>Dosya</th><th>İçerik</th></tr></thead>
           <tbody>
@@ -939,6 +1120,7 @@ __TRAINING_GALLERY_SECTION__
             <tr><td><code>report.html</code></td><td>Özet + gömülü viewer + 2D şekil</td></tr>
           </tbody>
         </table>
+        </div>
         <div class="callout">
           <strong>Canlı demo:</strong> Bu depoda Pages ile yayınlanan <a href="embed/viewer-demo.html">embed/viewer-demo.html</a>
           aynı kontrol ailesini (cartoon/stick/sphere/line, yüzey, arka plan, sıfırlama) gösterir; örnek yapı 1CRN’dir.
@@ -968,6 +1150,9 @@ __TRAINING_GALLERY_SECTION__
         <details class="expand"><summary>viewer_state.json içinde yapı metni var mı?</summary>
           <div class="inner">Hayır; dosya yolu ve format bilgisi tutulur. Yapı metni <code>viewer.html</code> içinde güvenli şekilde gömülüdür.</div>
         </details>
+        <details class="expand"><summary>PLIP / Arpeggio neden hiç çalışmamış gibi görünüyor?</summary>
+          <div class="inner">Pipeline yalnızca <code>plip</code> ve <code>arpeggio</code> komutları <code>PATH</code>’te ve <code>--help</code> başarılı ise çalıştırır (<code>pipeline.py</code>). Aksi halde doğrudan <strong>geometrik fallback</strong> (Cα mesafesi) kullanılır; <code>interaction_provenance.json</code> içinde <code>tools_succeeded</code> boş kalır. Kurulum: <code>scripts/verify_external_tools.py</code> ve <code>EXTERNAL_TOOLS.md</code>.</div>
+        </details>
       </section>
 
       <section class="block" id="manifest">
@@ -978,9 +1163,10 @@ __TRAINING_GALLERY_SECTION__
   </div>
 
   <footer class="site-ft">
-    PeptidQuantum — statik site <code>scripts/build_pages_site.py</code> ile üretilir.
+    __PROJECT_NAME__ — statik site <code>scripts/build_pages_site.py</code> ile üretilir.
     Workflow: <code>.github/workflows/pages.yml</code>
   </footer>
+  <script src="assets/js/site-theme.js" defer></script>
 </body>
 </html>
 """
@@ -991,17 +1177,17 @@ def main() -> None:
     (SITE / ".nojekyll").touch()
 
     write_site_css(SITE)
-    mlx_dir = _resolve_mlx_dir()
-    cl_dir = _resolve_classical_dir()
-    manifest = build_manifest(mlx_dir, cl_dir)
+    write_theme_js(SITE)
+    training_dir = _resolve_primary_training_dir()
+    manifest = build_manifest(training_dir)
     (SITE / "data").mkdir(parents=True, exist_ok=True)
 
     img = SITE / "assets" / "img"
     img.mkdir(parents=True, exist_ok=True)
-    if mlx_dir:
-        _copy_if(mlx_dir / "ablation_heatmap.png", img / "ablation_heatmap.png")
-        _copy_if(mlx_dir / "model_family_comparison.png", img / "model_family_comparison.png")
-    training_fig_items = _copy_training_figures(mlx_dir, img)
+    if training_dir:
+        _copy_if(training_dir / "ablation_heatmap.png", img / "ablation_heatmap.png")
+        _copy_if(training_dir / "model_family_comparison.png", img / "model_family_comparison.png")
+    training_fig_items = _copy_training_figures(training_dir, img)
     manifest["training_figure_assets"] = [x["href"] for x in training_fig_items]
     gallery_section = _render_training_gallery_section(training_fig_items)
 
@@ -1014,6 +1200,20 @@ def main() -> None:
     if p2d:
         _copy_if(p2d, img / "peptide_2d_example.png")
 
+    site_extra_html = ""
+    try:
+        from peptidquantum.visualization.plots.site_extras import (
+            generate_site_extra_assets,
+            html_extra_viz_section,
+        )
+
+        extra_manifest = generate_site_extra_assets(ROOT, SITE)
+        manifest["site_extra_figures"] = extra_manifest.get("site_extra_figures", [])
+        manifest["site_extra_pages"] = extra_manifest.get("site_extra_pages", [])
+        site_extra_html = html_extra_viz_section(SITE)
+    except Exception as exc:
+        print(f"[WARN] Ek site görselleri atlandı: {exc}")
+
     demo_cif = SITE / "assets" / "demo" / "1crn.cif"
     if not demo_cif.is_file():
         download_demo_cif(demo_cif)
@@ -1022,7 +1222,7 @@ def main() -> None:
         json.dump(manifest, f, indent=2, ensure_ascii=False)
 
     write_demo_viewer(SITE)
-    write_index(SITE, manifest, gallery_section)
+    write_index(SITE, manifest, gallery_section, site_extra_html)
     print(f"[OK] GitHub Pages site: {SITE}")
 
 

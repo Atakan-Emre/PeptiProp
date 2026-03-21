@@ -15,7 +15,17 @@ VIS_SUMMARY_BATCH = ROOT / "outputs" / "analysis_propedia_batch_mlx" / "visualiz
 VIS_SUMMARY_TOP = ROOT / "outputs" / "analysis_propedia_top_ranked_batch_mlx" / "visualization_sanity_summary.json"
 
 
-class TestPropediaActivePipelineMLX(unittest.TestCase):
+def _mlx_artifacts_ready() -> bool:
+    return (
+        (TRAINING_DIR / "metrics.json").is_file()
+        and VIS_SUMMARY_BATCH.is_file()
+        and VIS_SUMMARY_TOP.is_file()
+    )
+
+
+class TestPropediaActivePipelineCanonical(unittest.TestCase):
+    """Kanonik veri; eğitim çıktısı gerektirmez."""
+
     @classmethod
     def setUpClass(cls):
         cls.complexes = pd.read_parquet(CANONICAL_DIR / "complexes.parquet")
@@ -23,12 +33,6 @@ class TestPropediaActivePipelineMLX(unittest.TestCase):
             cls.pair_report = json.load(handle)
         with open(PAIRS_DIR / "candidate_set_report.json", encoding="utf-8") as handle:
             cls.candidate_report = json.load(handle)
-        with open(TRAINING_DIR / "metrics.json", encoding="utf-8") as handle:
-            cls.training_metrics = json.load(handle)
-        with open(VIS_SUMMARY_BATCH, encoding="utf-8") as handle:
-            cls.visualization_summary_batch = json.load(handle)
-        with open(VIS_SUMMARY_TOP, encoding="utf-8") as handle:
-            cls.visualization_summary_top = json.load(handle)
 
     def test_split_metadata_matches_files(self):
         for split_name in ("train", "val", "test"):
@@ -53,6 +57,21 @@ class TestPropediaActivePipelineMLX(unittest.TestCase):
                 msg=f"unexpected negative types in {split_name}",
             )
             self.assertGreaterEqual(self.candidate_report[split_name]["avg_candidates_per_protein"], 6.0)
+
+
+@unittest.skipUnless(
+    _mlx_artifacts_ready(),
+    "MLX eğitim / görsel çıktıları yok — tamamlayıcı test: scripts/run_final_ablation_mlx.py",
+)
+class TestPropediaActivePipelineMLXArtifacts(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        with open(TRAINING_DIR / "metrics.json", encoding="utf-8") as handle:
+            cls.training_metrics = json.load(handle)
+        with open(VIS_SUMMARY_BATCH, encoding="utf-8") as handle:
+            cls.visualization_summary_batch = json.load(handle)
+        with open(VIS_SUMMARY_TOP, encoding="utf-8") as handle:
+            cls.visualization_summary_top = json.load(handle)
 
     def test_mlx_final_artifacts_and_metrics_are_present(self):
         required_files = {

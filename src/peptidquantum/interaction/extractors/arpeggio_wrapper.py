@@ -9,6 +9,7 @@ import json
 
 from ..schema import StandardizedInteraction, InteractionSet, InteractionType
 from ...data.models import Complex
+from ...structure.parsers.tools_pdb_export import export_single_model_pdb
 
 
 class ArpeggioWrapper:
@@ -60,10 +61,11 @@ class ArpeggioWrapper:
             if peptide_chains:
                 selection = "/" + "/".join(peptide_chains) + "/"
         
-        # Run Arpeggio
+        # Run Arpeggio (yalnızca düzgün PDB; mmCIF doğrudan verilmez)
         try:
+            arpeggio_input = self._structure_path_for_arpeggio(structure_file, output_dir)
             interactions = self._run_arpeggio(
-                structure_file,
+                arpeggio_input,
                 selection,
                 output_dir
             )
@@ -82,7 +84,19 @@ class ArpeggioWrapper:
         except Exception as e:
             print(f"Arpeggio extraction failed: {e}")
             return InteractionSet(complex_id=complex_obj.complex_id, interactions=[])
-    
+
+    def _structure_path_for_arpeggio(self, structure_file: Path, work_dir: Path) -> Path:
+        """mmCIF / çok modelli PDB → tek model PDB (BioPython PDBIO)."""
+        work_dir = Path(work_dir)
+        work_dir.mkdir(parents=True, exist_ok=True)
+        ext = structure_file.suffix.lower()
+        if ext in {".cif", ".mmcif", ".pdb"}:
+            out = work_dir / f"{structure_file.stem}_arpeggio_model0.pdb"
+            done = export_single_model_pdb(structure_file, out)
+            if done is not None:
+                return done
+        return structure_file
+
     def _run_arpeggio(
         self,
         structure_file: Path,
@@ -100,12 +114,13 @@ class ArpeggioWrapper:
         Returns:
             List of interaction dictionaries
         """
-        # Arpeggio command
+        # Arpeggio: çıktılar PDB ile aynı dizine yazılır (.contacts vb.).
+        # `-o` kullanma: argparse `-o`yu `-op` (--output-postfix) ile karıştırıp pdb yolunu bozuyor.
         cmd = [
             self.arpeggio_path,
             str(structure_file),
-            "-s", selection,
-            "-o", str(output_dir)
+            "-s",
+            selection,
         ]
         
         # Run command

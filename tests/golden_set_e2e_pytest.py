@@ -1,6 +1,10 @@
 """
 Golden end-to-end test set for pipeline validation
 
+unittest keşfi bu dosyayı yüklemez (adı test_*.py değil). Çalıştırmak için:
+  pip install pytest
+  pytest tests/golden_set_e2e_pytest.py -v
+
 Tests 3 representative complexes:
 1. Clean experimental complex (standard case)
 2. Multi-chain complex (chain ID complexity)

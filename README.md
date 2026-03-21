@@ -1,19 +1,24 @@
-# PeptidQuantum
+# PeptiProp
 
-PROPEDIA odaklı, **sızıntısız (leakage-free)** protein–peptid etkileşim **skorlama**, aday **yeniden sıralama** ve **2D/3D görselleştirme** platformu.
+**Görünen ürün adı:** PeptiProp — PROPEDIA odaklı, **sızıntısız (leakage-free)** protein–peptit **skorlama**, aday **yeniden sıralama** ve **2D/3D görselleştirme**.
+
+*Kod kökü: Python paketi `peptidquantum` (`src/peptidquantum/`). GitHub depo adı farklı olabilir.*
+
+- İsim gerekçesi: [docs/PROJE_ADI_TR.md](docs/PROJE_ADI_TR.md)
+- Veri / 2D–3D gerçekleri ve “bağlanma oranı”: [docs/VERI_VE_GORSEL_GERCEK_TR.md](docs/VERI_VE_GORSEL_GERCEK_TR.md)
 
 ## Canlı demo (GitHub Pages)
 
 Depoda **GitHub Actions → Pages** açıldıktan sonra kök URL’de statik site yayınlanır.
 
-- Ana sayfa: proje özeti, veri, ablation görselleri (yerel çıktılardan kopyalanır), metrik özeti, `manifest.json`
-- **3D demo:** `embed/viewer-demo.html` — tarayıcıda **3Dmol.js** + yerel `1crn.cif` (build sırasında indirilir)
+- **Ana sayfa:** mobil/tablet/masaüstüne uyumlu düzen; **gündüz / gece** tema anahtarı (tercih `localStorage`’da); veri tabloları yatay kaydırmalı; ablation + eğitim eğrileri (varsa), metrik özeti (`manifest.json` → `metrics` + `training_dir`; kaynak `metrics.json` içinde `test_metrics`, `test_ranking_metrics` vb.)
+- **3D demo:** `embed/viewer-demo.html` — aynı tema + **3Dmol.js** + `1crn.cif` (build sırasında indirilir)
 
 Yerelde site üretmek:
 
 ```bash
 python scripts/build_pages_site.py
-# Çıktı: site/ — index.html, embed/viewer-demo.html, data/manifest.json
+# Çıktı: site/ — index.html, embed/viewer-demo.html, assets/css/site.css, assets/js/site-theme.js, data/manifest.json
 ```
 
 Ayrıntı: [docs/GITHUB_PAGES_TR.md](docs/GITHUB_PAGES_TR.md)
@@ -24,14 +29,14 @@ Ayrıntı: [docs/GITHUB_PAGES_TR.md](docs/GITHUB_PAGES_TR.md)
 |-----|----------|
 | Veri | PROPEDIA → kanonik tablolar, PDB düzeyinde split |
 | Görev | Skorlama + reranking (1 pozitif + K negatif / aday seti) |
-| Modeller | **MLX** (Apple Silicon) ve **klasik** PyTorch yolları |
+| Eğitim | Model eğitimi ve raporlama; depoda farklı donanım/betik yolları olabilir, statik site **tek keşfedilen** çıktıdan özet üretir |
 | Görsel | RDKit **2D** peptide, **3Dmol** viewer, HTML rapor; `viewer_state.json` şeması güncel |
 
 ## Pipeline (özet)
 
 ```text
 PROPEDIA raw → canonical → PDB-level split → split-local negatifler
-→ özellik ihracı → eğitim (MLX veya klasik)
+→ özellik ihracı → model eğitimi (kullanılan yığın)
 → kalibrasyon + sıralama metrikleri → 2D/3D rapor / sanity
 ```
 
@@ -39,8 +44,7 @@ PROPEDIA raw → canonical → PDB-level split → split-local negatifler
 
 | Çalıştırma | Klasör |
 |------------|--------|
-| MLX final (ablation sonrası senkron) | `outputs/training/peptidquantum_v0_1_final_best_mlx_ablation/` |
-| Klasik final (örnek) | `outputs/training/peptidquantum_v0_1_final_best_classical_100ep_r2/` |
+| Eğitim çıktısı (yerel) | `outputs/training/peptidquantum_v0_1_final_best_mlx_ablation/` — repoda tutulmaz; `scripts/run_final_ablation_mlx.py` ile üretilir; site betiği bulduğu klasörü kullanır |
 
 Önemli dosyalar: `metrics.json`, `ranking_metrics.json`, `ablation_heatmap.png`, `train_log.csv`, `pair_data_report.json`, `candidate_set_report.json`, `calibration_metrics.json`, eğri PNG’leri, `top_ranked_examples.json`.
 
@@ -66,7 +70,7 @@ python scripts/generate_negative_pairs.py \
   --output data/canonical/pairs
 ```
 
-**MLX ablation (örnek):**
+**Ablasyon çalıştırması (örnek betik):**
 
 ```bash
 source .venv-mlx/bin/activate
@@ -97,9 +101,11 @@ python scripts/run_visualization_sanity.py \
 | [DATA_ARCHITECTURE.md](DATA_ARCHITECTURE.md) | Veri şeması |
 | [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md) | Mimari |
 | [VALIDATION.md](VALIDATION.md) | Doğrulama |
-| [mlx/README.md](mlx/README.md) | MLX / M4 |
+| [mlx/README.md](mlx/README.md) | Apple Silicon eğitim yolu (repo alt paketi) |
 | [docs/GITHUB_PAGES_TR.md](docs/GITHUB_PAGES_TR.md) | Pages yayını |
-| [docs/PROJECT_OBJECTIVES_TR.md](docs/PROJECT_OBJECTIVES_TR.md) | Bilimsel hedefler (TR) |
+| [docs/PROJE_ADI_TR.md](docs/PROJE_ADI_TR.md) | Ürün adı (PeptiProp) |
+| [docs/VERI_VE_GORSEL_GERCEK_TR.md](docs/VERI_VE_GORSEL_GERCEK_TR.md) | Veri doğruluğu, 2D/3D anlamı |
+| [docs/PROJECT_OBJECTIVES_TR.md](docs/PROJECT_OBJECTIVES_TR.md) | Bilimsel hedefler (TR, kısmen tarihsel) |
 
 ## Lisans
 

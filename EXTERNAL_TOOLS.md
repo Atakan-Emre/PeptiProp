@@ -43,6 +43,10 @@ pymol -c -q  # Should not error
 
 **Purpose:** Comprehensive molecular interaction analysis (H-bonds, π-π, hydrophobic, etc.)
 
+**Girdi dosyası:** Arpeggio betiği girişi **PDBParser** ile okur; pipeline bu yüzden mmCIF / çok modelli PDB için önce **BioPython ile yalnızca ilk modeli** (`model 0`) sütun-uyumlu PDB olarak yazar (`structure/parsers/tools_pdb_export.py`). Yayın metninde bu kuralı kısaca belirtin.
+
+**CLI uyarısı:** Upstream `arpeggio.py` içinde `-op` (`--output-postfix`) vardır; **`python -X.Y argparse` `-o` geçişini `-op` ile önek eşleştirmesi yapabildiğinden** wrapper **` -o <dizin>` kullanmaz** (pdb yolu bozuluyordu). Çıktılar, verilen PDB ile **aynı dizine** yazılır (`*.contacts` vb.).
+
 **Installation:**
 
 ```bash
@@ -89,6 +93,8 @@ arpeggio --help
 ### 3. PLIP 2025 (Interaction Validation)
 
 **Purpose:** Protein-protein interaction detection and validation.
+
+**Girdi dosyası:** PLIP için önce aynı **tek-model PDB** üretimi denenir; gerekirse mmCIF’te **Open Babel** yedeği kullanılır.
 
 **Installation:**
 

@@ -9,10 +9,11 @@ Workflow `.github/workflows/pages.yml` her `main` (veya `master`) push’ında:
 
 İçerik:
 
-- `index.html` — yan menülü düzen; metrik kartları `metrics.json` içindeki `test_metrics` / `test_ranking_metrics` yapısından okunur; **eğitim PNG** bölümü ROC/PR, kalibrasyon, karmaşıklık matrisi, eşik taraması ve skor histogramlarını (MLX final klasöründe varsa) kopyalar
+- `index.html` — yan menülü düzen; dört metrik kartı `manifest.json` → `metrics` (kaynak: `training_dir`/`metrics.json`); **eğitim PNG** bölümü çıktı klasöründe varsa ROC/PR, kalibrasyon vb. kopyalar
 - `embed/viewer-demo.html` — **3Dmol.js** ile tarayıcıda **1CRN** (mmCIF, `assets/demo/1crn.cif`)
 - `data/manifest.json` — makine-okur özet
-- `assets/css/site.css` — tema
+- `assets/css/site.css` — gündüz/gece CSS değişkenleri, responsive düzen
+- `assets/js/site-theme.js` — tema anahtarı (`pq-site-theme`); ana sayfa ve 3D demo ortak kullanır
 
 > `site/` `.gitignore` içindedir; **yayınlanan dosyalar CI ürünüdür**, repoya commit edilmesi gerekmez.
 
@@ -36,4 +37,4 @@ cd site && python -m http.server 8080
 
 ## Görseller eksikse
 
-`ablation_heatmap.png` ve benzeri dosyalar yalnızca yerelde MLX ablation çıktıları varsa kopyalanır. Önce eğitimi çalıştırıp ardından site script’ini tekrar çalıştırın.
+`ablation_heatmap.png` ve benzeri dosyalar yalnızca yerelde ilgili eğitim çıktı klasörü varsa kopyalanır. Önce eğitimi çalıştırıp ardından site script’ini tekrar çalıştırın.

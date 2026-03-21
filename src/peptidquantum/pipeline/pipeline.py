@@ -219,7 +219,7 @@ class PeptidQuantumPipeline:
             if not cif_path.exists():
                 logger.error(f"CIF file not found: {cif_path}")
                 return None
-            
+
             logger.info(f"Using local file: {cif_path}")
             structure_file = cif_path
             complex_id = complex_id or cif_path.stem

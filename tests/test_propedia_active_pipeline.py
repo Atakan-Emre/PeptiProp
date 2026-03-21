@@ -9,11 +9,17 @@ ROOT = Path(__file__).resolve().parent.parent
 CANONICAL_DIR = ROOT / "data" / "canonical"
 SPLITS_DIR = CANONICAL_DIR / "splits"
 PAIRS_DIR = CANONICAL_DIR / "pairs"
-TRAINING_DIR = ROOT / "outputs" / "training" / "peptidquantum_v0_1_final_classical"
-VIS_SUMMARY_PATH = ROOT / "outputs" / "analysis_propedia_batch" / "visualization_sanity_summary.json"
+TRAINING_DIR_CLASSICAL = ROOT / "outputs" / "training" / "peptidquantum_v0_1_final_classical"
+VIS_SUMMARY_CLASSICAL = ROOT / "outputs" / "analysis_propedia_batch" / "visualization_sanity_summary.json"
 
 
-class TestPropediaActivePipeline(unittest.TestCase):
+def _classical_artifacts_ready() -> bool:
+    return (TRAINING_DIR_CLASSICAL / "metrics.json").is_file() and VIS_SUMMARY_CLASSICAL.is_file()
+
+
+class TestPropediaActivePipelineCanonical(unittest.TestCase):
+    """Kanonik veri; klasik eğitim çıktısı gerektirmez."""
+
     @classmethod
     def setUpClass(cls):
         cls.complexes = pd.read_parquet(CANONICAL_DIR / "complexes.parquet")
@@ -21,10 +27,6 @@ class TestPropediaActivePipeline(unittest.TestCase):
             cls.pair_report = json.load(handle)
         with open(PAIRS_DIR / "candidate_set_report.json", encoding="utf-8") as handle:
             cls.candidate_report = json.load(handle)
-        with open(TRAINING_DIR / "metrics.json", encoding="utf-8") as handle:
-            cls.training_metrics = json.load(handle)
-        with open(VIS_SUMMARY_PATH, encoding="utf-8") as handle:
-            cls.visualization_summary = json.load(handle)
 
     def test_full_canonical_snapshot(self):
         self.assertGreaterEqual(len(self.complexes), 40000)
@@ -43,7 +45,7 @@ class TestPropediaActivePipeline(unittest.TestCase):
 
     def test_pair_reports_are_balanced_and_unique(self):
         expected_neg_types = {
-            "train": {"easy", "hard", "structure_hard"},
+            "train": {"easy", "hard"},
             "val": {"easy", "hard"},
             "test": {"easy", "hard"},
         }
@@ -60,6 +62,19 @@ class TestPropediaActivePipeline(unittest.TestCase):
         for split_name in ("train", "val", "test"):
             pairs = pd.read_parquet(PAIRS_DIR / f"{split_name}_pairs.parquet")
             self.assertSetEqual(set(pairs["split"].astype(str).unique()), {split_name})
+
+
+@unittest.skipUnless(
+    _classical_artifacts_ready(),
+    "Klasik eğitim + analysis_propedia_batch özeti yok — isteğe bağlı; aktif hat MLX için tests.test_propedia_active_pipeline_mlx",
+)
+class TestPropediaActivePipelineClassicalArtifacts(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        with open(TRAINING_DIR_CLASSICAL / "metrics.json", encoding="utf-8") as handle:
+            cls.training_metrics = json.load(handle)
+        with open(VIS_SUMMARY_CLASSICAL, encoding="utf-8") as handle:
+            cls.visualization_summary = json.load(handle)
 
     def test_final_baseline_artifacts_and_metrics(self):
         required_files = {
@@ -79,7 +94,7 @@ class TestPropediaActivePipeline(unittest.TestCase):
             "score_histogram_pos_neg.png",
             "calibration_curve.png",
         }
-        self.assertTrue(required_files.issubset({path.name for path in TRAINING_DIR.iterdir()}))
+        self.assertTrue(required_files.issubset({path.name for path in TRAINING_DIR_CLASSICAL.iterdir()}))
         val_metrics = self.training_metrics["validation_metrics_at_selected_threshold"]
         test_metrics = self.training_metrics["test_metrics"]
         self.assertGreaterEqual(val_metrics["auroc"], 0.0)

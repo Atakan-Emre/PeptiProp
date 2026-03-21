@@ -62,27 +62,10 @@ data/mlx/
 !data/external_frozen/**/.gitkeep
 
 # ------------------------------
-# Training / analysis outputs
+# Training / analysis outputs (yerelde üretilir; repoda tutulmaz)
 # ------------------------------
 outputs/*
 !outputs/.gitkeep
-
-# Keep MLX final run deliverables versioned
-!outputs/training/
-outputs/training/*
-!outputs/training/peptidquantum_v0_1_final_best_mlx_ablation/
-!outputs/training/peptidquantum_v0_1_final_best_mlx_ablation/**
-
-!outputs/analysis_propedia_batch_mlx/
-!outputs/analysis_propedia_batch_mlx/**
-!outputs/analysis_propedia_top_ranked_batch_mlx/
-!outputs/analysis_propedia_top_ranked_batch_mlx/**
-
-!outputs/logs/
-outputs/logs/*
-!outputs/logs/mlx_fresh_run/
-!outputs/logs/mlx_fresh_run/**
-!outputs/logs/mlx_fresh_run/*.log
 
 # Model checkpoints and heavy artifacts
 *.pt

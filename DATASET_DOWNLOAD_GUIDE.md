@@ -17,6 +17,14 @@ Place downloaded PROPEDIA archives/files under:
 
 - `data/raw/propedia/`
 
+### Yapı dosyası boş veya bozuksa (PDB kimliği = wwPDB girişi)
+
+PDB kimliği başına tek resmî koordinat kümesi **wwPDB arşivindedir**. RCSB PDB bu girişi `https://files.rcsb.org/download/<PDB_ID>.cif` üzerinden dağıtır (wwPDB ile uyumlu ayna). Yerel `data/raw/propedia/complexes/<PDB>.cif` boş/kesilmişse, aynı PDB için arşiv kopyasını şu betikle yazın (bilimsel olarak doğru kaynak; “elle doldurma” değildir):
+
+```bash
+python scripts/fetch_wwpdb_mmcif.py --pdb-id 1ABT --output data/raw/propedia/complexes/1ABT.cif
+```
+
 ## 2) Build or Refresh Canonical Splits
 
 ```bash

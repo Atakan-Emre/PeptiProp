@@ -31,21 +31,25 @@ class RCSBFetcher:
         """
         pdb_id = pdb_id.upper()
         
-        # Check cache
         ext = "cif" if format == "cif" else "pdb"
         cache_file = self.cache_dir / f"{pdb_id}.{ext}"
-        
-        if cache_file.exists():
+
+        if cache_file.exists() and cache_file.stat().st_size > 0:
             return cache_file
-        
-        # Download
+        if cache_file.exists():
+            cache_file.unlink(missing_ok=True)
+
         url = f"{self.FILES_URL}/{pdb_id}.{ext}"
-        
+
         try:
             response = requests.get(url, timeout=30)
             response.raise_for_status()
-            
-            cache_file.write_text(response.text)
+            text = response.text
+            if not text or not text.strip():
+                print(f"Error downloading {pdb_id}: empty response body")
+                return None
+
+            cache_file.write_text(text, encoding="utf-8")
             return cache_file
             
         except requests.RequestException as e:

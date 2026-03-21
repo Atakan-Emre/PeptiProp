@@ -10,6 +10,7 @@ import xml.etree.ElementTree as ET
 
 from ..schema import StandardizedInteraction, InteractionSet, InteractionType
 from ...data.models import Complex
+from ...structure.parsers.tools_pdb_export import export_single_model_pdb
 
 
 class PLIPWrapper:
@@ -84,20 +85,29 @@ class PLIPWrapper:
             return InteractionSet(complex_id=complex_obj.complex_id, interactions=[])
     
     def _ensure_pdb_for_plip(self, structure_file: Path, work_dir: Path) -> Path:
-        """PLIP 3.x often rejects mmCIF; convert with Open Babel when possible."""
+        """Önce tek-model PDB (BioPython); mmCIF için Open Babel yedek."""
+        work_dir = Path(work_dir)
+        work_dir.mkdir(parents=True, exist_ok=True)
         ext = structure_file.suffix.lower()
-        if ext not in {".cif", ".mmcif"}:
-            return structure_file
-        out = work_dir / f"{structure_file.stem}_plip_input.pdb"
-        result = subprocess.run(
-            [self._obabel_executable(), "-icif", str(structure_file), "-opdb", "-O", str(out)],
-            capture_output=True,
-            text=True,
-            timeout=180,
-        )
-        if result.returncode != 0 or not out.exists() or out.stat().st_size == 0:
-            return structure_file
-        return out
+
+        if ext in {".cif", ".mmcif", ".pdb"}:
+            out_bio = work_dir / f"{structure_file.stem}_plip_model0.pdb"
+            bio = export_single_model_pdb(structure_file, out_bio)
+            if bio is not None:
+                return bio
+
+        if ext in {".cif", ".mmcif"}:
+            out_ob = work_dir / f"{structure_file.stem}_plip_obabel.pdb"
+            result = subprocess.run(
+                [self._obabel_executable(), "-icif", str(structure_file), "-opdb", "-O", str(out_ob)],
+                capture_output=True,
+                text=True,
+                timeout=180,
+            )
+            if result.returncode == 0 and out_ob.exists() and out_ob.stat().st_size > 0:
+                return out_ob
+
+        return structure_file
 
     def _run_plip(
         self,
