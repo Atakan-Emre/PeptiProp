@@ -56,6 +56,31 @@ def load_split_npz(feature_dir: Path, split: str) -> Dict[str, np.ndarray]:
     return {k: payload[k] for k in payload.files}
 
 
+def apply_subset_limit(
+    payload: Dict[str, np.ndarray],
+    max_rows: int | None,
+    seed: int,
+) -> Dict[str, np.ndarray]:
+    """Optionally downsample one split for faster smoke experiments."""
+    if max_rows is None or max_rows <= 0:
+        return payload
+    total = len(payload["x"])
+    if total <= max_rows:
+        return payload
+
+    rng = np.random.default_rng(seed)
+    keep = rng.choice(total, size=max_rows, replace=False)
+    keep.sort()
+    out: Dict[str, np.ndarray] = {}
+    for key, value in payload.items():
+        # Only subset tensors aligned to sample dimension N.
+        if hasattr(value, "shape") and len(value.shape) > 0 and int(value.shape[0]) == total:
+            out[key] = value[keep]
+        else:
+            out[key] = value
+    return out
+
+
 def standardize_features(
     train_x: np.ndarray, val_x: np.ndarray, test_x: np.ndarray
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -289,6 +314,19 @@ def main():
     val = load_split_npz(feature_dir, "val")
     test = load_split_npz(feature_dir, "test")
 
+    subset_cfg = cfg["training"].get("subset_max_pairs")
+    if subset_cfg:
+        if isinstance(subset_cfg, dict):
+            train = apply_subset_limit(train, int(subset_cfg.get("train", 0) or 0), seed=int(cfg["training"].get("seed", 42)) + 11)
+            val = apply_subset_limit(val, int(subset_cfg.get("val", 0) or 0), seed=int(cfg["training"].get("seed", 42)) + 22)
+            test = apply_subset_limit(test, int(subset_cfg.get("test", 0) or 0), seed=int(cfg["training"].get("seed", 42)) + 33)
+        else:
+            limit = int(subset_cfg)
+            seed = int(cfg["training"].get("seed", 42))
+            train = apply_subset_limit(train, limit, seed=seed + 11)
+            val = apply_subset_limit(val, limit, seed=seed + 22)
+            test = apply_subset_limit(test, limit, seed=seed + 33)
+
     x_train, x_val, x_test, scaler_mean, scaler_std = standardize_features(train["x"], val["x"], test["x"])
     y_train = train["y"].astype(np.float32)
     y_val = val["y"].astype(np.float32)
@@ -315,11 +353,19 @@ def main():
     batch_size = int(cfg["training"]["batch_size"])
     epochs = int(cfg["training"]["epochs"])
     patience = int(cfg["training"]["early_stopping_patience"])
+    min_epochs_before_early_stop = int(cfg["training"].get("min_epochs_before_early_stop", 0))
     use_ranking = bool(cfg["loss"].get("use_ranking", True))
     margin = float(cfg["loss"].get("margin", 0.2))
     alpha = float(cfg["loss"].get("bce_alpha", 0.5))
     monitor_metric = cfg["evaluation"].get("monitor_metric", "val_mrr")
     threshold_metric = cfg["evaluation"].get("threshold_selection_metric", "mcc")
+    early_stop_enabled = patience > 0
+
+    print(
+        "MLX training config | "
+        f"train={len(train['x'])} val={len(val['x'])} test={len(test['x'])} | "
+        f"epochs={epochs} patience={patience} min_epochs_before_early_stop={min_epochs_before_early_stop}"
+    )
 
     pos_count = float(np.sum(y_train > 0.5))
     neg_count = float(np.sum(y_train <= 0.5))
@@ -418,7 +464,11 @@ def main():
             print(f"[BEST] {monitor_metric} -> {monitor_value:.4f}")
         else:
             patience_counter += 1
-            if patience_counter >= patience:
+            if (
+                early_stop_enabled
+                and epoch >= min_epochs_before_early_stop
+                and patience_counter >= patience
+            ):
                 print(f"Early stopping at epoch {epoch} (patience={patience})")
                 break
 
@@ -445,6 +495,7 @@ def main():
         "selected_threshold": float(selected_threshold),
         "threshold_selection_metric": threshold_metric,
         "best_val_monitor_metric": float(best_val_metric),
+        "epochs_completed": int(len(train_log)),
     }
     with open(save_dir / "metrics.json", "w", encoding="utf-8") as f:
         json.dump(metrics, f, indent=2)
@@ -502,4 +553,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
