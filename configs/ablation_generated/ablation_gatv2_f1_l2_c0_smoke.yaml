@@ -54,7 +54,7 @@ training:
   task: interaction_scoring_reranking
   batch_size: 64
   grad_accum_steps: 1
-  epochs: 4
+  epochs: 8
   early_stopping_patience: 4
   optimizer: adamw
   lr: 0.0003
@@ -86,6 +86,14 @@ evaluation:
   threshold_selection_metric: mcc
   decision_checkpoint_auroc_tolerance: 0.01
   save_best_only: true
+  calibration:
+    enabled: true
+    temperature_scaling: true
+    selection_metric: nll
+    temperature_min: 0.35
+    temperature_max: 6.0
+    temperature_steps: 120
+    min_improvement: 1.0e-05
 logging:
   log_every_n_steps: 20
   save_dir: E:/PeptidQuantum/outputs/training/ablation_gatv2_f1_l2_c0_smoke

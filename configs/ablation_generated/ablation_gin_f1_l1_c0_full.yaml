@@ -1,4 +1,4 @@
-experiment_name: ablation_gatv2_f2_l2_c1_full
+experiment_name: ablation_gin_f1_l1_c0_full
 data:
   canonical_dir: data/canonical
   splits_dir: data/canonical/splits
@@ -15,10 +15,10 @@ features:
   use_residue_type_onehot: true
   use_position_index: true
   use_chain_flags: true
-  use_interface_flag: true
-  use_pocket_flag: true
+  use_interface_flag: false
+  use_pocket_flag: false
   use_local_density: true
-  use_secondary_structure: true
+  use_secondary_structure: false
   local_density_radius: 8.0
   use_distance_edge_features: true
   edge_dim: 8
@@ -28,16 +28,16 @@ features:
   interface_distance_threshold: 5.0
 model:
   protein_encoder:
-    type: GATv2
+    type: GIN
     num_layers: 3
     hidden_dim: 128
-    heads: 4
+    heads: 1
     dropout: 0.1
   peptide_encoder:
-    type: GATv2
+    type: GIN
     num_layers: 3
     hidden_dim: 128
-    heads: 4
+    heads: 1
     dropout: 0.1
   fusion:
     type: co_attention
@@ -54,8 +54,8 @@ training:
   task: interaction_scoring_reranking
   batch_size: 64
   grad_accum_steps: 1
-  epochs: 12
-  early_stopping_patience: 5
+  epochs: 200
+  early_stopping_patience: 20
   optimizer: adamw
   lr: 0.0003
   weight_decay: 0.0001
@@ -72,42 +72,30 @@ training:
   balanced_sampling:
     enabled: true
   negative_curriculum:
-    enabled: true
-    seed: 42
-    stages:
-    - name: easy_only
-      end_epoch: 5
-      ratios:
-        easy: 1.0
-        hard: 0.0
-        structure_hard: 0.0
-    - name: easy_hard
-      end_epoch: 15
-      ratios:
-        easy: 0.7
-        hard: 0.3
-        structure_hard: 0.0
-    - name: full_mix
-      end_epoch: null
-      ratios:
-        easy: 0.5
-        hard: 0.3
-        structure_hard: 0.2
+    enabled: false
 loss:
   type: ranking_plus_bce
   auto_pos_weight: true
   label_smoothing: 0.0
-  bce_alpha: 0.3
+  bce_alpha: 1.0
   ranking:
-    enabled: true
+    enabled: false
     margin: 0.2
 evaluation:
   monitor_metric: val_mrr
   threshold_selection_metric: mcc
   decision_checkpoint_auroc_tolerance: 0.01
   save_best_only: true
+  calibration:
+    enabled: true
+    temperature_scaling: true
+    selection_metric: nll
+    temperature_min: 0.35
+    temperature_max: 6.0
+    temperature_steps: 120
+    min_improvement: 1.0e-05
 logging:
   log_every_n_steps: 20
-  save_dir: E:/PeptidQuantum/outputs/training/ablation_gatv2_f2_l2_c1_full
+  save_dir: E:/PeptidQuantum/outputs/training/ablation_gin_f1_l1_c0_full
   tensorboard: true
   save_predictions: true

@@ -116,7 +116,7 @@ def curriculum_cfg(curriculum: str) -> Dict[str, object]:
             "stages": [
                 {"name": "easy_only", "end_epoch": 5, "ratios": {"easy": 1.0, "hard": 0.0, "structure_hard": 0.0}},
                 {"name": "easy_hard", "end_epoch": 15, "ratios": {"easy": 0.7, "hard": 0.3, "structure_hard": 0.0}},
-                {"name": "full_mix", "end_epoch": None, "ratios": {"easy": 0.5, "hard": 0.3, "structure_hard": 0.2}},
+                {"name": "full_mix", "end_epoch": None, "ratios": {"easy": 0.7, "hard": 0.3, "structure_hard": 0.0}},
             ],
         }
     raise ValueError(f"Unknown curriculum: {curriculum}")
@@ -129,6 +129,13 @@ def build_config(
     loss_level: str,
     curriculum: str,
     stage: str,
+    smoke_epochs: int,
+    smoke_patience: int,
+    full_epochs: int,
+    full_patience: int,
+    full_subset_train: int,
+    full_subset_val: int,
+    full_subset_test: int,
 ) -> dict:
     cfg = deepcopy(template)
     run_name = f"ablation_{family}_{feature_level}_{loss_level}_{curriculum}_{stage}".lower()
@@ -145,16 +152,32 @@ def build_config(
     cfg["training"]["balanced_sampling"] = {"enabled": True}
     cfg["evaluation"]["monitor_metric"] = "val_mrr"
     cfg["evaluation"]["threshold_selection_metric"] = "mcc"
+    cfg["evaluation"].setdefault("calibration", {})
+    cfg["evaluation"]["calibration"].update(
+        {
+            "enabled": True,
+            "temperature_scaling": True,
+            "selection_metric": "nll",
+            "temperature_min": 0.35,
+            "temperature_max": 6.0,
+            "temperature_steps": 120,
+            "min_improvement": 1e-5,
+        }
+    )
     cfg["logging"]["save_dir"] = str(save_dir).replace("\\", "/")
 
     if stage == "smoke":
-        cfg["training"]["epochs"] = 4
-        cfg["training"]["early_stopping_patience"] = 4
+        cfg["training"]["epochs"] = int(smoke_epochs)
+        cfg["training"]["early_stopping_patience"] = int(smoke_patience)
         cfg["training"]["subset_max_pairs"] = {"train": 18000, "val": 6000, "test": 6000}
     elif stage == "full":
-        cfg["training"]["epochs"] = 12
-        cfg["training"]["early_stopping_patience"] = 5
-        cfg["training"]["subset_max_pairs"] = {"train": 60000, "val": 20000, "test": 20000}
+        cfg["training"]["epochs"] = int(full_epochs)
+        cfg["training"]["early_stopping_patience"] = int(full_patience)
+        cfg["training"]["subset_max_pairs"] = {
+            "train": int(full_subset_train),
+            "val": int(full_subset_val),
+            "test": int(full_subset_test),
+        }
     else:
         raise ValueError(f"Unknown stage: {stage}")
 
@@ -326,6 +349,14 @@ def run_visualization(sample_list: Path, output_dir: Path):
 def main():
     parser = argparse.ArgumentParser(description="Run classical model-selection ablation.")
     parser.add_argument("--smoke-only", action="store_true", help="Only run smoke ablation stage.")
+    parser.add_argument("--smoke-epochs", type=int, default=6, help="Smoke stage max epochs.")
+    parser.add_argument("--smoke-patience", type=int, default=4, help="Smoke stage early stopping patience.")
+    parser.add_argument("--full-epochs", type=int, default=200, help="Full stage max epochs.")
+    parser.add_argument("--full-patience", type=int, default=20, help="Full stage early stopping patience.")
+    parser.add_argument("--finalists-per-family", type=int, default=1, help="Top-k finalists per family for full runs.")
+    parser.add_argument("--full-subset-train", type=int, default=60000, help="Full stage train subset max pairs.")
+    parser.add_argument("--full-subset-val", type=int, default=20000, help="Full stage val subset max pairs.")
+    parser.add_argument("--full-subset-test", type=int, default=20000, help="Full stage test subset max pairs.")
     args = parser.parse_args()
 
     template = load_template()
@@ -338,7 +369,21 @@ def main():
 
     for family in families:
         for feature_level, loss_level, curriculum in smoke_combos:
-            cfg = build_config(template, family, feature_level, loss_level, curriculum, stage="smoke")
+            cfg = build_config(
+                template,
+                family,
+                feature_level,
+                loss_level,
+                curriculum,
+                stage="smoke",
+                smoke_epochs=args.smoke_epochs,
+                smoke_patience=args.smoke_patience,
+                full_epochs=args.full_epochs,
+                full_patience=args.full_patience,
+                full_subset_train=args.full_subset_train,
+                full_subset_val=args.full_subset_val,
+                full_subset_test=args.full_subset_test,
+            )
             config_path = GEN_CONFIG_DIR / f"{cfg['experiment_name']}.yaml"
             write_config(cfg, config_path)
             run_training(config_path)
@@ -360,13 +405,27 @@ def main():
     smoke_df = pd.DataFrame(smoke_rows)
 
     if not args.smoke_only:
-        finalists = choose_family_finalists(smoke_df, top_k=2)
+        finalists = choose_family_finalists(smoke_df, top_k=max(1, int(args.finalists_per_family)))
         for _, finalist in finalists.iterrows():
             family = finalist["family"]
             feature_level = finalist["feature_level"]
             loss_level = finalist["loss_level"]
             curriculum = finalist["curriculum"]
-            cfg = build_config(template, family, feature_level, loss_level, curriculum, stage="full")
+            cfg = build_config(
+                template,
+                family,
+                feature_level,
+                loss_level,
+                curriculum,
+                stage="full",
+                smoke_epochs=args.smoke_epochs,
+                smoke_patience=args.smoke_patience,
+                full_epochs=args.full_epochs,
+                full_patience=args.full_patience,
+                full_subset_train=args.full_subset_train,
+                full_subset_val=args.full_subset_val,
+                full_subset_test=args.full_subset_test,
+            )
             config_path = GEN_CONFIG_DIR / f"{cfg['experiment_name']}.yaml"
             write_config(cfg, config_path)
             run_training(config_path)

@@ -413,6 +413,127 @@ def allocate_target_counts(total_count: int, ratios: dict) -> dict:
     return target_counts
 
 
+def count_negative_types(records: List[dict]) -> Dict[str, int]:
+    """Count generated negatives by negative_type."""
+    counts = {"easy": 0, "hard": 0, "structure_hard": 0}
+    for record in records:
+        neg_type = str(record.get("negative_type", ""))
+        if neg_type in counts:
+            counts[neg_type] += 1
+    return counts
+
+
+def pair_key_from_record(record: dict) -> Tuple[str, str, str, str]:
+    """Build pair key tuple from a generated record."""
+    return (
+        record["protein_complex_id"],
+        record["protein_chain_id"],
+        record["peptide_complex_id"],
+        record["peptide_chain_id"],
+    )
+
+
+def backfill_negative_type_mix(
+    all_negatives: List[dict],
+    split_complexes: List[dict],
+    candidate_context: Dict[str, object],
+    ratio_map: Dict[str, float],
+    target_total_negatives: int,
+    split_name: str,
+    rng: random.Random,
+    used_keys: Set[Tuple[str, str, str, str]],
+    positive_keys: Set[Tuple[str, str, str, str]],
+) -> Tuple[Dict[str, int], Dict[str, int]]:
+    """
+    Try to reduce ratio shortfall by replacing surplus-type negatives with deficit-type negatives.
+
+    This keeps total negative count fixed and preserves split-local leakage constraints.
+    """
+    if not all_negatives or target_total_negatives <= 0:
+        counts = count_negative_types(all_negatives)
+        return counts, {key: 0 for key in counts}
+
+    target_counts = allocate_target_counts(target_total_negatives, ratio_map)
+    generated_counts = count_negative_types(all_negatives)
+    protein_order = split_complexes.copy()
+
+    # Iterate deficit types in deterministic priority: hard first (most scarce), then structure_hard, then easy.
+    for target_type in ("hard", "structure_hard", "easy"):
+        deficit = max(0, target_counts.get(target_type, 0) - generated_counts.get(target_type, 0))
+        if deficit <= 0:
+            continue
+
+        stalled_rounds = 0
+        while deficit > 0 and stalled_rounds < 3:
+            changed_this_round = 0
+            rng.shuffle(protein_order)
+
+            for protein_complex in protein_order:
+                if deficit <= 0:
+                    break
+
+                donor_types = [
+                    neg_type
+                    for neg_type in ("easy", "hard", "structure_hard")
+                    if neg_type != target_type
+                    and generated_counts.get(neg_type, 0) > target_counts.get(neg_type, 0)
+                ]
+                if not donor_types:
+                    break
+
+                donor_idx = None
+                for idx, record in enumerate(all_negatives):
+                    if (
+                        record["protein_complex_id"] == protein_complex["complex_id"]
+                        and record["negative_type"] in donor_types
+                    ):
+                        donor_idx = idx
+                        break
+                if donor_idx is None:
+                    continue
+
+                peptide_complex = sample_negative_peptide_for_protein(
+                    protein_complex=protein_complex,
+                    neg_type=target_type,
+                    context=candidate_context,
+                    rng=rng,
+                    used_keys=used_keys,
+                    positive_keys=positive_keys,
+                )
+                if peptide_complex is None:
+                    continue
+
+                old_record = all_negatives[donor_idx]
+                old_key = pair_key_from_record(old_record)
+                used_keys.discard(old_key)
+
+                new_record = build_negative_record(
+                    protein_complex,
+                    peptide_complex,
+                    target_type,
+                    donor_idx,
+                    split_name=split_name,
+                )
+                new_record["pair_id"] = old_record["pair_id"]
+                all_negatives[donor_idx] = new_record
+
+                generated_counts[target_type] += 1
+                generated_counts[old_record["negative_type"]] -= 1
+                deficit -= 1
+                changed_this_round += 1
+
+            if changed_this_round == 0:
+                stalled_rounds += 1
+            else:
+                stalled_rounds = 0
+
+    shortfall_counts = {
+        neg_type: max(0, target_counts.get(neg_type, 0) - generated_counts.get(neg_type, 0))
+        for neg_type in ("easy", "hard", "structure_hard")
+    }
+    return generated_counts, shortfall_counts
+
+
 def summarize_pairs(df: pd.DataFrame):
     """Create concise report for a pair dataframe."""
     pair_columns = [
@@ -608,6 +729,7 @@ def generate_negatives_for_split(
                         fallback_found = (fallback_type, fallback_candidate)
                         break
                 if fallback_found is None:
+                    # Track local miss; final shortfall is recomputed after backfill.
                     shortfall_counts[neg_type] += 1
                     continue
                 neg_type, peptide_complex = fallback_found
@@ -622,6 +744,19 @@ def generate_negatives_for_split(
                     split_name=split_name,
                 )
             )
+
+    # Ratio-aware backfill replacement to reduce hard/structure_hard shortfall without changing total negatives.
+    generated_counts, shortfall_counts = backfill_negative_type_mix(
+        all_negatives=all_negatives,
+        split_complexes=split_complexes,
+        candidate_context=candidate_context,
+        ratio_map=ratio_map,
+        target_total_negatives=n_total_negatives_target,
+        split_name=split_name,
+        rng=rng,
+        used_keys=used_keys,
+        positive_keys=positive_keys,
+    )
 
     negative_df = pd.DataFrame(all_negatives)
     
@@ -689,7 +824,7 @@ def main(
     print("Generating Negative Pairs for Interaction Scoring / Reranking")
     print("="*60)
     print("Strategy:")
-    print("  - Train negatives: 50% easy / 30% hard / 20% structure_hard")
+    print("  - Train negatives: 70% easy / 30% hard / 0% structure_hard")
     print("  - Val/Test negatives: 70% easy / 30% hard / 0% structure_hard")
     print(
         f"  - Candidate set size: train=1+{train_negatives_per_protein}, "
@@ -715,9 +850,9 @@ def main(
     train_pairs, train_candidates = generate_negatives_for_split(
         complexes, train_ids, 'train',
         negatives_per_protein=train_negatives_per_protein,
-        easy_ratio=0.5,
+        easy_ratio=0.7,
         hard_ratio=0.3,
-        struct_ratio=0.2,
+        struct_ratio=0.0,
         seed=seed
     )
     

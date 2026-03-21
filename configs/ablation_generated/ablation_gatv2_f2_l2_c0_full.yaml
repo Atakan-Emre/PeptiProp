@@ -1,4 +1,4 @@
-experiment_name: ablation_gatv2_f1_l2_c0_full
+experiment_name: ablation_gatv2_f2_l2_c0_full
 data:
   canonical_dir: data/canonical
   splits_dir: data/canonical/splits
@@ -15,10 +15,10 @@ features:
   use_residue_type_onehot: true
   use_position_index: true
   use_chain_flags: true
-  use_interface_flag: false
-  use_pocket_flag: false
+  use_interface_flag: true
+  use_pocket_flag: true
   use_local_density: true
-  use_secondary_structure: false
+  use_secondary_structure: true
   local_density_radius: 8.0
   use_distance_edge_features: true
   edge_dim: 8
@@ -54,8 +54,8 @@ training:
   task: interaction_scoring_reranking
   batch_size: 64
   grad_accum_steps: 1
-  epochs: 12
-  early_stopping_patience: 5
+  epochs: 200
+  early_stopping_patience: 20
   optimizer: adamw
   lr: 0.0003
   weight_decay: 0.0001
@@ -86,8 +86,16 @@ evaluation:
   threshold_selection_metric: mcc
   decision_checkpoint_auroc_tolerance: 0.01
   save_best_only: true
+  calibration:
+    enabled: true
+    temperature_scaling: true
+    selection_metric: nll
+    temperature_min: 0.35
+    temperature_max: 6.0
+    temperature_steps: 120
+    min_improvement: 1.0e-05
 logging:
   log_every_n_steps: 20
-  save_dir: E:/PeptidQuantum/outputs/training/ablation_gatv2_f1_l2_c0_full
+  save_dir: E:/PeptidQuantum/outputs/training/ablation_gatv2_f2_l2_c0_full
   tensorboard: true
   save_predictions: true

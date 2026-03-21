@@ -1255,6 +1255,111 @@ def choose_validation_threshold(threshold_info):
     }
 
 
+def _binary_nll(labels, preds, eps=1e-8):
+    """Binary negative log likelihood on probabilities."""
+    clipped = np.clip(preds.astype(np.float64), eps, 1.0 - eps)
+    labels_f = labels.astype(np.float64)
+    return float(-np.mean(labels_f * np.log(clipped) + (1.0 - labels_f) * np.log(1.0 - clipped)))
+
+
+def apply_temperature_to_probs(preds, temperature, eps=1e-8):
+    """Apply temperature scaling on probability scores via logit transform."""
+    temperature = float(max(temperature, eps))
+    clipped = np.clip(preds.astype(np.float64), eps, 1.0 - eps)
+    logits = np.log(clipped / (1.0 - clipped))
+    scaled = 1.0 / (1.0 + np.exp(-(logits / temperature)))
+    return np.clip(scaled, eps, 1.0 - eps).astype(np.float64)
+
+
+def maybe_temperature_scale_predictions(val_preds, val_labels, test_preds, config):
+    """Fit temperature on validation and optionally apply it to val/test predictions."""
+    calibration_cfg = config.get("evaluation", {}).get("calibration", {})
+    enabled = bool(calibration_cfg.get("enabled", True))
+    use_temperature = bool(calibration_cfg.get("temperature_scaling", True))
+    metric = str(calibration_cfg.get("selection_metric", "nll")).lower()
+    min_improvement = float(calibration_cfg.get("min_improvement", 1e-5))
+    temp_min = float(calibration_cfg.get("temperature_min", 0.35))
+    temp_max = float(calibration_cfg.get("temperature_max", 6.0))
+    temp_steps = int(calibration_cfg.get("temperature_steps", 120))
+
+    base_val_preds = np.asarray(val_preds, dtype=np.float64)
+    base_test_preds = np.asarray(test_preds, dtype=np.float64)
+    if not enabled or not use_temperature:
+        info = {
+            "enabled": enabled,
+            "temperature_scaling": use_temperature,
+            "applied": False,
+            "selected_temperature": 1.0,
+            "selection_metric": metric,
+            "val_nll_before": _binary_nll(val_labels, base_val_preds),
+            "val_nll_after": _binary_nll(val_labels, base_val_preds),
+            "val_brier_before": float(brier_score_loss(val_labels, base_val_preds)),
+            "val_brier_after": float(brier_score_loss(val_labels, base_val_preds)),
+        }
+        return base_val_preds, base_test_preds, info
+
+    if len(np.unique(val_labels)) < 2:
+        info = {
+            "enabled": enabled,
+            "temperature_scaling": use_temperature,
+            "applied": False,
+            "selected_temperature": 1.0,
+            "selection_metric": metric,
+            "reason": "validation_labels_single_class",
+            "val_nll_before": _binary_nll(val_labels, base_val_preds),
+            "val_nll_after": _binary_nll(val_labels, base_val_preds),
+            "val_brier_before": float(brier_score_loss(val_labels, base_val_preds)),
+            "val_brier_after": float(brier_score_loss(val_labels, base_val_preds)),
+        }
+        return base_val_preds, base_test_preds, info
+
+    grid = np.linspace(temp_min, temp_max, num=max(temp_steps, 10))
+    base_nll = _binary_nll(val_labels, base_val_preds)
+    base_brier = float(brier_score_loss(val_labels, base_val_preds))
+    best_temperature = 1.0
+    best_val_preds = base_val_preds
+    best_score = base_nll if metric == "nll" else base_brier
+
+    for temperature in grid:
+        scaled_val = apply_temperature_to_probs(base_val_preds, temperature)
+        score = _binary_nll(val_labels, scaled_val) if metric == "nll" else float(brier_score_loss(val_labels, scaled_val))
+        if score < best_score:
+            best_score = score
+            best_temperature = float(temperature)
+            best_val_preds = scaled_val
+
+    improved = (base_nll - _binary_nll(val_labels, best_val_preds)) if metric == "nll" else (base_brier - float(brier_score_loss(val_labels, best_val_preds)))
+    if improved <= min_improvement:
+        info = {
+            "enabled": enabled,
+            "temperature_scaling": use_temperature,
+            "applied": False,
+            "selected_temperature": 1.0,
+            "selection_metric": metric,
+            "val_nll_before": base_nll,
+            "val_nll_after": base_nll,
+            "val_brier_before": base_brier,
+            "val_brier_after": base_brier,
+            "improvement": float(improved),
+        }
+        return base_val_preds, base_test_preds, info
+
+    scaled_test = apply_temperature_to_probs(base_test_preds, best_temperature)
+    info = {
+        "enabled": enabled,
+        "temperature_scaling": use_temperature,
+        "applied": True,
+        "selected_temperature": float(best_temperature),
+        "selection_metric": metric,
+        "val_nll_before": base_nll,
+        "val_nll_after": _binary_nll(val_labels, best_val_preds),
+        "val_brier_before": base_brier,
+        "val_brier_after": float(brier_score_loss(val_labels, best_val_preds)),
+        "improvement": float(improved),
+    }
+    return best_val_preds, scaled_test, info
+
+
 def select_curriculum_negatives(negative_pools, ratios, target_total_negatives, seed):
     """Select negatives for the current epoch curriculum stage."""
     active_ratios = {
@@ -1645,7 +1750,7 @@ def save_calibration_curve(labels, preds, output_path):
     plt.close(fig)
 
 
-def save_calibration_metrics(val_labels, val_preds, test_labels, test_preds, output_path):
+def save_calibration_metrics(val_labels, val_preds, test_labels, test_preds, output_path, calibration_info=None):
     """Save simple probability calibration metrics."""
     calibration_payload = {
         "validation": {
@@ -1665,6 +1770,8 @@ def save_calibration_metrics(val_labels, val_preds, test_labels, test_preds, out
             "score_range": float(np.max(test_preds) - np.min(test_preds)),
         },
     }
+    if calibration_info is not None:
+        calibration_payload["temperature_scaling"] = calibration_info
     with open(output_path, "w") as handle:
         json.dump(calibration_payload, handle, indent=2)
 
@@ -1694,6 +1801,15 @@ def evaluate_checkpoint(model, checkpoint_path, val_loader, test_loader, criteri
     val_loss, val_preds, val_labels, val_group_ids, val_loss_parts = evaluate(
         model, val_loader, criterion, device, config
     )
+    test_loss, test_preds, test_labels, test_group_ids, test_loss_parts = evaluate(
+        model, test_loader, criterion, device, config
+    )
+    val_preds, test_preds, calibration_info = maybe_temperature_scale_predictions(
+        val_preds=val_preds,
+        val_labels=val_labels,
+        test_preds=test_preds,
+        config=config,
+    )
     threshold_info = select_thresholds(val_preds, val_labels, preferred_metric="mcc")
     final_choice = choose_validation_threshold(threshold_info)
 
@@ -1716,9 +1832,6 @@ def evaluate_checkpoint(model, checkpoint_path, val_loader, test_loader, criteri
         protein_group_ids=val_group_ids,
     )
 
-    test_loss, test_preds, test_labels, test_group_ids, test_loss_parts = evaluate(
-        model, test_loader, criterion, device, config
-    )
     test_metrics_best_f1 = compute_metrics(
         test_preds,
         test_labels,
@@ -1753,6 +1866,7 @@ def evaluate_checkpoint(model, checkpoint_path, val_loader, test_loader, criteri
         "test_metrics_selected": selected_test_metrics,
         "val_ranking_metrics": val_ranking_metrics,
         "test_ranking_metrics": test_ranking_metrics,
+        "calibration_info": calibration_info,
         "val_preds": val_preds,
         "val_labels": val_labels,
         "val_group_ids": val_group_ids,
@@ -2212,9 +2326,12 @@ def main(config_path):
                     'test_hit@1': float(result['test_ranking_metrics']['hit@1']),
                     'test_hit@3': float(result['test_ranking_metrics']['hit@3']),
                     'test_hit@5': float(result['test_ranking_metrics']['hit@5']),
+                    'temperature_scaling_applied': bool(result.get('calibration_info', {}).get('applied', False)),
+                    'selected_temperature': float(result.get('calibration_info', {}).get('selected_temperature', 1.0)),
                 }
                 for result in checkpoint_results
             ],
+            'calibration': final_result.get('calibration_info', {}),
         }, f, indent=2)
 
     with open(save_dir / "ranking_metrics.json", "w") as f:
@@ -2238,6 +2355,7 @@ def main(config_path):
         test_labels,
         test_preds,
         save_dir / "calibration_metrics.json",
+        calibration_info=final_result.get("calibration_info"),
     )
     save_confusion_matrix_plot(test_labels, test_preds, selected_threshold, save_dir / "confusion_matrix.png")
     save_pr_curve(test_labels, test_preds, save_dir / "pr_curve.png")

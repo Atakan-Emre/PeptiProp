@@ -52,10 +52,10 @@ model:
     enabled: false
 training:
   task: interaction_scoring_reranking
-  batch_size: 16
+  batch_size: 24
   grad_accum_steps: 1
-  epochs: 10
-  early_stopping_patience: 5
+  epochs: 200
+  early_stopping_patience: 20
   optimizer: adamw
   lr: 0.0003
   weight_decay: 0.0001
@@ -66,9 +66,9 @@ training:
   mixed_precision: true
   seed: 42
   subset_max_pairs:
-    train: 32000
-    val: 10000
-    test: 10000
+    train: 48000
+    val: 16000
+    test: 16000
   balanced_sampling:
     enabled: true
   negative_curriculum:
@@ -86,6 +86,14 @@ evaluation:
   threshold_selection_metric: mcc
   decision_checkpoint_auroc_tolerance: 0.01
   save_best_only: true
+  calibration:
+    enabled: true
+    temperature_scaling: true
+    selection_metric: nll
+    temperature_min: 0.35
+    temperature_max: 6.0
+    temperature_steps: 120
+    min_improvement: 1.0e-05
 logging:
   log_every_n_steps: 20
   save_dir: E:/PeptidQuantum/outputs/training/ablation_mpnn_f2_l2_c0_full
