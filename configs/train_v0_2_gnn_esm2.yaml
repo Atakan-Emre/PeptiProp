@@ -1,0 +1,37 @@
+experiment_name: peptiprop_v0_2_gnn_esm2
+
+data:
+  canonical_dir: data/canonical
+  pairs_dir: data/canonical/pairs
+  embedding_dir: data/embeddings/esm2_residue
+  embedding_lookup: data/embeddings/esm2_chain_lookup.json
+  graph_cutoff: 8.0
+
+model:
+  node_feat_dim: 326   # ESM-2 t6 (320) + structural (6)
+  hidden_dim: 128
+  num_gnn_layers: 4
+  heads: 4
+  mlp_hidden: 256
+  dropout: 0.1
+  edge_dim: 4
+
+training:
+  seed: 42
+  batch_size: 32
+  epochs: 80
+  early_stopping_patience: 15
+  lr: 0.0005
+  weight_decay: 0.0001
+
+loss:
+  use_ranking: true
+  margin: 0.2
+  bce_alpha: 0.5
+
+evaluation:
+  monitor_metric: val_mrr
+  threshold_selection_metric: mcc
+
+logging:
+  save_dir: outputs/training/peptiprop_v0_2_gnn_esm2

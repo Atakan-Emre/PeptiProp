@@ -34,8 +34,8 @@ ENV/
 # Harici kaynak klonları (install script ile kurulur)
 third_party/
 
-# Eski model ağırlıkları
-models/
+# Eski model ağırlıkları (kök dizindeki models/ klasörü)
+/models/
 
 # ------------------------------
 # GitHub Pages build çıktısı (CI veya yerelde scripts/build_pages_site.py)
@@ -59,6 +59,8 @@ data/raw/propedia/
 data/canonical/
 data/reports/
 data/mlx/
+data/embeddings/
+data/graphs/
 
 # Keep frozen references directory itself if needed
 !data/external_frozen/
