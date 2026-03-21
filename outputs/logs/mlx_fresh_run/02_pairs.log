@@ -1,0 +1,93 @@
+============================================================
+Generating Negative Pairs for Interaction Scoring / Reranking
+============================================================
+Strategy:
+  - Train negatives: 70% easy / 30% hard / 0% structure_hard
+  - Val/Test negatives: 70% easy / 30% hard / 0% structure_hard
+  - Candidate set size: train=1+5, val/test=1+5
+============================================================
+
+Synced complexes.parquet split_tag from split files.
+
+Applied quality_filter='clean': 42375 -> 28065 complexes
+
+Loaded 28065 complexes
+  Train: 29662
+  Val: 6398
+  Test: 6315
+
+Generating negatives for train...
+  Positives: 19623
+  Target negatives per protein: 5
+  Target total negatives: 98115
+    Easy/protein: 3
+    Hard/protein: 2
+    Structure-hard/protein: 0
+  Candidate context:
+    Complex rows: 19623
+    Core peptide pool: 19623
+    Extension peptide pool: 0
+  Total pairs: 117738 (pos: 19623, neg: 98115)
+  Ratio: 1:5.0
+  Quality flags: {'clean': 117738}
+  Negative types: {'easy': 68680, 'hard': 29435, 'positive': 19623}
+  Generated negatives by type: {'easy': 68680, 'hard': 29435, 'structure_hard': 0}
+  [WARN] Negative type ratio target not met (target -> actual gap): {'easy': 0.0}
+
+Generating negatives for val...
+  Positives: 4288
+  Target negatives per protein: 5
+  Target total negatives: 21440
+    Easy/protein: 3
+    Hard/protein: 2
+    Structure-hard/protein: 0
+  Candidate context:
+    Complex rows: 4288
+    Core peptide pool: 4288
+    Extension peptide pool: 0
+  Total pairs: 25728 (pos: 4288, neg: 21440)
+  Ratio: 1:5.0
+  Quality flags: {'clean': 25728}
+  Negative types: {'easy': 16515, 'hard': 4925, 'positive': 4288}
+  Generated negatives by type: {'easy': 16515, 'hard': 4925, 'structure_hard': 0}
+  [WARN] Requested type shortfalls: {'easy': 0, 'hard': 1507, 'structure_hard': 0}
+  [WARN] Negative type ratio target not met (target -> actual gap): {'hard': 0.0703}
+
+Generating negatives for test...
+  Positives: 4154
+  Target negatives per protein: 5
+  Target total negatives: 20770
+    Easy/protein: 3
+    Hard/protein: 2
+    Structure-hard/protein: 0
+  Candidate context:
+    Complex rows: 4154
+    Core peptide pool: 4154
+    Extension peptide pool: 0
+  Total pairs: 24924 (pos: 4154, neg: 20770)
+  Ratio: 1:5.0
+  Quality flags: {'clean': 24924}
+  Negative types: {'easy': 15766, 'hard': 5004, 'positive': 4154}
+  Generated negatives by type: {'easy': 15766, 'hard': 5004, 'structure_hard': 0}
+  [WARN] Requested type shortfalls: {'easy': 0, 'hard': 1227, 'structure_hard': 0}
+  [WARN] Negative type ratio target not met (target -> actual gap): {'hard': 0.0591}
+
+============================================================
+Pair datasets saved:
+  data/canonical/pairs/train_pairs.parquet
+  data/canonical/pairs/val_pairs.parquet
+  data/canonical/pairs/test_pairs.parquet
+============================================================
+
+Final Summary:
+  Train: 117738 pairs
+    Positive: 19623
+    Negative: 98115
+  Val: 25728 pairs
+    Positive: 4288
+    Negative: 21440
+  Test: 24924 pairs
+    Positive: 4154
+    Negative: 20770
+
+Leakage check: PASSED (no complex overlap between splits)

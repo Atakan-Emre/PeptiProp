@@ -1,0 +1,56 @@
+{
+  "validation_metrics_at_selected_threshold": {
+    "auroc": 0.758041735766736,
+    "auprc": 0.39208849244537325,
+    "f1": 0.4252342985032872,
+    "mcc": 0.30185490115420316,
+    "precision": 0.39832285115303984,
+    "recall": 0.45604560456045606
+  },
+  "test_metrics": {
+    "auroc": 0.7445724590460847,
+    "auprc": 0.3775128818256007,
+    "f1": 0.41566768887649846,
+    "mcc": 0.2898065709028717,
+    "precision": 0.38818016141629785,
+    "recall": 0.44734473447344736
+  },
+  "val_ranking_metrics": {
+    "mrr": 0.6541404140414041,
+    "hit@1": 0.474047404740474,
+    "hit@3": 0.7857785778577858,
+    "hit@5": 0.9324932493249325,
+    "groups_evaluated": 3333
+  },
+  "test_ranking_metrics": {
+    "mrr": 0.6381638163816382,
+    "hit@1": 0.45544554455445546,
+    "hit@3": 0.7665766576657665,
+    "hit@5": 0.9351935193519352,
+    "groups_evaluated": 3333
+  },
+  "selected_threshold": 0.6100000000000001,
+  "threshold_selection_metric": "mcc",
+  "best_val_monitor_metric": 0.6541404140414041,
+  "epochs_completed": 71,
+  "candidate_group_integrity": {
+    "train": {
+      "total_groups": 10000,
+      "valid_groups": 10000,
+      "groups_without_positive": 0,
+      "groups_without_negative": 0
+    },
+    "val": {
+      "total_groups": 3333,
+      "valid_groups": 3333,
+      "groups_without_positive": 0,
+      "groups_without_negative": 0
+    },
+    "test": {
+      "total_groups": 3333,
+      "valid_groups": 3333,
+      "groups_without_positive": 0,
+      "groups_without_negative": 0
+    }
+  }
+}

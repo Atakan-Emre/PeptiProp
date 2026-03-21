@@ -1,0 +1,62 @@
+{
+  "train": {
+    "total_pairs": 117738,
+    "positive_pairs": 19623,
+    "negative_pairs": 98115,
+    "negative_type_distribution": {
+      "easy": 68680,
+      "hard": 29435,
+      "positive": 19623
+    },
+    "quality_flag_distribution": {
+      "clean": 117738
+    },
+    "duplicate_pair_count": 0,
+    "split_column_consistent": true,
+    "candidate_set_size_distribution": {
+      "6": 19623
+    },
+    "candidate_set_avg_size": 6.0,
+    "unique_protein_groups": 19623
+  },
+  "val": {
+    "total_pairs": 25728,
+    "positive_pairs": 4288,
+    "negative_pairs": 21440,
+    "negative_type_distribution": {
+      "easy": 16515,
+      "hard": 4925,
+      "positive": 4288
+    },
+    "quality_flag_distribution": {
+      "clean": 25728
+    },
+    "duplicate_pair_count": 0,
+    "split_column_consistent": true,
+    "candidate_set_size_distribution": {
+      "6": 4288
+    },
+    "candidate_set_avg_size": 6.0,
+    "unique_protein_groups": 4288
+  },
+  "test": {
+    "total_pairs": 24924,
+    "positive_pairs": 4154,
+    "negative_pairs": 20770,
+    "negative_type_distribution": {
+      "easy": 15766,
+      "hard": 5004,
+      "positive": 4154
+    },
+    "quality_flag_distribution": {
+      "clean": 24924
+    },
+    "duplicate_pair_count": 0,
+    "split_column_consistent": true,
+    "candidate_set_size_distribution": {
+      "6": 4154
+    },
+    "candidate_set_avg_size": 6.0,
+    "unique_protein_groups": 4154
+  }
+}

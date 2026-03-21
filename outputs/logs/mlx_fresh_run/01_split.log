@@ -1,0 +1,28 @@
+============================================================
+Building PDB-Level Structure-Aware Splits
+============================================================
+
+Total complexes: 42375
+Unique PDB IDs: 13386
+PROPEDIA interface files: 15125 PDBs
+
+PDB-level split:
+  Train: 9370 PDBs
+  Val: 2007 PDBs
+  Test: 2009 PDBs
+
+Complex-level split:
+  Train: 29662 complexes
+  Val: 6398 complexes
+  Test: 6315 complexes
+
+============================================================
+Splits saved to:
+  data/canonical/splits/train_ids.txt
+  data/canonical/splits/val_ids.txt
+  data/canonical/splits/test_ids.txt
+  data/canonical/splits/external_geppri_ids.txt
+  data/canonical/splits/split_summary.txt
+============================================================
+
+Leakage check: PASSED (no PDB overlap between splits)

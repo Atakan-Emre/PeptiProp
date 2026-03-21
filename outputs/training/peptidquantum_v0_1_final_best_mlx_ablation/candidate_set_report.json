@@ -1,0 +1,29 @@
+{
+  "train": {
+    "candidate_set_size_distribution": {
+      "6": 19623
+    },
+    "candidate_set_avg_size": 6.0,
+    "unique_protein_groups": 19623,
+    "positive_pairs": 19623,
+    "negative_pairs": 98115
+  },
+  "val": {
+    "candidate_set_size_distribution": {
+      "6": 4288
+    },
+    "candidate_set_avg_size": 6.0,
+    "unique_protein_groups": 4288,
+    "positive_pairs": 4288,
+    "negative_pairs": 21440
+  },
+  "test": {
+    "candidate_set_size_distribution": {
+      "6": 4154
+    },
+    "candidate_set_avg_size": 6.0,
+    "unique_protein_groups": 4154,
+    "positive_pairs": 4154,
+    "negative_pairs": 20770
+  }
+}

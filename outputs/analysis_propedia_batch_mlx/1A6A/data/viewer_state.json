@@ -1,0 +1,62 @@
+{
+  "complex_id": "1A6A",
+  "structure_file": "data/cache/rcsb/1A6A.cif",
+  "chains": [
+    {
+      "chain_id": "A",
+      "type": "protein",
+      "representation": "cartoon",
+      "color": "spectrum",
+      "surface": {
+        "enabled": true,
+        "opacity": 0.3,
+        "color": "white"
+      }
+    },
+    {
+      "chain_id": "B",
+      "type": "protein",
+      "representation": "cartoon",
+      "color": "spectrum",
+      "surface": {
+        "enabled": true,
+        "opacity": 0.3,
+        "color": "white"
+      }
+    },
+    {
+      "chain_id": "C",
+      "type": "peptide",
+      "representation": "stick",
+      "color": "marine",
+      "surface": {
+        "enabled": false
+      }
+    }
+  ],
+  "interactions": [],
+  "view_config": {
+    "backgroundColor": "white",
+    "width": "100%",
+    "height": "600px",
+    "style": {
+      "cartoon": {
+        "color": "spectrum"
+      },
+      "stick": {
+        "radius": 0.3
+      }
+    },
+    "zoom": {
+      "enabled": true,
+      "factor": 1.0
+    },
+    "rotate": {
+      "enabled": true
+    },
+    "labels": {
+      "enabled": true,
+      "fontSize": 12
+    }
+  }
+}
