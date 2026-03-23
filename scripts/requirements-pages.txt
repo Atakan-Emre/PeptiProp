@@ -1,2 +1,4 @@
 # GitHub Pages site üretimi (scripts/build_pages_site.py) — tam requirements.txt yerine hızlı CI
 matplotlib>=3.7.0
+pandas>=2.0.0
+pyarrow>=12.0.0

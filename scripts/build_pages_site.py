@@ -1314,14 +1314,16 @@ def _extra_head_meta() -> str:
 PIPELINE_DIAGRAM_HTML = """      <section class="block" id="akim">
         <h2>Proje akışı</h2>
         <p class="lead-in">
-          <a href="__REPO_URL__">PeptiProp</a> deposundaki uçtan uca pipeline: PROPEDIA ham verisinden kanonik tablolara, sızıntısız sekans-küme split'lerine, aday kümesi + negatif çift üretimine, özellik ihracına, MLX model eğitimine ve son olarak 2D/3D raporlama ve bu statik siteye.
+          <a href="__REPO_URL__">PeptiProp</a> deposundaki uçtan uca pipeline: PROPEDIA ham verisinden kanonik tablolara,
+          sızıntısız sekans-küme split'lerine, negatif çift üretimine, <strong>ESM-2</strong> embedding çıkarımına,
+          rezidü-seviye graf inşasına, <strong>GATv2 dual-encoder</strong> eğitimine ve son olarak 2D/3D raporlama ile bu statik siteye.
         </p>
         <div class="pipeline-grid" role="img" aria-label="Proje pipeline diyagramı">
           <div class="pipe-node pipe-data">
             <div class="pipe-num">1</div>
             <div class="pipe-body">
               <strong>PROPEDIA</strong>
-              <span>Ham mmCIF / PDB kompleksleri</span>
+              <span>Ham mmCIF &mdash; 19K+ ko-kristal yapı</span>
             </div>
           </div>
           <div class="pipe-arrow"></div>
@@ -1329,7 +1331,7 @@ PIPELINE_DIAGRAM_HTML = """      <section class="block" id="akim">
             <div class="pipe-num">2</div>
             <div class="pipe-body">
               <strong>Kanonik tablolar</strong>
-              <span>complexes, chains, residues + arayüz/pocket anotasyonu</span>
+              <span>complexes, chains, residues &rarr; Parquet + arayüz/pocket anotasyonu</span>
             </div>
           </div>
           <div class="pipe-arrow"></div>
@@ -1337,7 +1339,7 @@ PIPELINE_DIAGRAM_HTML = """      <section class="block" id="akim">
             <div class="pipe-num">3</div>
             <div class="pipe-body">
               <strong>Sekans-küme split</strong>
-              <span>MMseqs2 (%30 kimlik); train / val / test</span>
+              <span>MMseqs2 %30 kimlik &rarr; train / val / test</span>
             </div>
           </div>
           <div class="pipe-arrow"></div>
@@ -1345,31 +1347,39 @@ PIPELINE_DIAGRAM_HTML = """      <section class="block" id="akim">
             <div class="pipe-num">4</div>
             <div class="pipe-body">
               <strong>Negatif çiftler</strong>
-              <span>Easy + Hard negatif ornekler</span>
+              <span>Easy + Hard negatif; her pozitife 5 dekoy</span>
             </div>
           </div>
           <div class="pipe-arrow"></div>
           <div class="pipe-node pipe-model">
             <div class="pipe-num">5</div>
             <div class="pipe-body">
-              <strong>Özellik ihracı</strong>
-              <span>Dense vektör: yapı + sekans + arayüz + yerel yoğunluk</span>
+              <strong>ESM-2 embedding</strong>
+              <span>Per-rezidü 320-d evrimsel bağlam vektörü</span>
             </div>
           </div>
           <div class="pipe-arrow"></div>
           <div class="pipe-node pipe-model">
             <div class="pipe-num">6</div>
             <div class="pipe-body">
-              <strong>MLX eğitim</strong>
-              <span>BCE + pairwise ranking loss; erken durdurma</span>
+              <strong>Graf inşası</strong>
+              <span>C&alpha; 8&#197; komşuluk &rarr; 326-d düğüm + 4-d kenar</span>
+            </div>
+          </div>
+          <div class="pipe-arrow"></div>
+          <div class="pipe-node pipe-model">
+            <div class="pipe-num">7</div>
+            <div class="pipe-body">
+              <strong>GATv2 eğitim</strong>
+              <span>Dual-encoder; BCE + ranking loss; 80 epoch</span>
             </div>
           </div>
           <div class="pipe-arrow"></div>
           <div class="pipe-node pipe-result">
-            <div class="pipe-num">7</div>
+            <div class="pipe-num">8</div>
             <div class="pipe-body">
               <strong>Metrikler &amp; rapor</strong>
-              <span>AUROC, MRR, Hit@k + ROC/PR eğrileri + bu site</span>
+              <span>AUROC, MRR, Hit@k + ROC/PR + 2D/3D görsel + site</span>
             </div>
           </div>
         </div>
@@ -1382,6 +1392,48 @@ PIPELINE_DIAGRAM_HTML = """      <section class="block" id="akim">
         </div>
       </section>
 """
+
+
+def _restore_2d_variants_from_bundle(img_dir: Path, data_dir: Path) -> None:
+    """Bundle'dan peptide_2d_v*.png ve peptide_2d_variants.json'u site dizinine kopyalar (CI fallback)."""
+    bundle = PAGES_TRAINING_BUNDLE
+    for src in sorted(bundle.glob("peptide_2d_v*.png")):
+        dest = img_dir / src.name
+        if not dest.is_file():
+            _copy_if(src, dest)
+    src_json = bundle / "peptide_2d_variants.json"
+    dest_json = data_dir / "peptide_2d_variants.json"
+    if src_json.is_file() and not dest_json.is_file():
+        data_dir.mkdir(parents=True, exist_ok=True)
+        _copy_if(src_json, dest_json)
+
+
+def _build_2d_variants_html_from_json(json_path: Path) -> str:
+    """peptide_2d_variants.json'dan 2D variant HTML bölümü üretir (RDKit gerektirmez)."""
+    if not json_path.is_file():
+        return ""
+    try:
+        payload = json.loads(json_path.read_text(encoding="utf-8"))
+        variants = payload.get("variants") or []
+        if not variants:
+            return ""
+        lines = [
+            '        <h3 id="peptit-skor-paneli">Test örnekleri: farklı skor, etiket ve uzunlukta 2D peptitler</h3>',
+            '        <div class="grid2 training-fig-grid">',
+        ]
+        for v in variants:
+            href = html_module.escape(v["file"])
+            alt = html_module.escape(v.get("alt", ""))
+            cap = v.get("caption_html", "")
+            lines.append(
+                f'          <figure class="media lightbox-trigger" data-src="{href}">'
+                f'<img src="{href}" alt="{alt}" loading="lazy" />'
+                f"<figcaption>{cap}</figcaption></figure>"
+            )
+        lines.append("        </div>")
+        return "\n".join(lines)
+    except Exception:
+        return ""
 
 
 def _build_top_ranked_table(training_dir: Optional[Path]) -> str:
@@ -2040,6 +2092,11 @@ def main() -> None:
     except Exception:
         site_extra_html = ""
         peptide_variants_html = ""
+
+    # CI fallback: bundle'dan 2D variant görselleri + JSON kopyala
+    _restore_2d_variants_from_bundle(img, SITE / "data")
+    if not peptide_variants_html:
+        peptide_variants_html = _build_2d_variants_html_from_json(SITE / "data" / "peptide_2d_variants.json")
 
     extra_seen = set(manifest.get("site_extra_figures") or [])
     for fn in ("peptide_length_histogram.png", "interaction_summary_panel.png"):

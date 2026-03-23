@@ -1,0 +1,29 @@
+{
+  "variants": [
+    {
+      "file": "assets/img/peptide_2d_v1.png",
+      "caption_html": "<code>1JJ2_X_G_pos</code> · PDB  · peptit G · uzunluk 29 · model skoru <strong>0.9997</strong> · etiket <strong>1</strong> (yapısal pozitif) · <code>IPEWKQEEVDAIVEMIESRNTLLERALDD</code>",
+      "alt": "Peptit 2D 1JJ2_X_G_pos"
+    },
+    {
+      "file": "assets/img/peptide_2d_v2.png",
+      "caption_html": "<code>1LJ2_A_D_pos</code> · PDB  · peptit D · uzunluk 27 · model skoru <strong>0.0001</strong> · etiket <strong>1</strong> (yapısal pozitif) · <code>PKRERKTIRIRDPNQGGKDITEEIMSG</code>",
+      "alt": "Peptit 2D 1LJ2_A_D_pos"
+    },
+    {
+      "file": "assets/img/peptide_2d_v3.png",
+      "caption_html": "<code>test_neg_hard_430_1G1E_B_A_1S5R_B_A</code> · PDB  · peptit A · uzunluk 23 · model skoru <strong>0.9114</strong> · etiket <strong>0</strong> (negatif) · <code>DFTPMDSSAVYVLSSMARQRRAS</code>",
+      "alt": "Peptit 2D test_neg_hard_430_1G1E_B_A_1S5R_B_A"
+    },
+    {
+      "file": "assets/img/peptide_2d_v4.png",
+      "caption_html": "<code>test_neg_easy_9585_1A37_A_P_5OCX_L_A</code> · PDB  · peptit A · uzunluk 9 · model skoru <strong>0.0638</strong> · etiket <strong>0</strong> (negatif) · <code>GEEGKGARG</code>",
+      "alt": "Peptit 2D test_neg_easy_9585_1A37_A_P_5OCX_L_A"
+    },
+    {
+      "file": "assets/img/peptide_2d_v5.png",
+      "caption_html": "<code>test_neg_hard_291_1AQD_A_F_1AQD_A_L</code> · PDB  · peptit L · uzunluk 14 · model skoru <strong>0.3946</strong> · etiket <strong>0</strong> (negatif) · <code>GSDWRFLRGYHQYA</code>",
+      "alt": "Peptit 2D test_neg_hard_291_1AQD_A_F_1AQD_A_L"
+    }
+  ]
+}
