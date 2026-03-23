@@ -8,13 +8,19 @@
 
 ## Amaç
 
-Protein–peptid etkileşimleri ilaç tasarımı, sinyal yolağı analizi ve biyomalzeme mühendisliğinde merkezi bir rol oynar. PeptiProp, deneysel olarak çözülmüş kristal yapılarından (co-crystal) yola çıkarak bir protein yüzeyine hangi peptidin gerçekten bağlandığını ayırt edebilen bir skorlama ve sıralama modeli sunar. Temel hedef, verilen bir protein için aday peptitler arasında native (doğal) bağlayıcıyı üst sıralara taşımaktır.
+Protein–peptid etkileşimleri ilaç tasarımı, sinyal yolağı analizi ve biyomalzeme mühendisliğinde merkezi bir rol oynar. Peptid-bazlı terapötikler küçük moleküllere kıyasla daha yüksek hedef seçiciliği ve daha düşük toksisite sunsa da, hangi peptidin bir protein yüzeyine gerçekten bağlanacağını tahmin etmek hesaplamalı olarak zorlu bir problemdir: bağlanma yüzeyi büyük, esneklik yüksek, ve konformasyon uzayı geniştir.
+
+PeptiProp, deneysel olarak çözülmüş kristal yapılarından (co-crystal) yola çıkarak bir protein yüzeyine **hangi peptidin gerçekten bağlandığını** ayırt edebilen bir **skorlama ve sıralama (reranking)** modeli sunar. Temel hedef, verilen bir protein için aday peptitler arasında native (doğal) bağlayıcıyı üst sıralara taşımaktır.
+
+### Neden Geleneksel Yöntemler Yetmiyor?
+
+Geleneksel makine öğrenimi yaklaşımları (MLP, Random Forest, XGBoost), protein–peptid çiftlerini **özet istatistiklerle** (ortalama uzunluk, aminoasit oranları, genel arayüz skoru) temsil eder. Bu temsil, **rezidü seviyesindeki yapısal bilgiyi** — hangi aminoasidin hangi pozisyonda hangi komşusuyla etkileştiğini — kaybeder. PeptiProp, her rezidüyü bir **graf düğümü** olarak modelleyerek bu bilgiyi korur ve ESM-2 protein dil modelinin evrimsel bağlam bilgisiyle zenginleştirir.
 
 ## Canlı Demo
 
 **GitHub Pages:** [atakan-emre.github.io/PeptiProp](https://atakan-emre.github.io/PeptiProp/)
 
-Statik site 8 metrik kartı, pipeline diyagramı, top-ranked tahmin tablosu, 5 farklı skor ve uzunlukta 2D peptit görseli (lightbox ile büyütme), gömülü 3D yapı önizlemesi (3Dmol.js) ve responsive tasarım içerir.
+Statik site 8 metrik kartı, 6 fazlı detaylı pipeline diyagramı, MLP vs GNN ablation karşılaştırma grafiği, ROC/PR eğrileri, confusion matrix, skor dağılımı histogramı, top-ranked tahmin tablosu, 5 farklı skor ve uzunlukta 2D peptit görseli (lightbox ile büyütme), gömülü 3D yapı önizlemesi (3Dmol.js) ve responsive tasarım içerir.
 
 ---
 
@@ -64,65 +70,113 @@ Her protein grubu için 1 pozitif (native) + 4 easy + 1 hard = 6 aday oluşturul
 
 ### 5. Özellik Mühendisliği
 
-Her protein–peptid çifti için aşağıdaki bilgiler dense bir özellik vektörüne dönüştürülür:
+#### v0.1 MLP Baseline (Özet Vektör)
 
-| Kategori | Özellikler |
-|----------|------------|
-| Yapısal | Zincir uzunluğu, ikincil yapı oranları (helix/sheet/coil) |
-| Sekans | Aminoasit bileşimi (20-boyutlu frekans vektörü) |
-| Arayüz | Arayüz rezidü sayısı, arayüz oranı |
-| Pocket | Pocket rezidü sayısı, pocket oranı |
-| Yerel yoğunluk | 8 Å yarıçapında komşu atom yoğunluğu |
-| Çift-bazlı | Kosinus benzerliği, L2 mesafesi, dot product (protein vs peptid özet vektörü) |
+Her protein–peptid çifti için aşağıdaki bilgiler 131 boyutlu dense bir özellik vektörüne dönüştürülür:
+
+| Kategori | Özellikler | Boyut |
+|----------|------------|-------|
+| Yapısal | Zincir uzunluğu, ikincil yapı oranları (helix/sheet/coil) | 4+4 |
+| Sekans | Aminoasit bileşimi (20-boyutlu frekans vektörü) | 20+20 |
+| Arayüz | Arayüz rezidü sayısı, arayüz oranı | 2+2 |
+| Pocket | Pocket rezidü sayısı, pocket oranı | 2+2 |
+| Yerel yoğunluk | 8 Å yarıçapında komşu atom yoğunluğu (ort/std) | 2+2 |
+| Çift-bazlı | Kosinus benzerliği, L2 mesafesi, dot product | 3 |
+
+Bu temsil, protein–peptid etkileşiminin **rezidü düzeyindeki detaylarını** kaybeder: hangi aminoasidin etkileşim yüzeyinde olduğu, komşuluk ilişkileri ve yerel yapısal motifler bilgisi yok olur.
+
+#### v0.2 GNN+ESM-2 (Rezidü-Seviye Graf)
+
+Her rezidü bir graf düğümü olarak 326 boyutlu özellik vektörüyle temsil edilir:
+
+| Kaynak | Özellik | Boyut | Açıklama |
+|--------|---------|-------|----------|
+| ESM-2 | Per-rezidü embedding | 320 | Evrimsel bağlam: benzer sekans ailelerinden öğrenilmiş anlamsal temsil |
+| Yapısal | is_interface | 1 | 5 Å arayüzde mi? |
+| Yapısal | is_pocket | 1 | 8 Å pocket bölgesinde mi? |
+| Yapısal | ss_onehot | 3 | İkincil yapı tipi (helix / sheet / coil) |
+| Yapısal | local_density | 1 | 8 Å yarıçapında komşu rezidü yoğunluğu |
+
+Kenar bilgisi: Cα atomları arası mesafe < 8 Å olan rezidü çiftleri birbirine bağlanır. Her kenar 4 boyutlu özellik taşır: `[mesafe, birim_yön_x, birim_yön_y, birim_yön_z]`.
 
 ### 6. Model Mimarisi
+
+#### ESM-2 Nedir?
+
+**ESM-2** (Evolutionary Scale Modeling 2), Meta AI tarafından geliştirilen, milyarlarca protein sekansı üzerinde **self-supervised** olarak eğitilmiş bir protein dil modelidir. Tıpkı GPT'nin doğal dil için yaptığı gibi, ESM-2 aminoasit dizilerinin istatistiksel örüntülerini öğrenir ve her rezidü için **evrimsel bağlam bilgisi** içeren yoğun vektör temsilleri üretir.
+
+PeptiProp'ta `esm2_t6_8M_UR50D` varyantı kullanılır: 6 transformer katmanı, 8 milyon parametre, UniRef50 üzerinde eğitilmiş. Her rezidü için 320 boyutlu embedding üretir. 1022 token'dan uzun sekanslar için kayar pencere (stride 512) ve örtüşen bölgelerin ortalaması uygulanır.
+
+#### GATv2 Nedir?
+
+**GATv2** (Graph Attention Network v2), graf düğümleri arasındaki mesaj iletiminde **dinamik attention** mekanizması kullanan bir graf sinir ağıdır. Standart GAT'tan farkı, attention skorlarının hem kaynak hem hedef düğüme bağlı olarak hesaplanmasıdır — bu sayede model, etkileşim yüzeyindeki kritik rezidülere daha fazla ağırlık verebilir.
+
+#### Mimari Detayı
 
 Proje iki model mimarisini destekler:
 
 **v0.1 — MLP Baseline:** 3 katmanlı tam bağlantılı sinir ağı. Her çift için özet istatistiklerden (131-d) oluşan dense vektörü girdi alır. Apple MLX framework'ü ile eğitilir.
 
-**v0.2 — GATv2 + ESM-2 (Aktif):** Çift kanallı graf sinir ağı (Graph Attention Network v2) ile ön-eğitimli protein dil modeli (ESM-2) birleşimi. Her rezidü bir graf düğümü olarak temsil edilir; düğüm özellikleri ESM-2'nin per-rezidü embedding'leri (320-d) ve yapısal anotasyonları (arayüz, pocket, ikincil yapı) içerir. Rezidüler arası 8 Å mesafe eşiğiyle komşuluk grafı oluşturulur.
+**v0.2 — GATv2 + ESM-2 (Aktif):** Çift kanallı (dual-encoder) graf sinir ağı ile ön-eğitimli protein dil modeli birleşimi. Her rezidü bir graf düğümü olarak temsil edilir; düğüm özellikleri ESM-2'nin per-rezidü embedding'leri (320-d) ve yapısal anotasyonları (6-d) içerir.
 
 ```
-Protein Rezidü Grafı ──→ GATv2 (4 katman, 4 head) ──→ Attention Pooling ──→ protein_vec
-                                                                                    ↘
-                                                                            [concat; hadamard; |diff|]
-                                                                                    ↗       ↓
-Peptid Rezidü Grafı  ──→ GATv2 (4 katman, 4 head) ──→ Attention Pooling ──→ peptide_vec    MLP Head → skor
+Protein Rezidü Grafı ──→ GATv2 Encoder (4 katman, 4 head) ──→ Attention Pooling ──→ protein_vec (128-d)
+                                                                                           ↘
+                                                                                   [concat; hadamard; |diff|]
+                                                                                           ↗       ↓
+Peptid Rezidü Grafı  ──→ GATv2 Encoder (4 katman, 4 head) ──→ Attention Pooling ──→ peptide_vec (128-d)
+                                                                                               MLP Head (512→256→128→1) → skor
 ```
+
+**Etkileşim vektörü:** `[prot; pep; prot⊙pep; |prot−pep|]` = 512 boyutlu birleşik temsil. Hadamard çarpımı eleman-bazlı benzerliği, mutlak fark ise ayrışma bilgisini kodlar.
+
+**Kayıp fonksiyonu:** BCE (α=0.5) + Pairwise Ranking Loss (margin=0.2). Ranking loss, aynı protein grubundaki pozitif-negatif çiftleri arasında en az `margin` kadar skor farkı olmasını zorlar.
 
 | Parametre | MLP (v0.1) | GNN+ESM-2 (v0.2) |
 |-----------|-----------|-------------------|
-| Girdi | 131-d özet vektör | Rezidü grafı (320+6 d/node) |
-| Mimari | MLP 3-katman | GATv2 4-katman + Attention Pool |
-| Parametreler | ~50K | ~554K |
-| Protein temsili | Ortalama/oran | ESM-2 per-rezidü embedding |
+| Girdi boyutu | 131-d özet vektör | Rezidü grafı (326 d/node) |
+| Mimari | MLP 3-katman | GATv2 4-katman × 4 head + Attention Pool |
+| Toplam parametre | ~50K | ~554K |
+| Protein temsili | Ortalama/oran istatistikleri | ESM-2 per-rezidü embedding |
+| Yapısal bilgi | Kayıp (ortalamaya ezilmiş) | Korunmuş (graf topolojisi) |
 | Loss | BCE + Ranking | BCE + Ranking |
 | Erken durdurma | Val MRR, patience=12 | Val MRR, patience=15 |
+| Eğitim süresi | ~5 dk (MLX, Apple M4) | ~4 saat (CPU, 80 epoch) |
 
 ### 7. Kullanılan Araç ve Teknolojiler
 
-| Kategori | Araç | Kullanım Amacı |
-|----------|------|----------------|
-| **Protein dil modeli** | ESM-2 (t6-8M) | Per-rezidü 320-d embedding çıkarımı |
-| **Graf sinir ağı** | GATv2 (PyTorch Geometric) | Rezidü-seviye yapısal öğrenme |
-| **Eğitim framework** | PyTorch 2.x | GNN eğitimi (CPU/MPS) |
-| **Eğitim framework** | Apple MLX | MLP baseline eğitimi (Apple Silicon) |
-| **Sekans kümeleme** | MMseqs2 | %30 kimlik eşiğinde leakage-free split |
-| **Yapı anotasyonu** | BioPython, Gemmi | mmCIF parse, arayüz/pocket mesafe hesabı |
-| **2D görselleştirme** | RDKit | Peptit 2D yapı çizimi |
-| **3D görselleştirme** | 3Dmol.js | Tarayıcı-içi interaktif 3D protein viewer |
-| **Statik site** | GitHub Pages + Actions | Otomatik CI/CD ile demo yayını |
-| **Veri formatı** | Apache Parquet | Sıkıştırılmış, sütun-bazlı veri depolama |
+| Kategori | Araç | Versiyon | Kullanım Amacı |
+|----------|------|----------|----------------|
+| **Protein dil modeli** | ESM-2 (esm2_t6_8M_UR50D) | fair-esm ≥ 2.0 | Per-rezidü 320-d embedding çıkarımı; evrimsel bağlam kodlama |
+| **Graf sinir ağı** | GATv2 (PyTorch Geometric) | pyg ≥ 2.5 | Rezidü-seviye yapısal öğrenme; attention-tabanlı mesaj iletimi |
+| **Derin öğrenme** | PyTorch | ≥ 2.2 | GNN eğitimi, model tanımı, gradient hesabı |
+| **Apple Silicon ML** | MLX | — | MLP baseline eğitimi (M-serisi çiplerde hızlandırılmış) |
+| **Sekans kümeleme** | MMseqs2 | — | %30 sekans kimliği eşiğinde kümeleme; veri sızıntısı koruması |
+| **Yapı ayrıştırma** | BioPython, Gemmi | — | mmCIF dosya parse; atomik koordinat çıkarma |
+| **2D görselleştirme** | RDKit | — | Peptit 2D bağ yapısı çizimi (aminoasit dizisinden) |
+| **3D görselleştirme** | 3Dmol.js | — | Tarayıcı-içi interaktif 3D protein/peptid viewer |
+| **Veri formatı** | Apache Parquet | — | Sıkıştırılmış, sütun-bazlı veri depolama (~%70 boyut kazancı) |
+| **CI/CD** | GitHub Actions + Pages | — | Otomatik site build ve yayın; her push'ta güncelleme |
+| **Grafik çıktılar** | Matplotlib / Seaborn | — | ROC, PR eğrileri, confusion matrix, skor histogramları |
 
 ### 8. Çıktılar ve Görselleştirme
 
-Model çıktıları üç katmanda raporlanır:
+Model çıktıları dört katmanda raporlanır:
 
-- **Metrik tablosu** — AUROC, AUPRC, F1, MCC, MRR, Hit@k gibi 8 temel metrik.
-- **2D peptid görselleri** — RDKit ile çizilen 5 farklı peptit: en yüksek/düşük skorlu, orta skorlu, uzun ve kısa zincirlerden. Her görselde PDB ID, skor ve uzunluk bilgisi yer alır; tıklanınca lightbox ile büyütülür.
-- **3D yapı önizleme** — 3Dmol.js ile gömülü interaktif 3D viewer. Demo sayfasında 1CRN (Crambin) kristal yapısı gösterilir; tam pipeline çıktıları local ortamda üretilir.
-- **ROC / PR eğrileri, skor histogramları, confusion matrix** — eğitim sonuçlarının detaylı grafikleri.
+1. **Metrik tablosu** — 8 temel metrik: AUROC, AUPRC, F1, MCC (sınıflandırma) + MRR, Hit@1, Hit@3, Hit@5 (sıralama). Her metrik belirli bir yönü ölçer:
+
+   | Metrik | Tür | Ne Ölçer? |
+   |--------|-----|-----------|
+   | **AUROC** | Sınıflandırma | Eşik-bağımsız pozitif/negatif ayırma gücü |
+   | **AUPRC** | Sınıflandırma | Dengesiz sınıflarda precision-recall dengesi |
+   | **F1** | Sınıflandırma | Precision ile recall'un harmonik ortalaması |
+   | **MCC** | Sınıflandırma | Dengeli ikili sınıflandırma korelasyonu (-1 ile +1 arası) |
+   | **MRR** | Sıralama | Doğru adayın ortalama ters sırası; 1.0 = daima 1. sırada |
+   | **Hit@k** | Sıralama | İlk k aday içinde native peptit bulunma oranı |
+
+2. **2D peptid görselleri** — RDKit ile çizilen 5 farklı peptit: en yüksek/düşük skorlu, orta skorlu, uzun ve kısa zincirlerden. Her görselde PDB ID, skor ve uzunluk bilgisi yer alır; tıklanınca lightbox ile büyütülür.
+3. **3D yapı önizleme** — 3Dmol.js ile gömülü interaktif 3D viewer. Demo sayfasında 1CRN (Crambin, 46 aa) kristal yapısı gösterilir; tam pipeline çıktıları local ortamda üretilir. Cartoon, stick, sphere ve yüzey görünüm modları desteklenir.
+4. **ROC / PR eğrileri, skor histogramları, confusion matrix** — Eğitim sonuçlarının detaylı grafikleri. GNN+ESM-2 eğitimi sonrası `generate_gnn_predictions.py` ile üretilir.
 
 ---
 
@@ -158,37 +212,32 @@ Model çıktıları üç katmanda raporlanır:
 ## Pipeline
 
 ```
-PROPEDIA mmCIF (42,375 kompleks)
-    │
-    ▼
-Kanonik tablolar (complexes · chains · residues → Parquet)
-    │
-    ▼
-Arayüz + Pocket anotasyonu (5 Å / 8 Å mesafe tabanlı)
-    │
-    ▼
-Sekans-küme split (MMseqs2 %30 kimlik → train / val / test)
-    │
-    ▼
-Negatif çift üretimi (easy + hard; her grup için 6 aday)
-    │
-    ▼
-Özellik ihracı (yapı + sekans + arayüz + yerel yoğunluk → dense vektör)
-    │
-    ▼
-ESM-2 embedding çıkarımı (per-rezidü 320-d)
-    │
-    ▼
-Rezidü-seviye graf inşası (8 Å komşuluk)
-    │
-    ▼
-GATv2 eğitimi (BCE + pairwise ranking loss; val MRR ile erken durdurma)
-    │
-    ▼
-Test metrikleri (AUROC, AUPRC, MRR, Hit@k, F1, MCC)
-    │
-    ▼
-Rapor: ROC/PR eğrileri · 2D peptid görselleri · 3D viewer · statik site
+Faz 1: PROPEDIA mmCIF (42,375 kompleks)
+  │  Ham deneysel ko-kristal yapılarının indirilmesi ve standardizasyonu
+  ▼
+Faz 2: Kanonik tablolar (complexes · chains · residues → Parquet)
+  │  18.7K kompleks, 48K zincir, 3.5M rezidü; arayüz (5Å) + pocket (8Å) anotasyonu
+  ▼
+Faz 3: Sekans-küme split (MMseqs2 %30 kimlik → train 70% / val 15% / test 15%)
+  │  Veri sızıntısı koruması: benzer proteinler aynı split'te
+  ▼
+Faz 4: Negatif çift üretimi (easy: rastgele peptit + hard: aynı aile)
+  │  Her pozitife 5 negatif → toplam ~168K çift
+  ▼
+Faz 5: ESM-2 embedding çıkarımı (esm2_t6_8M_UR50D)
+  │  Her benzersiz zincir sekansı için per-rezidü 320-d vektör → NPZ arsivleri
+  ▼
+Faz 6: Rezidü-seviye graf inşası (Cα < 8Å komşuluk)
+  │  326-d düğüm (ESM-2 + yapısal) + 4-d kenar (mesafe + yön) → PyG .pt dosyaları
+  ▼
+Faz 7: GATv2 Dual-Encoder eğitimi
+  │  BCE + pairwise ranking loss; 80 epoch; AdamW lr=5e-4; val MRR erken durdurma
+  ▼
+Faz 8: Değerlendirme + tahmin üretimi
+  │  Test: AUROC=0.881, MRR=0.778, Hit@1=0.621 → top_ranked_examples.json
+  ▼
+Faz 9: Raporlama
+       ROC/PR eğrileri · confusion matrix · 2D peptit (RDKit) · 3D viewer (3Dmol.js) · GitHub Pages site
 ```
 
 ---
@@ -219,8 +268,10 @@ python scripts/export_mlx_features.py --config configs/train_v0_1_scoring_mlx_m4
 python scripts/train_scoring_mlx.py --config configs/train_v0_1_scoring_mlx_m4.yaml
 
 # 6b. GNN + ESM-2 (v0.2)
-python scripts/extract_esm2_embeddings.py --model esm2_t6_8M
-python scripts/train_gnn_esm2.py --config configs/train_v0_2_gnn_esm2.yaml
+python scripts/extract_esm2_embeddings.py --model esm2_t6_8M  # ~35K NPZ dosyası üretir
+python scripts/build_residue_graphs.py --config configs/train_v0_2_gnn_esm2.yaml  # PyG .pt grafları
+python scripts/train_gnn_esm2.py --config configs/train_v0_2_gnn_esm2.yaml  # 80 epoch GATv2 eğitimi
+python scripts/generate_gnn_predictions.py --config configs/train_v0_2_gnn_esm2.yaml  # Tahmin + grafikler
 
 # 7. Statik site üretimi
 pip install -r scripts/requirements-pages.txt

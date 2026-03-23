@@ -134,6 +134,44 @@ def download_demo_cif(dest: Path) -> bool:
         return False
 
 
+def _generate_ablation_comparison_chart(dest: Path) -> bool:
+    """MLP v0.1 vs GNN+ESM-2 v0.2 ablation karşılaştırma bar chart."""
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        import numpy as np
+        metrics = ["AUROC", "AUPRC", "F1", "MCC", "MRR", "Hit@1", "Hit@3", "Hit@5"]
+        mlp = [0.8388, 0.4348, 0.5074, 0.4134, 0.7120, 0.5121, 0.9275, 0.9952]
+        gnn = [0.8813, 0.5566, 0.5884, 0.5037, 0.7776, 0.6210, 0.9469, 0.9965]
+        x = np.arange(len(metrics))
+        w = 0.35
+        fig, ax = plt.subplots(figsize=(10, 5))
+        b1 = ax.bar(x - w / 2, mlp, w, label="MLP v0.1 (68 ep)", color="#6c757d", alpha=0.85)
+        b2 = ax.bar(x + w / 2, gnn, w, label="GNN+ESM-2 v0.2 (80 ep)", color="#2196F3", alpha=0.9)
+        ax.set_ylabel("Değer")
+        ax.set_title("Ablation: MLP Baseline vs GNN+ESM-2")
+        ax.set_xticks(x)
+        ax.set_xticklabels(metrics, fontsize=9)
+        ax.legend(loc="lower right")
+        ax.set_ylim(0, 1.12)
+        ax.grid(axis="y", alpha=0.3)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        for bars in [b1, b2]:
+            for bar in bars:
+                h = bar.get_height()
+                ax.text(bar.get_x() + bar.get_width() / 2.0, h + 0.01, f"{h:.3f}", ha="center", va="bottom", fontsize=7)
+        fig.tight_layout()
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(dest, dpi=150, facecolor="white")
+        plt.close(fig)
+        return True
+    except Exception as exc:
+        print(f"[WARN] Ablation chart oluşturulamadı: {exc}")
+        return False
+
+
 def write_placeholder_png(path: Path, title: str, subtitle: str = "") -> bool:
     """Eğitim/ablation PNG yoksa (ör. GitHub Actions) kırık img önlemek için yer tutucu üretir."""
     try:
@@ -237,11 +275,7 @@ def _copy_training_figures(training_out_dir: Optional[Path], img_root: Path) -> 
     out: List[Dict[str, str]] = []
     for src_name, dest_name, alt, caption in _TRAINING_FIGURE_SPECS:
         dest = img_root / dest_name
-        src = None
-        if training_out_dir:
-            src = training_out_dir / src_name
-            if not src.is_file():
-                src = training_out_dir / "figures" / src_name
+        src = _find_figure(training_out_dir, src_name)
         if src is not None and src.is_file():
             _copy_if(src, dest)
         elif not dest.is_file():
@@ -249,6 +283,33 @@ def _copy_training_figures(training_out_dir: Optional[Path], img_root: Path) -> 
         if dest.is_file():
             out.append({"href": f"assets/img/{dest_name}", "alt": alt, "caption": caption})
     return out
+
+
+_GNN_FIGURE_ALIASES: Dict[str, List[str]] = {
+    "roc_curve.png": ["roc_curve_gnn.png"],
+    "pr_curve.png": ["pr_curve_gnn.png"],
+    "confusion_matrix.png": ["confusion_matrix_gnn.png"],
+    "score_histogram_pos_neg.png": ["score_histogram_gnn.png"],
+}
+
+
+def _find_figure(training_dir: Optional[Path], base_name: str) -> Optional[Path]:
+    """GNN alias'larını, figures/ alt dizinini ve orijinal adı dener."""
+    if not training_dir:
+        return None
+    aliases = _GNN_FIGURE_ALIASES.get(base_name, [])
+    stem, ext = base_name.rsplit(".", 1)
+    aliases.append(f"{stem}_gnn.{ext}")
+    aliases.append(base_name)
+    seen: set[str] = set()
+    for name in aliases:
+        if name in seen:
+            continue
+        seen.add(name)
+        for candidate in [training_dir / name, training_dir / "figures" / name]:
+            if candidate.is_file():
+                return candidate
+    return None
 
 
 def _render_training_gallery_section(items: List[Dict[str, str]]) -> str:
@@ -1213,12 +1274,18 @@ table.data-table.compact td { padding: 0.4rem 0.55rem; }
 
 /* --- Viewer responsive --- */
 .viewer-responsive {
-  position: relative; width: 100%; padding-bottom: 56.25%;
-  border-radius: 12px; overflow: hidden; border: 1px solid var(--border);
-  background: #fff; margin: 0.75rem 0;
+  position: relative; width: 100%; aspect-ratio: 16/10;
+  min-height: 420px; max-height: 600px;
+  border-radius: 12px; overflow: hidden;
+  border: 2px solid var(--border);
+  background: var(--card);
+  margin: 1rem 0; box-shadow: 0 4px 20px rgba(0,0,0,0.15);
 }
 .viewer-responsive iframe {
-  position: absolute; inset: 0; width: 100%; height: 100%; border: none;
+  width: 100%; height: 100%; border: none; display: block;
+}
+@media (max-width: 600px) {
+  .viewer-responsive { min-height: 300px; aspect-ratio: 4/3; border-radius: 8px; }
 }
 """,
         encoding="utf-8",
@@ -1321,6 +1388,19 @@ def _build_top_ranked_table(training_dir: Optional[Path]) -> str:
     """top_ranked_examples.json'dan ilk 10 aday satırını HTML tablo olarak döndürür."""
     if not training_dir:
         return ""
+
+    # Peptid uzunluklarını chains.parquet'ten yükle (varsa)
+    chain_lengths: Dict[str, int] = {}
+    chains_path = ROOT / "data" / "canonical" / "chains.parquet"
+    if chains_path.is_file():
+        try:
+            import pandas as pd
+            ch_df = pd.read_parquet(chains_path, columns=["complex_id", "chain_id_auth", "length"])
+            for _, cr in ch_df.iterrows():
+                chain_lengths[f"{cr['complex_id']}::{cr['chain_id_auth']}"] = int(cr["length"])
+        except Exception:
+            pass
+
     for candidate in (training_dir / "top_ranked_examples.json", ROOT / "publish" / "github_pages_training_bundle" / "top_ranked_examples.json"):
         if candidate.is_file():
             try:
@@ -1332,16 +1412,24 @@ def _build_top_ranked_table(training_dir: Optional[Path]) -> str:
                 continue
             rows: List[str] = []
             for r in preview[:10]:
-                pdb = html_module.escape(str(r.get("pdb_id", "—")))
+                # PDB ID: pdb_id veya protein_complex_id'den ilk 4 karakter
+                raw_pdb = r.get("pdb_id") or r.get("protein_complex_id", "—")
+                pdb = html_module.escape(str(raw_pdb)[:4]) if raw_pdb != "—" else "—"
                 prot_ch = html_module.escape(str(r.get("protein_chain_id", "")))
                 pep_ch = html_module.escape(str(r.get("peptide_chain_id", "")))
-                plen = r.get("peptide_length", "—")
+
+                # Peptid uzunluğu: önce dosyadan, sonra chains.parquet'ten
+                plen = r.get("peptide_length")
+                if not plen:
+                    pep_cid = r.get("peptide_complex_id", "")
+                    lookup_key = f"{pep_cid}::{r.get('peptide_chain_id', '')}"
+                    plen = chain_lengths.get(lookup_key, "—")
+
                 score = float(r.get("score", 0))
-                label = int(r.get("label", 0))
+                label = int(r.get("label", r.get("label_eval", 0)))
                 rank = r.get("rank", "—")
-                neg_type = str(r.get("negative_type", "—"))
                 label_cls = "pos" if label == 1 else "neg"
-                label_txt = "Pozitif" if label == 1 else neg_type.replace("_", " ").title()
+                label_txt = "Pozitif" if label == 1 else "Negatif"
                 rows.append(
                     f"<tr>"
                     f'<td><code>{pdb}</code></td>'
@@ -1496,58 +1584,101 @@ __PIPELINE_DIAGRAM_BLOCK__
       <section class="block" id="amac">
         <h2>Amac ve gorev tanimi</h2>
         <p class="lead-in">
-          Model yalnizca "bu cift baglanir mi?" sorusunu yanitmaz; her <strong>protein icin bir aday kumesi</strong>
-          (genelde 1 gercek + birkac negatif) icinde pozitifi <strong>ust siralara</strong> tasir.
-          Siralama icin <strong>MRR</strong> ve <strong>Hit@k</strong> kullanilirken, esik secimi icin
-          <strong>AUROC / AUPRC / MCC</strong> gibi ikili siniflandirma metrikleri de raporlanir.
+          Protein-peptid etkilesimleri ilac tasarimi, sinyal yolagi analizi ve biyomalzeme muhendisliginde merkezi
+          rol oynar. PeptiProp, deneysel ko-kristal yapilarindan yola cikarak bir protein yuzeyine <strong>hangi
+          peptidin gercekten baglandigini</strong> ayirt edebilen bir skorlama ve <strong>siralama (reranking)</strong> modeli sunar.
+        </p>
+        <p>
+          Model yalnizca "bu cift baglanir mi?" sorusunu yanitmaz; her protein icin bir <strong>aday kumesi</strong>
+          (1 native pozitif + 5 negatif dekoy) icinde gercek baglayiciyi <strong>ust siralara</strong> tasir.
+          Bu yaklasim, gercek dunyada binlerce aday peptit arasından dogru olani bulmaya yonelik pratik bir kullanim senaryosunu yansitir.
         </p>
         <div class="callout accent-callout">
-          <strong>Ozet:</strong> Yapi + sekans ozelliklerinden skor &rarr; adaylar arasinda siralama &rarr;
-          HTML / PNG / JSON ile izlenebilir, tekrarlanabilir rapor.
+          <strong>Neden GNN + ESM-2?</strong> Geleneksel yontemler (MLP, RF, XGBoost) protein-peptid ciftlerini
+          ozet istatistiklerle temsil eder ve <em>rezidu-seviye yapisal bilgiyi</em> kaybeder. PeptiProp,
+          her reziduyu bir <strong>graf dugumu</strong> olarak temsil eder: ESM-2 protein dil modeli evrimsel
+          baglamı, GATv2 attention mekanizmasi ise hangi komsu rezidulerin etkilesim icin kritik oldugunu ogrenir.
+        </div>
+        <h3>Degerlendirme metrikleri</h3>
+        <div class="table-scroll">
+        <table class="data-table compact">
+          <thead><tr><th>Metrik</th><th>Tur</th><th>Aciklama</th></tr></thead>
+          <tbody>
+            <tr><td><strong>MRR</strong></td><td>Siralama</td><td>Dogru adayin ortalama ters sirasi. 1.0 = her zaman 1. sirada</td></tr>
+            <tr><td><strong>Hit@k</strong></td><td>Siralama</td><td>Ilk k aday icinde native peptit var mi? Pratik kisa liste basarisi</td></tr>
+            <tr><td><strong>AUROC</strong></td><td>Siniflandirma</td><td>Esik-bagimsiz ikili ayirilabilirlik gucu</td></tr>
+            <tr><td><strong>AUPRC</strong></td><td>Siniflandirma</td><td>Dengesiz sinif senaryolarinda precision-recall dengesi</td></tr>
+            <tr><td><strong>F1 / MCC</strong></td><td>Siniflandirma</td><td>Secilen esikte kesin siniflandirma performansi</td></tr>
+          </tbody>
+        </table>
         </div>
       </section>
 
       <section class="block" id="yontem">
         <h2>Yontem — uctan uca akis</h2>
-        <p class="lead-in">Her adimin ciktisi bir sonrakinin girdisidir. Ara urunler JSON/Parquet ile denetlenir.</p>
+        <p class="lead-in">
+          Asagida PeptiProp v0.2 pipeline'inin her adimi, kullandigi araclar ve ciktilariyla aciklanmistir.
+          Her adimin ciktisi bir sonrakinin girdisidir; tum ara urunler Parquet / JSON / NPZ formatinda saklanarak
+          tekrarlanabilirlik ve denetlenebilirlik saglanir.
+        </p>
         <div class="method-diagram" role="img" aria-label="Yontem akis diyagrami">
           <div class="md-phase" data-phase="veri">
-            <div class="md-phase-title">Veri Hazirligi</div>
+            <div class="md-phase-title">Faz 1 — Veri Hazirligi</div>
             <div class="md-nodes">
-              <div class="md-node"><strong>PROPEDIA mmCIF</strong><span>Ham yapisal dosyalar</span></div>
+              <div class="md-node"><strong>PROPEDIA mmCIF (&gt;19k kompleks)</strong><span>PDB'den indirilen deneysel ko-kristal protein-peptit yapilari</span></div>
               <div class="md-arrow-v"></div>
-              <div class="md-node"><strong>Kanonik tablolar</strong><span><code>complexes</code>, <code>chains</code>, <code>residues</code> Parquet</span></div>
+              <div class="md-node"><strong>Kanonik tablolar</strong><span><code>complexes.parquet</code> (18.7k), <code>chains.parquet</code> (48k zincir), <code>residues.parquet</code> (3.5M rezidu)</span></div>
               <div class="md-arrow-v"></div>
-              <div class="md-node"><strong>Arayuz + Pocket</strong><span>5&#197; arayuz, 8&#197; pocket mesafe anotasyonu</span></div>
+              <div class="md-node"><strong>Arayuz + Pocket anotasyonu</strong><span>5&#197; arayuz etiketi + 8&#197; pocket mesafe anotasyonu (C&alpha; uzaklik)</span></div>
             </div>
           </div>
           <div class="md-connector-v"></div>
           <div class="md-phase" data-phase="split">
-            <div class="md-phase-title">Split &amp; Negatif Uretimi</div>
+            <div class="md-phase-title">Faz 2 — Split &amp; Negatif Uretimi</div>
             <div class="md-nodes">
-              <div class="md-node"><strong>Sekans-kume split</strong><span>MMseqs2 %30 kimlik &rarr; train / val / test</span></div>
+              <div class="md-node"><strong>Sekans-kume split (MMseqs2)</strong><span>%30 sekans kimligi esigi &rarr; train (70%) / val (15%) / test (15%), kume-bazli bolumleme</span></div>
               <div class="md-arrow-v"></div>
-              <div class="md-node"><strong>Negatif ciftler</strong><span><em>Easy:</em> rastgele peptit &middot; <em>Hard:</em> ayni protein ailesi</span></div>
+              <div class="md-node"><strong>Negatif cift uretimi</strong><span><em>Easy:</em> rastgele farkli peptit &middot; <em>Hard:</em> ayni protein ailesinden peptit. Her pozitife 5 negatif &rarr; toplam &sim;98k cift</span></div>
+            </div>
+          </div>
+          <div class="md-connector-v"></div>
+          <div class="md-phase" data-phase="embed">
+            <div class="md-phase-title">Faz 3 — ESM-2 Embedding Cikarimi</div>
+            <div class="md-nodes">
+              <div class="md-node"><strong>ESM-2 (esm2_t6_8M_UR50D)</strong><span>Meta AI protein dil modeli; her rezidu icin 320 boyutlu evrimsel bag&#305;lam vektoru. Uzun sekanslar icin kayar pencere (stride 512)</span></div>
+              <div class="md-arrow-v"></div>
+              <div class="md-node"><strong>NPZ embedding arsivi</strong><span>Her benzersiz zincir hash'i icin <code>.npz</code> dosyasi &rarr; toplam &sim;35k dosya, &sim;3.2 GB</span></div>
+            </div>
+          </div>
+          <div class="md-connector-v"></div>
+          <div class="md-phase" data-phase="graph">
+            <div class="md-phase-title">Faz 4 — Rezidu-Seviye Graf Insasi</div>
+            <div class="md-nodes">
+              <div class="md-node"><strong>Dugum ozellikleri (326-d)</strong><span>ESM-2 (320) + yapisal (is_interface, is_pocket, ss_onehot[3], local_density)</span></div>
+              <div class="md-arrow-v"></div>
+              <div class="md-node"><strong>Kenar insasi (C&alpha; &lt; 8&#197;)</strong><span>Mesafe + birim yon vektoru &rarr; 4-d kenar ozellik. PyG Data nesnesine donusturulup <code>.pt</code> olarak saklanir</span></div>
             </div>
           </div>
           <div class="md-connector-v"></div>
           <div class="md-phase" data-phase="model">
-            <div class="md-phase-title">Model Egitimi</div>
+            <div class="md-phase-title">Faz 5 — GATv2 Dual-Encoder Egitimi</div>
             <div class="md-nodes">
-              <div class="md-node"><strong>ESM-2 embedding</strong><span>Per-rezidu 320-d protein dil modeli cikarimi</span></div>
+              <div class="md-node"><strong>Dual GATv2 Encoder</strong><span>Protein + peptit icin ayri 4-katman GATv2 (4 head, 128 gizli birim) + attention pooling</span></div>
               <div class="md-arrow-v"></div>
-              <div class="md-node"><strong>Graf insasi</strong><span>C&alpha; 8&#197; mesafe esigi ile rezidu-seviye komsuulk grafi</span></div>
+              <div class="md-node"><strong>Etkilesim vektoru</strong><span>[prot; pep; prot&times;pep; |prot&minus;pep|] &rarr; 512-d birlesik temsil &rarr; 3-katman MLP &rarr; skor</span></div>
               <div class="md-arrow-v"></div>
-              <div class="md-node"><strong>GATv2 egitimi</strong><span>Dual-encoder (4 katman, 4 head) + attention pooling; BCE + ranking loss</span></div>
+              <div class="md-node"><strong>Kayip fonksiyonu</strong><span>BCE (&alpha;=0.5) + Pairwise Ranking Loss (margin=0.2). 80 epoch, lr=5e-4, AdamW, early stopping (patience 15)</span></div>
             </div>
           </div>
           <div class="md-connector-v"></div>
           <div class="md-phase" data-phase="rapor">
-            <div class="md-phase-title">Degerlendirme &amp; Rapor</div>
+            <div class="md-phase-title">Faz 6 — Degerlendirme &amp; Raporlama</div>
             <div class="md-nodes">
-              <div class="md-node"><strong>Test metrikleri</strong><span>AUROC, MRR, Hit@k, F1, MCC</span></div>
+              <div class="md-node"><strong>Test metrikleri</strong><span>AUROC=0.881, AUPRC=0.557, MRR=0.778, Hit@1=0.621, Hit@3=0.947, Hit@5=0.997</span></div>
               <div class="md-arrow-v"></div>
-              <div class="md-node"><strong>Rapor &amp; site</strong><span>ROC/PR egrileri, 2D peptit, 3D viewer, bu site</span></div>
+              <div class="md-node"><strong>Gorsel ciktilar</strong><span>ROC/PR egrileri, confusion matrix, skor histogram, 2D peptit (RDKit), 3D viewer (3Dmol.js)</span></div>
+              <div class="md-arrow-v"></div>
+              <div class="md-node"><strong>GitHub Pages site</strong><span>Interaktif site: metrikler, gorseller, tablo, 3D goruntuleyici, manifest.json</span></div>
             </div>
           </div>
         </div>
@@ -1564,6 +1695,9 @@ __PIPELINE_DIAGRAM_BLOCK__
             <tr><td>Rezidu detaylari</td><td><code>data/canonical/residues.parquet</code></td><td>Koordinat, is_interface, is_pocket, local_density</td></tr>
             <tr><td>Sekans-kume split</td><td><code>data/canonical/splits/*.txt</code></td><td>Kume-bazli train/val/test PDB ayirimi</td></tr>
             <tr><td>Ciftler + negatifler</td><td><code>data/canonical/pairs/*.parquet</code></td><td>Pozitif + easy / hard negatif ciftler</td></tr>
+            <tr><td>ESM-2 embedding'ler</td><td><code>data/embeddings/esm2_residue/*.npz</code></td><td>Per-rezidu 320-d ESM-2 vektorleri (float16)</td></tr>
+            <tr><td>Embedding lookup</td><td><code>data/embeddings/esm2_chain_lookup.json</code></td><td>chain_id &rarr; npz dosya adi eslestirmesi</td></tr>
+            <tr><td>PyG graflar</td><td><code>data/graphs/*.pt</code></td><td>Onceden insa edilmis rezidu-seviye graf nesneleri (326-d dugum, 4-d kenar)</td></tr>
             <tr><td>Veri raporlari</td><td><code>pair_data_report.json</code></td><td>Dagilim ve butunluk kontrol raporlari</td></tr>
           </tbody>
         </table>
@@ -1646,19 +1780,34 @@ __PIPELINE_DIAGRAM_BLOCK__
 __TRAINING_GALLERY_SECTION__
 
       <section class="block" id="ablation">
-        <h2>Ablasyon ve model karsilastirma gorselleri</h2>
+        <h2>Model karsilastirmasi: MLP vs GNN+ESM-2</h2>
         <p class="lead-in">
-          <strong>Isi haritasi:</strong> smoke asamasinda denenen kosullarin <strong>validation MRR</strong> degerleri.
-          <strong>Model karsilastirma:</strong> tam egitimden sonra secilen en iyi kosullarin test metrikleri.
+          <strong>v0.1 MLP baseline</strong> (131-d ozet vektor, 68 epoch) ile <strong>v0.2 GATv2+ESM-2</strong>
+          (rezidu-seviye graf, 80 epoch) test seti uzerinde karsilastirilmistir.
+          GNN+ESM-2 tum metriklerde MLP'yi gecer; en buyuk fark <strong>AUPRC (+12.2pp)</strong> ve <strong>Hit@1 (+10.9pp)</strong>.
         </p>
+        <figure class="media">
+          <img src="assets/img/ablation_comparison.png" alt="MLP vs GNN+ESM-2 karsilastirmasi" loading="lazy" />
+          <figcaption>Ablation: tum 8 test metrigi uzerinde MLP v0.1 vs GNN+ESM-2 v0.2 karsilastirmasi</figcaption>
+        </figure>
         <div class="grid2">
           <figure class="media">
-            <img src="assets/img/ablation_heatmap.png" alt="Ablasyon isi haritasi" loading="lazy" />
-            <figcaption>Ablasyon isi haritasi (validation MRR)</figcaption>
+            <img src="assets/img/roc_curve.png" alt="ROC egrisi" loading="lazy" />
+            <figcaption>GNN+ESM-2 ROC egrisi (Test AUC = 0.8813)</figcaption>
           </figure>
           <figure class="media">
-            <img src="assets/img/model_family_comparison.png" alt="Model ailesi karsilastirmasi" loading="lazy" />
-            <figcaption>Test metrikleri karsilastirmasi (MRR, Hit@3, AUROC)</figcaption>
+            <img src="assets/img/pr_curve.png" alt="PR egrisi" loading="lazy" />
+            <figcaption>GNN+ESM-2 Precision-Recall egrisi (Test AP = 0.5566)</figcaption>
+          </figure>
+        </div>
+        <div class="grid2">
+          <figure class="media">
+            <img src="assets/img/confusion_matrix.png" alt="Confusion matrix" loading="lazy" />
+            <figcaption>GNN+ESM-2 Confusion Matrix (threshold = 0.21)</figcaption>
+          </figure>
+          <figure class="media">
+            <img src="assets/img/test_score_histogram.png" alt="Skor dagilimi" loading="lazy" />
+            <figcaption>Test kumesi pozitif/negatif skor dagilimi</figcaption>
           </figure>
         </div>
       </section>
@@ -1699,18 +1848,18 @@ __PEPTIDE_2D_VARIANTS__
 
       <section class="block" id="gorsel-3d">
         <h2>3D yapi goruntuleme</h2>
-        <div class="callout accent-callout">
-          <strong>Demo yapisi:</strong> Asagidaki onizleme RCSB <strong>1CRN</strong> (Crambin, 46 aa, tek zincir kucuk protein) yapisini gosterir.
-          Gercek pipeline ciktisinda her protein-peptit cifti icin ayri viewer uretilir; protein ve peptit farkli renklerde boyanir,
-          etkilesim ciftleri silindir ile gosterilir.
+        <p class="lead-in">
+          <strong>3Dmol.js</strong> ile tarayici icinde canli 3D molekuler goruntuleme. Fare ile dondurme,
+          yakınlastirma ve farkli gorunum modlari arasinda gecis yapabilirsiniz.
+        </p>
+        <div class="callout accent-callout" style="margin-bottom:0.5rem">
+          <strong>Gosterilen yapi: 1CRN (Crambin)</strong> &mdash; 46 aminoasitlik kucuk bir bitki proteini.
+          PDB'den indirilen deneysel kristal yapisi (mmCIF formati). Gercek pipeline ciktisinda her protein-peptit
+          cifti icin ayri viewer uretilir; protein ve peptit farkli renklerde boyanir.
         </div>
         <div class="viewer-responsive">
           <iframe src="embed/viewer-demo.html" loading="lazy" title="3D yapi demo goruntuleyici"></iframe>
         </div>
-        <p class="lead-in" style="margin-top:0.75rem">
-          <strong>3Dmol.js</strong> ile tarayici icinde canli 3D goruntuleme. Fare ile dondurme, zoom, ve kontrol panelini kullanabilirsiniz.
-          Tam ekran icin asagidaki butona basin.
-        </p>
         <div class="grid2" style="margin-top:1rem">
           <div>
             <h3>Pipeline cikti dosyalari</h3>
@@ -1841,16 +1990,8 @@ def main() -> None:
 
     img = SITE / "assets" / "img"
     img.mkdir(parents=True, exist_ok=True)
-    for fname, label in (
-        ("ablation_heatmap.png", "Ablasyon ısı haritası (validation MRR)"),
-        ("model_family_comparison.png", "Model ailesi karşılaştırması"),
-    ):
-        dest = img / fname
-        src = training_dir / fname if training_dir else None
-        if src is not None and src.is_file():
-            _copy_if(src, dest)
-        elif not dest.is_file():
-            write_placeholder_png(dest, label, "Yerelde ablation / eğitim çıktısı gerekir")
+    # Ablation karşılaştırma grafiği oluştur
+    _generate_ablation_comparison_chart(img / "ablation_comparison.png")
     training_fig_items = _copy_training_figures(training_dir, img)
     manifest["training_figure_assets"] = [x["href"] for x in training_fig_items]
     gallery_section = _render_training_gallery_section(training_fig_items)
