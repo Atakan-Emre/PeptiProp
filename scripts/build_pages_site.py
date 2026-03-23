@@ -1394,6 +1394,14 @@ PIPELINE_DIAGRAM_HTML = """      <section class="block" id="akim">
 """
 
 
+def _sync_peptide_2d_example_from_v1(img_dir: Path) -> None:
+    """İlk varyant görseli varsa genel örnek figürüne kopyalar (CI'da placeholder yerine gerçek 2D)."""
+    v1 = img_dir / "peptide_2d_v1.png"
+    dest = img_dir / "peptide_2d_example.png"
+    if v1.is_file():
+        _copy_if(v1, dest)
+
+
 def _restore_2d_variants_from_bundle(img_dir: Path, data_dir: Path) -> None:
     """Bundle'dan peptide_2d_v*.png ve peptide_2d_variants.json'u site dizinine kopyalar (CI fallback)."""
     bundle = PAGES_TRAINING_BUNDLE
@@ -2097,6 +2105,8 @@ def main() -> None:
     _restore_2d_variants_from_bundle(img, SITE / "data")
     if not peptide_variants_html:
         peptide_variants_html = _build_2d_variants_html_from_json(SITE / "data" / "peptide_2d_variants.json")
+    # Genel örnek PNG: outputs'ta yoksa v1 ile doldur (üstteki placeholder'ın üzerine yazılır)
+    _sync_peptide_2d_example_from_v1(img)
 
     extra_seen = set(manifest.get("site_extra_figures") or [])
     for fn in ("peptide_length_histogram.png", "interaction_summary_panel.png"):
@@ -2104,6 +2114,8 @@ def main() -> None:
             extra_seen.add(f"assets/img/{fn}")
     for vp in sorted(img.glob("peptide_2d_v*.png")):
         extra_seen.add(f"assets/img/{vp.name}")
+    if (img / "peptide_2d_example.png").is_file():
+        extra_seen.add("assets/img/peptide_2d_example.png")
     manifest["site_extra_figures"] = sorted(extra_seen)
 
     demo_cif = SITE / "assets" / "demo" / "1crn.cif"
