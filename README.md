@@ -100,7 +100,22 @@ Peptid Rezidü Grafı  ──→ GATv2 (4 katman, 4 head) ──→ Attention Po
 | Loss | BCE + Ranking | BCE + Ranking |
 | Erken durdurma | Val MRR, patience=12 | Val MRR, patience=15 |
 
-### 7. Çıktılar ve Görselleştirme
+### 7. Kullanılan Araç ve Teknolojiler
+
+| Kategori | Araç | Kullanım Amacı |
+|----------|------|----------------|
+| **Protein dil modeli** | ESM-2 (t6-8M) | Per-rezidü 320-d embedding çıkarımı |
+| **Graf sinir ağı** | GATv2 (PyTorch Geometric) | Rezidü-seviye yapısal öğrenme |
+| **Eğitim framework** | PyTorch 2.x | GNN eğitimi (CPU/MPS) |
+| **Eğitim framework** | Apple MLX | MLP baseline eğitimi (Apple Silicon) |
+| **Sekans kümeleme** | MMseqs2 | %30 kimlik eşiğinde leakage-free split |
+| **Yapı anotasyonu** | BioPython, Gemmi | mmCIF parse, arayüz/pocket mesafe hesabı |
+| **2D görselleştirme** | RDKit | Peptit 2D yapı çizimi |
+| **3D görselleştirme** | 3Dmol.js | Tarayıcı-içi interaktif 3D protein viewer |
+| **Statik site** | GitHub Pages + Actions | Otomatik CI/CD ile demo yayını |
+| **Veri formatı** | Apache Parquet | Sıkıştırılmış, sütun-bazlı veri depolama |
+
+### 8. Çıktılar ve Görselleştirme
 
 Model çıktıları üç katmanda raporlanır:
 
@@ -113,18 +128,20 @@ Model çıktıları üç katmanda raporlanır:
 
 ## Sonuçlar
 
-### Test Metrikleri (v0.1 — MLP, 68 epoch)
+### Ablation: MLP Baseline vs GNN+ESM-2
 
-| Metrik | Değer | Açıklama |
-|--------|-------|----------|
-| **AUROC** | 0.8388 | İkili sınıflandırma ayrım gücü |
-| **AUPRC** | 0.4348 | Dengesiz sınıf altında hassasiyet-duyarlılık dengesi |
-| **F1** | 0.5074 | Eşik-bazlı F1 skoru (threshold = 0.59) |
-| **MCC** | 0.4134 | Matthews korelasyonu — sınıf dengesizliğine dayanıklı |
-| **MRR** | 0.7120 | Ortalama ters sıralama (Mean Reciprocal Rank) |
-| **Hit@1** | 0.5121 | Grupların %51'inde native peptit 1. sırada |
-| **Hit@3** | 0.9275 | Grupların %93'ünde native peptit ilk 3'te |
-| **Hit@5** | 0.9952 | Grupların %99.5'inde native peptit ilk 5'te |
+| Metrik | MLP v0.1 (68 ep) | GNN+ESM-2 v0.2 (80 ep) | Fark |
+|--------|:-----------------:|:-----------------------:|:----:|
+| **AUROC** | 0.8388 | **0.8813** | +0.0425 |
+| **AUPRC** | 0.4348 | **0.5566** | +0.1218 |
+| **F1** | 0.5074 | **0.5884** | +0.0810 |
+| **MCC** | 0.4134 | **0.5037** | +0.0903 |
+| **MRR** | 0.7120 | **0.7776** | +0.0656 |
+| **Hit@1** | 0.5121 | **0.6210** | +0.1089 |
+| **Hit@3** | 0.9275 | **0.9469** | +0.0194 |
+| **Hit@5** | 0.9952 | **0.9965** | +0.0013 |
+
+> GNN+ESM-2, tüm metriklerde MLP baseline'ı geçiyor. En büyük kazanım AUPRC (+12.2 pp) ve Hit@1 (+10.9 pp) metriklerinde; model pozitif çiftleri ilk sıraya taşımada belirgin şekilde daha başarılı.
 
 ### Veri Split İstatistikleri
 
@@ -221,6 +238,9 @@ PeptiProp/
 ├── .github/workflows/pages.yml    # GitHub Pages CI/CD
 │
 ├── src/peptidquantum/             # Ana Python paketi
+│   ├── models/                    # Model tanımları
+│   │   ├── gnn_esm2.py            # PeptiPropGNN (GATv2 dual-encoder)
+│   │   └── graph_builder.py       # Rezidü grafı inşa modülü
 │   ├── data/
 │   │   ├── processors/            # canonical_builder, mmcif_parser, pair_extractor
 │   │   ├── downloaders/           # PROPEDIA, PepBDB, BioLip2, GEPPRI indirici
@@ -241,13 +261,18 @@ PeptiProp/
 │   ├── build_pdb_level_splits.py
 │   ├── generate_negative_pairs.py
 │   ├── export_mlx_features.py
-│   ├── train_scoring_mlx.py       # MLP eğitim betiği
+│   ├── train_scoring_mlx.py       # MLP eğitim betiği (v0.1)
+│   ├── extract_esm2_embeddings.py # ESM-2 per-rezidü embedding çıkarımı
+│   ├── build_residue_graphs.py    # PyG graf pre-build
+│   ├── train_gnn_esm2.py          # GNN+ESM-2 eğitim (v0.2)
+│   ├── generate_gnn_predictions.py # GNN tahmin + grafik üretici
 │   ├── build_pages_site.py        # Statik site üretici
 │   └── sync_pages_training_bundle.py
 │
 ├── configs/
-│   ├── train_v0_1_scoring_mlx_m4.yaml       # Aktif eğitim konfigürasyonu
-│   └── ablation_generated_mlx/              # Ablation deneyleri
+│   ├── train_v0_2_gnn_esm2.yaml             # GNN+ESM-2 konfigürasyonu (aktif)
+│   ├── train_v0_1_scoring_mlx_m4.yaml       # MLP baseline konfigürasyonu
+│   └── ablation_generated_mlx/              # MLP ablation deneyleri
 │
 ├── tests/                         # Birim ve entegrasyon testleri
 ├── examples/                      # Örnek kullanım betiği
@@ -261,18 +286,22 @@ PeptiProp/
 
 ## Konfigürasyon
 
-Aktif eğitim konfigürasyonu `configs/train_v0_1_scoring_mlx_m4.yaml` dosyasındadır. Temel parametreler:
+Aktif eğitim konfigürasyonu `configs/train_v0_2_gnn_esm2.yaml` dosyasındadır:
 
 ```yaml
 model:
-  hidden_dim: 192
-  num_layers: 3
+  node_feat_dim: 326     # ESM-2 (320) + yapısal (6)
+  hidden_dim: 128
+  num_gnn_layers: 4
+  heads: 4
+  mlp_hidden: 256
+  dropout: 0.1
 training:
   seed: 42
-  batch_size: 512
-  epochs: 100
-  early_stopping_patience: 12
-  lr: 0.001
+  batch_size: 32
+  epochs: 80
+  early_stopping_patience: 15
+  lr: 0.0005
 loss:
   use_ranking: true
   margin: 0.2
@@ -282,7 +311,7 @@ evaluation:
   threshold_selection_metric: mcc
 ```
 
-Ablation deneyleri `configs/ablation_generated_mlx/` dizinindeki YAML dosyaları ile yürütülür (model boyutu: S/M/L, özellik kombinasyonları, dropout oranları).
+MLP baseline konfigürasyonu: `configs/train_v0_1_scoring_mlx_m4.yaml`. Ablation deneyleri: `configs/ablation_generated_mlx/`.
 
 ---
 

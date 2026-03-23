@@ -1,6 +1,6 @@
-# PeptiProp — veri mimarisi (Active v0.1)
+# PeptiProp — Veri Mimarisi
 
-*(Kod paketi: `peptidquantum`.)*
+*(Kod paketi: `peptidquantum`. Aktif model: GNN+ESM-2 v0.2.)*
 
 ## Scope
 
@@ -73,32 +73,33 @@ If target ratio cannot be reached, shortfall is reported in:
 
 - `data/canonical/pairs/candidate_set_report.json`
 
+## ESM-2 Embedding Surface
+
+ESM-2 per-rezidü embedding'ler `data/embeddings/` altında saklanır:
+
+- `data/embeddings/esm2_residue/*.npz` — her benzersiz sekans için 1 dosya (320-d float16)
+- `data/embeddings/esm2_chain_lookup.json` — (complex_id::chain_id) → NPZ dosya eşlemesi
+
+Script: `scripts/extract_esm2_embeddings.py`
+
+## Graph Surface
+
+Rezidü-seviye PyG grafları `data/graphs/` altında saklanır:
+
+- `data/graphs/{complex_id}__{chain_id}.pt` — her zincir için 1 PyG Data objesi
+- Node features: ESM-2 (320-d) + yapısal (6-d) = 326-d
+- Edge features: mesafe (1-d) + yön vektörü (3-d) = 4-d
+
+Script: `scripts/build_residue_graphs.py`
+
 ## Active Training Output Surface
 
-Primary final run folder:
+GNN+ESM-2 (v0.2): `outputs/training/peptiprop_v0_2_gnn_esm2/`
 
-- `outputs/training/peptidquantum_v0_1_final_best_classical_100ep_r2/`
+- `best_model.pt` — en iyi model ağırlıkları
+- `metrics.json` — test metrikleri
+- `ranking_metrics.json` — sıralama metrikleri
+- `top_ranked_examples.json` — en iyi tahmin örnekleri
+- `figures/` — ROC, PR, confusion matrix, histogram PNG'leri
 
-Required outputs include:
-
-- `metrics.json`
-- `ranking_metrics.json`
-- `calibration_metrics.json`
-- `pair_data_report.json`
-- `candidate_set_report.json`
-- ROC/PR/confusion/threshold/calibration plots
-- top-k ranking tables
-
-## 3D/2D Output Surface
-
-Per-complex outputs:
-
-- `report.html`
-- `viewer.html`
-- `data/viewer_state.json`
-- `figures/peptide_2d.png`
-
-Sanity summaries:
-
-- `outputs/analysis_propedia_batch_100ep_r2/visualization_sanity_summary.json`
-- `outputs/analysis_propedia_top_ranked_batch_100ep_r2/visualization_sanity_summary.json`
+MLP baseline (v0.1): `publish/github_pages_training_bundle/` (senkronize snapshot)

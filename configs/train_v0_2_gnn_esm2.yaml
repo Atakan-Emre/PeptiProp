@@ -5,6 +5,7 @@ data:
   pairs_dir: data/canonical/pairs
   embedding_dir: data/embeddings/esm2_residue
   embedding_lookup: data/embeddings/esm2_chain_lookup.json
+  graph_dir: data/graphs
   graph_cutoff: 8.0
 
 model:

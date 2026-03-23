@@ -32,7 +32,6 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from peptidquantum.models.gnn_esm2 import PeptiPropGNN
-from peptidquantum.models.graph_builder import PairGraphBuilder
 
 
 # ---------------------------------------------------------------------------
@@ -40,34 +39,31 @@ from peptidquantum.models.graph_builder import PairGraphBuilder
 # ---------------------------------------------------------------------------
 
 class PairGraphDataset(Dataset):
-    """Lazily builds PyG graph pairs from parquet + ESM-2 embeddings."""
+    """Loads pre-built PyG graphs from disk for each protein–peptide pair."""
 
     def __init__(
         self,
         pairs_df: pd.DataFrame,
-        residues: pd.DataFrame,
-        builder: PairGraphBuilder,
-        max_protein_residues: int = 1000,
+        graph_dir: Path,
     ):
         self.pairs = pairs_df.reset_index(drop=True)
-        self.residues = residues
-        self.builder = builder
-        self.max_prot = max_protein_residues
-
-        self._res_groups = residues.groupby(["complex_id", "chain_id"])
-        self._pair_ids = self.pairs["pair_id"].tolist() if "pair_id" in self.pairs.columns else list(range(len(self.pairs)))
+        self.graph_dir = Path(graph_dir)
+        self._cache: Dict[str, Optional[Data]] = {}
 
     def __len__(self):
         return len(self.pairs)
 
-    def _get_residues(self, complex_id: str, chain_id: str) -> pd.DataFrame:
-        try:
-            df = self._res_groups.get_group((complex_id, chain_id))
-        except KeyError:
-            return pd.DataFrame()
-        if len(df) > self.max_prot:
-            df = df.sort_values("residue_number_auth").head(self.max_prot)
-        return df
+    def _load_graph(self, complex_id: str, chain_id: str) -> Optional[Data]:
+        key = f"{complex_id}__{chain_id}"
+        if key in self._cache:
+            return self._cache[key]
+        path = self.graph_dir / f"{key}.pt"
+        if not path.exists():
+            self._cache[key] = None
+            return None
+        g = torch.load(path, weights_only=False)
+        self._cache[key] = g
+        return g
 
     def __getitem__(self, idx) -> Optional[Tuple[Data, Data, float, int]]:
         row = self.pairs.iloc[idx]
@@ -78,19 +74,13 @@ class PairGraphDataset(Dataset):
         label = float(row["label"])
         group = int(row.get("group_idx", idx)) if "group_idx" in row.index else idx
 
-        prot_res = self._get_residues(prot_cid, prot_ch)
-        pep_res = self._get_residues(pep_cid, pep_ch)
+        prot_g = self._load_graph(prot_cid, prot_ch)
+        pep_g = self._load_graph(pep_cid, pep_ch)
 
-        if prot_res.empty or pep_res.empty:
+        if prot_g is None or pep_g is None:
             return None
 
-        result = self.builder.build_pair(
-            prot_res, pep_res, prot_cid, prot_ch, pep_cid, pep_ch
-        )
-        if result is None:
-            return None
-
-        return result[0], result[1], label, group
+        return prot_g, pep_g, label, group
 
 
 def collate_pairs(batch):
@@ -245,27 +235,14 @@ def train(cfg: dict):
     np.random.seed(seed)
     torch.manual_seed(seed)
 
-    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    device = torch.device("cpu")
     print(f"Device: {device}")
 
     # ---- Data ----
-    canonical_dir = Path(cfg["data"]["canonical_dir"])
     pairs_dir = Path(cfg["data"]["pairs_dir"])
-    emb_dir = Path(cfg["data"]["embedding_dir"])
-    lookup_path = Path(cfg["data"]["embedding_lookup"])
-
-    with open(lookup_path) as f:
-        lookup = json.load(f)
-
-    builder = PairGraphBuilder(emb_dir, lookup, cutoff=cfg["data"]["graph_cutoff"])
+    graph_dir = Path(cfg["data"]["graph_dir"])
 
     print("Veri yükleniyor...")
-    residues_cols = [
-        "complex_id", "chain_id", "residue_number_auth", "resname",
-        "is_interface", "is_pocket", "x", "y", "z", "secondary_structure",
-    ]
-    residues = pd.read_parquet(canonical_dir / "residues.parquet", columns=residues_cols)
-
     train_pairs = assign_group_indices(pd.read_parquet(pairs_dir / "train_pairs.parquet"))
     val_pairs = assign_group_indices(pd.read_parquet(pairs_dir / "val_pairs.parquet"))
     test_pairs = assign_group_indices(pd.read_parquet(pairs_dir / "test_pairs.parquet"))
@@ -275,18 +252,12 @@ def train(cfg: dict):
         train_pairs = train_pairs.head(smoke_limit)
         val_pairs = val_pairs.head(smoke_limit)
         test_pairs = test_pairs.head(smoke_limit)
-        all_cids = set()
-        for df in [train_pairs, val_pairs, test_pairs]:
-            all_cids.update(df["protein_complex_id"].unique())
-            all_cids.update(df["peptide_complex_id"].unique())
-        residues = residues[residues["complex_id"].isin(all_cids)]
-        print(f"  Smoke: residues filtered to {len(residues):,}")
 
     print(f"  Train: {len(train_pairs)}, Val: {len(val_pairs)}, Test: {len(test_pairs)}")
 
-    train_ds = PairGraphDataset(train_pairs, residues, builder)
-    val_ds = PairGraphDataset(val_pairs, residues, builder)
-    test_ds = PairGraphDataset(test_pairs, residues, builder)
+    train_ds = PairGraphDataset(train_pairs, graph_dir)
+    val_ds = PairGraphDataset(val_pairs, graph_dir)
+    test_ds = PairGraphDataset(test_pairs, graph_dir)
 
     bs = cfg["training"]["batch_size"]
     train_loader = DataLoader(train_ds, batch_size=bs, shuffle=True, collate_fn=collate_pairs, num_workers=0)
@@ -330,7 +301,8 @@ def train(cfg: dict):
         n_batches = 0
         t0 = time.time()
 
-        for batch in train_loader:
+        total_batches = len(train_loader)
+        for bi, batch in enumerate(train_loader):
             if batch is None:
                 continue
             prot_b, pep_b, labels, groups = batch
@@ -353,6 +325,8 @@ def train(cfg: dict):
 
             epoch_loss += loss.item()
             n_batches += 1
+            if n_batches % 200 == 0:
+                print(f"  batch {n_batches}/{total_batches}  loss={loss.item():.4f}", flush=True)
 
         avg_loss = epoch_loss / max(n_batches, 1)
         elapsed = time.time() - t0

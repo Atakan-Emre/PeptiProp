@@ -24,6 +24,7 @@ SITE = ROOT / "site"
 # Görünen ürün adı (Python paketi `peptidquantum` olarak kalır)
 PROJECT_DISPLAY_NAME = "PeptiProp"
 REPO_URL = "https://github.com/Atakan-Emre/PeptiProp"
+GNN_BEST = ROOT / "outputs" / "training" / "peptiprop_v0_2_gnn_esm2"
 MLX_BEST = ROOT / "outputs" / "training" / "peptidquantum_v0_1_final_mlx_m4"
 # GitHub Actions’ta outputs/ yok; metrik + PNG’ler buradan kopyalanır (sync betiği ile güncellenir).
 PAGES_TRAINING_BUNDLE = ROOT / "publish" / "github_pages_training_bundle"
@@ -66,7 +67,7 @@ def _normalize_training_metrics(raw: Dict[str, Any]) -> Dict[str, Any]:
                 return v
         return None
 
-    hit3 = first(raw.get("test_hit3"), tr.get("hit@3"), tr.get("hit_3"))
+    hit3 = first(raw.get("test_hit3"), tr.get("hit@3"), tr.get("hit_3"), tm.get("hit@3"))
 
     cal = raw.get("calibration") if isinstance(raw.get("calibration"), dict) else {}
     return {
@@ -75,10 +76,10 @@ def _normalize_training_metrics(raw: Dict[str, Any]) -> Dict[str, Any]:
         "test_f1": first(raw.get("test_f1"), tm.get("f1")),
         "test_mcc": first(raw.get("test_mcc"), tm.get("mcc")),
         "test_brier": first(raw.get("test_brier"), cal.get("brier_score")),
-        "test_mrr": first(raw.get("test_mrr"), tr.get("mrr")),
-        "test_hit1": first(raw.get("test_hit1"), tr.get("hit@1"), tr.get("hit_1")),
+        "test_mrr": first(raw.get("test_mrr"), tr.get("mrr"), tm.get("mrr")),
+        "test_hit1": first(raw.get("test_hit1"), tr.get("hit@1"), tr.get("hit_1"), tm.get("hit@1")),
         "test_hit3": hit3,
-        "test_hit5": first(raw.get("test_hit5"), tr.get("hit@5"), tr.get("hit_5")),
+        "test_hit5": first(raw.get("test_hit5"), tr.get("hit@5"), tr.get("hit_5"), tm.get("hit@5")),
         "epochs": raw.get("epochs_completed"),
         "threshold": raw.get("selected_threshold"),
         "train_groups": (raw.get("candidate_group_integrity", {}).get("train", {}) or {}).get("total_groups"),
@@ -104,10 +105,12 @@ def _pick_training_dir(*name_tokens: str) -> Optional[Path]:
 
 
 def _resolve_primary_training_dir() -> Optional[Path]:
-    """Site görselleri / metrik özeti için tercih edilen eğitim çıktısı (klasör adında sıkça 'mlx' geçer; bu yalnızca keşif ipucu)."""
+    """Site görselleri / metrik özeti için tercih edilen eğitim çıktısı. GNN v0.2 öncelikli."""
+    if GNN_BEST.is_dir() and (GNN_BEST / "metrics.json").is_file():
+        return GNN_BEST
     if MLX_BEST.is_dir() and (MLX_BEST / "metrics.json").is_file():
         return MLX_BEST
-    d = _pick_training_dir("mlx")
+    d = _pick_training_dir("gnn") or _pick_training_dir("mlx")
     if d:
         return d
     td = ROOT / "outputs" / "training"
@@ -234,7 +237,11 @@ def _copy_training_figures(training_out_dir: Optional[Path], img_root: Path) -> 
     out: List[Dict[str, str]] = []
     for src_name, dest_name, alt, caption in _TRAINING_FIGURE_SPECS:
         dest = img_root / dest_name
-        src = training_out_dir / src_name if training_out_dir else None
+        src = None
+        if training_out_dir:
+            src = training_out_dir / src_name
+            if not src.is_file():
+                src = training_out_dir / "figures" / src_name
         if src is not None and src.is_file():
             _copy_if(src, dest)
         elif not dest.is_file():
@@ -909,6 +916,7 @@ table.data-table th, table.data-table td {
 }
 table.data-table th { background: var(--card2); color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
 table.data-table td { color: var(--text-dim); }
+table.data-table td.highlight-val { color: var(--ok); font-weight: 700; }
 
 .table-scroll {
   overflow-x: auto;
@@ -1420,17 +1428,18 @@ __THEME_HEAD_SCRIPT__
     <div class="inner">
       <div class="badge-row">
         <span class="badge accent">PROPEDIA</span>
+        <span class="badge">GATv2 + ESM-2</span>
         <span class="badge">Leakage-free Split</span>
-        <span class="badge">MLX / Apple Silicon</span>
         <span class="badge">Reranking</span>
         <span class="badge">2D + 3D</span>
       </div>
       <h1>__PROJECT_NAME__</h1>
       <p class="lead">
-        Yapisal protein-peptid komplekslerinde <strong>skor uretimi</strong>, aday peptitler arasinda
+        Yapisal protein-peptid komplekslerinde <strong>GATv2 graf sinir agi</strong> ve
+        <strong>ESM-2 protein dil modeli</strong> ile skor uretimi, aday peptitler arasinda
         <strong>siralama (reranking)</strong> ve sonuclarin <strong>2D kimya + 3D yapi</strong> ile
-        raporlanmasi. Sekans-kume tabanli sizintisiz split, arayuz/pocket anotasyonu ve
-        BCE + pairwise ranking loss ile egitilmis MLP modeli.
+        raporlanmasi. Sekans-kume tabanli sizintisiz split, rezidu-seviye graf insasi ve
+        BCE + pairwise ranking loss ile egitilmis dual-encoder modeli.
       </p>
       <div class="hero-metrics-strip">
         <div class="hm"><span class="hm-val">__M_AUROC__</span><span class="hm-key">AUROC</span></div>
@@ -1525,9 +1534,11 @@ __PIPELINE_DIAGRAM_BLOCK__
           <div class="md-phase" data-phase="model">
             <div class="md-phase-title">Model Egitimi</div>
             <div class="md-nodes">
-              <div class="md-node"><strong>Ozellik ihraci</strong><span>Yapi + sekans + arayuz + yerel yogunluk &rarr; dense vektor</span></div>
+              <div class="md-node"><strong>ESM-2 embedding</strong><span>Per-rezidu 320-d protein dil modeli cikarimi</span></div>
               <div class="md-arrow-v"></div>
-              <div class="md-node"><strong>MLX MLP egitimi</strong><span>BCE + pairwise ranking loss; val MRR ile erken durdurma</span></div>
+              <div class="md-node"><strong>Graf insasi</strong><span>C&alpha; 8&#197; mesafe esigi ile rezidu-seviye komsuulk grafi</span></div>
+              <div class="md-arrow-v"></div>
+              <div class="md-node"><strong>GATv2 egitimi</strong><span>Dual-encoder (4 katman, 4 head) + attention pooling; BCE + ranking loss</span></div>
             </div>
           </div>
           <div class="md-connector-v"></div>
@@ -1589,6 +1600,26 @@ __PIPELINE_DIAGRAM_BLOCK__
             <tr><td><strong>F1 / MCC</strong></td><td>Secilen esikte kesin siniflandirma</td><td>Operasyonel karar esigi basarisi</td></tr>
           </tbody>
         </table>
+        </div>
+
+        <h3 style="margin-top:2rem">Ablation: MLP Baseline vs GNN+ESM-2</h3>
+        <div class="table-scroll">
+        <table class="data-table">
+          <thead><tr><th>Metrik</th><th>MLP v0.1 (68 ep)</th><th>GNN+ESM-2 v0.2 (80 ep)</th><th>Fark</th></tr></thead>
+          <tbody>
+            <tr><td><strong>AUROC</strong></td><td>0.8388</td><td class="highlight-val">0.8813</td><td>+0.0425</td></tr>
+            <tr><td><strong>AUPRC</strong></td><td>0.4348</td><td class="highlight-val">0.5566</td><td>+0.1218</td></tr>
+            <tr><td><strong>F1</strong></td><td>0.5074</td><td class="highlight-val">0.5884</td><td>+0.0810</td></tr>
+            <tr><td><strong>MCC</strong></td><td>0.4134</td><td class="highlight-val">0.5037</td><td>+0.0903</td></tr>
+            <tr><td><strong>MRR</strong></td><td>0.7120</td><td class="highlight-val">0.7776</td><td>+0.0656</td></tr>
+            <tr><td><strong>Hit@1</strong></td><td>0.5121</td><td class="highlight-val">0.6210</td><td>+0.1089</td></tr>
+            <tr><td><strong>Hit@3</strong></td><td>0.9275</td><td class="highlight-val">0.9469</td><td>+0.0194</td></tr>
+            <tr><td><strong>Hit@5</strong></td><td>0.9952</td><td class="highlight-val">0.9965</td><td>+0.0013</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="callout accent-callout">
+          <strong>Sonuc:</strong> GNN+ESM-2 tum metriklerde MLP baseline'i geciyor. En buyuk kazanim AUPRC (+12.2pp) ve Hit@1 (+10.9pp).
         </div>
       </section>
 
