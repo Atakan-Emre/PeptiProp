@@ -61,14 +61,9 @@ Examples:
     )
 
     run_parser.add_argument(
-        "--no-arpeggio",
+        "--arpeggio",
         action="store_true",
-        help="Disable Arpeggio interaction extraction",
-    )
-    run_parser.add_argument(
-        "--no-plip",
-        action="store_true",
-        help="Disable PLIP interaction extraction",
+        help="Enable experimental Arpeggio extraction (not used in final reported outputs)",
     )
 
     run_parser.add_argument(
@@ -125,8 +120,8 @@ def run_pipeline(args):
             protein_chain=args.protein,
             peptide_chain=args.peptide,
             pocket_radius=args.pocket_radius,
-            use_arpeggio=not args.no_arpeggio,
-            use_plip=not args.no_plip,
+            use_arpeggio=args.arpeggio,
+            use_plip=False,
             generate_pymol=not args.no_pymol,
             generate_report=not args.no_report,
             generate_viewer=not args.no_viewer,

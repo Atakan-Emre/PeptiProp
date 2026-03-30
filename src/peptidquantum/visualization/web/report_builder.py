@@ -158,8 +158,8 @@ class ReportBuilder:
                 <div class="info-card">
                     <h3>Interaction source</h3>
                     <p><strong>Extraction mode:</strong> {mode}</p>
-                    <p><strong>Tool-based (PLIP/Arpeggio) fraction:</strong> {100.0 * float(tbf or 0):.1f}%</p>
-                    <p><strong>Geometric fallback fraction:</strong> {100.0 * float(fbf or 0):.1f}%</p>
+                    <p><strong>External-tool fraction:</strong> {100.0 * float(tbf or 0):.1f}%</p>
+                    <p><strong>Geometric residue-contact fraction:</strong> {100.0 * float(fbf or 0):.1f}%</p>
                     <p><strong>Per-record source mix:</strong></p>
                     <p style="font-size: 0.9em; line-height: 1.6;">{frac_lines or "N/A"}</p>
                 </div>

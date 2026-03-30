@@ -1,6 +1,8 @@
 # External Tools Requirements
 
-PeptidQuantum uses several external tools for interaction extraction and visualization. These tools are **optional** but highly recommended for full functionality.
+> Arşiv/deneysel not. Final makale, aktif README/Pages yüzeyi ve raporlanan sonuçlar external tool extractor kullanımına dayanmaz. Final 2D/3D sanity çıktıları geometric residue-contact fallback ile üretilir.
+
+Bu sayfa yalnız deneysel/yerel araştırma amaçlı external tool notlarını toplar. Aktif final yüzey için zorunlu değildir ve metod/sonuç anlatısında temel dayanak olarak kullanılmamalıdır.
 
 ## Required Python Packages
 
@@ -67,7 +69,7 @@ export PATH=$PATH:$(pwd)
 bash scripts/install_external_tools_macos.sh
 ```
 
-Bu script `open-babel`, `swig`, `pkgconf` kurar; PyPI `openbabel` paketini Homebrew başlıklarıyla derler; `plip` ve `biopython` yükler; `third_party/arpeggio` klonlar ve `.venv-mlx/bin/arpeggio` başlatıcısını yazar.
+Bu script `biopython` yükler, `third_party/arpeggio` klonlar ve `.venv-mlx/bin/arpeggio` başlatıcısını yazar.
 
 **Doğrulama (tüm platformlar):**
 
@@ -86,38 +88,7 @@ arpeggio --help
 
 **Documentation:** https://github.com/harryjubb/arpeggio
 
-**If not installed:** Pipeline will rely on PLIP only for interaction extraction.
-
----
-
-### 3. PLIP 2025 (Interaction Validation)
-
-**Purpose:** Protein-protein interaction detection and validation.
-
-**Girdi dosyası:** PLIP için önce aynı **tek-model PDB** üretimi denenir; gerekirse mmCIF’te **Open Babel** yedeği kullanılır.
-
-**Installation:**
-
-```bash
-# Via pip
-pip install plip
-
-# Or from source
-git clone https://github.com/pharmai/plip.git
-cd plip
-python setup.py install
-```
-
-**Not (macOS):** PLIP 3.x komut satırı çoğu kurulumda **mmCIF** dosyasını doğrudan kabul etmez. PeptidQuantum, `obabel` ile geçici **PDB** üretir; bu nedenle Homebrew `open-babel` (komut: `obabel`) şarttır. Kurulum script’i bunu sağlar.
-
-**Verification:**
-```bash
-plip --help
-```
-
-**Documentation:** https://github.com/pharmai/plip
-
-**If not installed:** Pipeline will rely on Arpeggio only for interaction extraction.
+**If not installed:** Pipeline will fall back to geometric residue contacts.
 
 ---
 
@@ -127,9 +98,7 @@ The pipeline uses a **graceful degradation** strategy:
 
 | Tool | Status | Fallback Behavior |
 |------|--------|-------------------|
-| **Arpeggio** | Not available | Use PLIP only |
-| **PLIP** | Not available | Use Arpeggio only |
-| **Both** | Not available | ⚠️ No interaction extraction |
+| **Arpeggio** | Not available | Use geometric fallback |
 | **PyMOL** | Not available | Skip 3D figures, use contact maps only |
 | **RDKit** | Not available | Skip 2D peptide chemistry |
 
@@ -146,7 +115,7 @@ This enables:
 - ✅ Contact map visualization
 - ✅ 2D peptide rendering
 - ✅ HTML report with 3Dmol.js viewer
-- ❌ Interaction extraction (requires Arpeggio/PLIP)
+- ❌ Tool-based interaction extraction (requires Arpeggio)
 - ❌ PyMOL figures (requires PyMOL)
 
 ## Recommended Full Setup
@@ -164,8 +133,6 @@ conda install -c conda-forge pymol-open-source
 git clone https://github.com/harryjubb/arpeggio.git
 cd arpeggio && export PATH=$PATH:$(pwd)
 
-# PLIP
-pip install plip
 ```
 
 ## Web Visualization (No Installation Required)
@@ -184,7 +151,6 @@ python -m peptidquantum.pipeline.cli run --pdb 1ABC --verbose
 Output will show:
 ```
 INFO - Arpeggio: Available ✓
-INFO - PLIP: Available ✓
 INFO - PyMOL: Available ✓
 INFO - RDKit: Available ✓
 ```
@@ -194,12 +160,10 @@ INFO - RDKit: Available ✓
 ### Windows
 - PyMOL: Use conda installation
 - Arpeggio: May require WSL or manual path configuration
-- PLIP: Works via pip
 
 ### macOS
 - PyMOL: Conda or Homebrew
 - Arpeggio: Works natively
-- PLIP: Works via pip
 
 ### Linux
 - All tools work natively
@@ -224,16 +188,9 @@ export PATH=$PATH:/path/to/arpeggio
 # Or specify in pipeline config
 ```
 
-**PLIP not found:**
-```bash
-# Reinstall
-pip install --upgrade plip
-```
-
 ## Citation
 
 If you use these tools, please cite:
 
 - **PyMOL:** The PyMOL Molecular Graphics System, Version 2.0 Schrödinger, LLC.
 - **Arpeggio:** Jubb et al. (2017) J Mol Biol. 429(3):365-371
-- **PLIP:** Adasme et al. (2021) Nucleic Acids Res. 49(W1):W530-W534

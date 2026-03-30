@@ -1,5 +1,7 @@
 # Environment Lock and Reproducibility
 
+> Not: Final raporlanan yöntem ve Pages yüzeyi Arpeggio/PLIP gerektirmez; bu dokümandaki external-tool bölümleri yalnız deneysel/arşiv amaçlıdır.
+
 This document specifies the exact environment configuration for reproducible results.
 
 > **Güncel giriş:** Apple Silicon MLX için `.venv-mlx` ve `mlx/requirements-m4.txt` kullanımı [mlx/README.md](../mlx/README.md) ve kök [README.md](../README.md) ile hizalanmıştır; Python sürümü burada kilitli aralıktan genişleyebilir.
@@ -83,6 +85,8 @@ png output.png, dpi=300
 
 ### Arpeggio
 
+Bu bölüm deneysel/arşiv kullanım içindir; final aktif pipeline için gerekli değildir.
+
 **Version:** Latest from GitHub (as of 2024)
 
 **Repository:** https://github.com/harryjubb/arpeggio
@@ -99,17 +103,6 @@ git clone https://github.com/harryjubb/arpeggio.git
 cd arpeggio
 # Add to PATH or specify in config
 ```
-
-### PLIP
-
-**Version:** 2.3.0+
-
-**Installation:**
-```bash
-pip install plip==2.3.0
-```
-
-**Note:** PLIP 2025 refers to the updated version with protein-protein interaction support.
 
 ## Chain and Residue ID Policy
 
@@ -146,7 +139,7 @@ config = PipelineConfig(
 
 **All components MUST use the same mode:**
 - Structure parser
-- Interaction extractors (Arpeggio, PLIP)
+- Interaction extractors (Arpeggio)
 - Contact matrix generator
 - PyMOL scripts
 - HTML reports
@@ -252,7 +245,7 @@ pip install numpy pandas biopython rdkit matplotlib seaborn
 - ✅ Contact map generation
 - ✅ 2D peptide rendering
 - ✅ HTML report generation
-- ❌ Interaction extraction (no Arpeggio/PLIP)
+- ❌ Tool-based interaction extraction (no Arpeggio)
 - ❌ PyMOL figures
 
 ### Full Test Environment (Local Development)
@@ -268,8 +261,6 @@ conda install -c conda-forge pymol-open-source=2.5.0
 git clone https://github.com/harryjubb/arpeggio.git
 export PATH=$PATH:$(pwd)/arpeggio
 
-# PLIP
-pip install plip==2.3.0
 ```
 
 ## Reproducibility Checklist
@@ -290,7 +281,7 @@ pip install plip==2.3.0
 1. **Biopython:** Chain/residue ID handling changes between versions
 2. **RDKit:** MolFromSequence API compatibility
 3. **PyMOL:** Render command syntax variations
-4. **Arpeggio/PLIP:** Interaction type definitions
+4. **Arpeggio:** Interaction type definitions
 
 ### When to Update?
 
@@ -352,8 +343,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN git clone https://github.com/harryjubb/arpeggio.git /opt/arpeggio
 ENV PATH="/opt/arpeggio:${PATH}"
 
-# Install PLIP
-RUN pip install plip==2.3.0
 
 # Install PyMOL (optional)
 RUN conda install -c conda-forge pymol-open-source=2.5.0

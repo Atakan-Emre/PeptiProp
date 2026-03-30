@@ -54,6 +54,13 @@ def load_metrics(path: Path) -> Dict[str, Any]:
         return json.load(f)
 
 
+def _load_json(path: Path) -> Any:
+    if not path.is_file():
+        return {}
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
 def _normalize_training_metrics(raw: Dict[str, Any]) -> Dict[str, Any]:
     """metrics.json hem düz (test_auroc) hem iç içe (test_metrics.auroc) anahtarları destekler."""
     if not raw:
@@ -223,12 +230,19 @@ def _load_metrics_bundle(dir_path: Path) -> Dict[str, Any]:
 def build_manifest(training_dir: Optional[Path]) -> Dict[str, Any]:
     raw = _load_metrics_bundle(training_dir) if training_dir and (training_dir / "metrics.json").is_file() else {}
     m = _normalize_training_metrics(raw) if raw else {}
+    gnn_vis_summary = _load_json(ROOT / "outputs" / "analysis_propedia_batch_gnn" / "visualization_sanity_summary.json")
+    gnn_vis_modes = sorted({str(item.get("extraction_mode")) for item in gnn_vis_summary}) if isinstance(gnn_vis_summary, list) else []
     manifest: Dict[str, Any] = {
         "project": PROJECT_DISPLAY_NAME,
         "version": "0.1",
         "dataset": "PROPEDIA canonical (leakage-free splits)",
         "training_dir": str(training_dir.relative_to(ROOT)) if training_dir and training_dir.exists() else None,
         "metrics": m if any(v is not None for v in m.values()) else None,
+        "visualization": {
+            "reported_interaction_source": "geometric residue-contact fallback",
+            "external_tool_extractors_used_in_reported_results": False,
+            "gnn_batch_modes": gnn_vis_modes,
+        },
         "pages": {
             "viewer_demo": "embed/viewer-demo.html",
             "manifest": "data/manifest.json",
@@ -270,6 +284,20 @@ _TRAINING_FIGURE_SPECS: List[tuple[str, str, str, str]] = [
     ),
 ]
 
+_DOWNLOAD_FILE_SPECS: List[tuple[str, str, str]] = [
+    ("metrics.json", "Genel metrik özeti", "Validation/test metrikleri ve grup bütünlüğü"),
+    ("ranking_metrics.json", "Ranking metrikleri", "MRR ve Hit@k detayları"),
+    ("best_thresholds.json", "En iyi eşikler", "F1 ve MCC için validation threshold seçimi"),
+    ("calibration_metrics.json", "Calibration özeti", "Brier ve skor dağılım özeti"),
+    ("pair_data_report.json", "Pair veri raporu", "Split/pair dağılımı ve duplicate kontrolü"),
+    ("candidate_set_report.json", "Candidate-set raporu", "Negatif karışımı ve grup bütünlüğü"),
+    ("test_summary.txt", "Test özet raporu", "Metin tabanlı final çıktı özeti"),
+    ("threshold_vs_f1_table.csv", "Threshold sweep tablosu", "Eşik taraması ve F1 davranışı"),
+    ("test_topk_candidates.csv", "Top-k aday listesi", "Protein başına skorlanmış test adayları"),
+    ("test_topk_positive_hits.csv", "Pozitif hit listesi", "Top-k içinde yakalanan pozitif örnekler"),
+    ("top_ranked_examples.json", "Top-ranked örnekler", "Önizleme tablosunun JSON kaynağı"),
+]
+
 
 def _copy_training_figures(training_out_dir: Optional[Path], img_root: Path) -> List[Dict[str, str]]:
     out: List[Dict[str, str]] = []
@@ -283,6 +311,67 @@ def _copy_training_figures(training_out_dir: Optional[Path], img_root: Path) -> 
         if dest.is_file():
             out.append({"href": f"assets/img/{dest_name}", "alt": alt, "caption": caption})
     return out
+
+
+def _copy_downloadable_artifacts(training_dir: Optional[Path], downloads_dir: Path) -> List[Dict[str, str]]:
+    downloads_dir.mkdir(parents=True, exist_ok=True)
+    source_dirs: List[Path] = []
+    if training_dir and training_dir.is_dir():
+        source_dirs.append(training_dir)
+    if PAGES_TRAINING_BUNDLE.is_dir() and PAGES_TRAINING_BUNDLE not in source_dirs:
+        source_dirs.append(PAGES_TRAINING_BUNDLE)
+
+    copied: List[Dict[str, str]] = []
+    for file_name, title, desc in _DOWNLOAD_FILE_SPECS:
+        src_path: Optional[Path] = None
+        for base in source_dirs:
+            candidate = base / file_name
+            if candidate.is_file():
+                src_path = candidate
+                break
+        if src_path is None:
+            continue
+        dest = downloads_dir / file_name
+        _copy_if(src_path, dest)
+        copied.append(
+            {
+                "href": f"downloads/{file_name}",
+                "name": file_name,
+                "title": title,
+                "description": desc,
+            }
+        )
+    return copied
+
+
+def _render_downloads_table(items: List[Dict[str, str]]) -> str:
+    if not items:
+        return (
+            '        <p class="lead-in">Bu build icin indirilebilir sonuc dosyasi bulunamadi. '
+            'Yerelde <code>python scripts/build_pages_site.py && python scripts/sync_pages_training_bundle.py</code> '
+            "ile bu alan doldurulur.</p>"
+        )
+    rows = []
+    for item in items:
+        rows.append(
+            "            <tr>"
+            f'<td><code>{html_module.escape(item["name"])}</code></td>'
+            f"<td>{html_module.escape(item['title'])}</td>"
+            f"<td>{html_module.escape(item['description'])}</td>"
+            f'<td><a class="btn-pill outline" href="{html_module.escape(item["href"])}" download>indir</a></td>'
+            "</tr>"
+        )
+    return (
+        '        <h3 style="margin-top:1.5rem">Dogrudan indirilebilir sonuc dosyalari</h3>\n'
+        '        <p class="lead-in">Asagidaki dosyalar GitHub Pages uzerinden dogrudan indirilebilir. '
+        'Yayin yuzeyi yalniz statik <code>site/</code> altindaki kopyalari sunar.</p>\n'
+        '        <div class="table-scroll">\n'
+        '        <table class="data-table compact">\n'
+        '          <thead><tr><th>Dosya</th><th>Baslik</th><th>Aciklama</th><th>Indir</th></tr></thead>\n'
+        '          <tbody>\n'
+        + "\n".join(rows)
+        + "\n          </tbody>\n        </table>\n        </div>"
+    )
 
 
 _GNN_FIGURE_ALIASES: Dict[str, List[str]] = {
@@ -515,7 +604,7 @@ def write_demo_viewer(site: Path) -> None:
         <h3>Üretim hattı ile fark</h3>
         <ul>
           <li>PROPEDIA çalıştırmasında protein ve peptit <strong>ayrı zincirler</strong> olarak boyanır (protein: cartoon + isteğe yüzey; peptit: stick).</li>
-          <li>PLIP/Arpeggio’dan gelen çiftler <strong>silindir</strong> ile bağlanır; bu sayfada etkileşim listesi yoktur.</li>
+          <li>Final raporda protein-peptit residue-contact çiftleri <strong>silindir</strong> ile bağlanır; bu sayfada etkileşim listesi yoktur.</li>
           <li>Tam çıktı: <code class="inline">viewer_state.json</code> + <code class="inline">report.html</code>.</li>
         </ul>
       </aside>
@@ -562,7 +651,7 @@ def write_demo_viewer(site: Path) -> None:
         </div>
         <div class="legend-demo">
           <h3>Etkileşim renkleri (üretim raporlarında)</h3>
-          <p style="margin:0 0 0.5rem;font-size:0.82rem;color:var(--muted)">PLIP/Arpeggio birleşik çıktıda kullanılan tip → renk eşlemesi (referans).</p>
+          <p style="margin:0 0 0.5rem;font-size:0.82rem;color:var(--muted)">Pipeline çıktısında kullanılan tip → renk eşlemesi (referans).</p>
           <div class="legend-items">
             <span class="lg"><i style="background:#2E86AB"></i> H-bağı</span>
             <span class="lg"><i style="background:#A23B72"></i> Tuz köprüsü</span>
@@ -689,7 +778,7 @@ def write_demo_viewer(site: Path) -> None:
   window.explainIx = function() {
     const h = document.getElementById('ix-hint');
     h.style.display = 'block';
-    h.textContent = 'Bu demoda etkileşim listesi yok. Tam çalıştırmada PLIP/Arpeggio (veya geometrik fallback) çiftleri silindir olarak çizilir; viewer_state.json içindeki interactions dizisi bu çizgileri üretir.';
+    h.textContent = 'Bu demoda etkileşim listesi yok. Final aktif çalıştırmada geometrik residue-contact çiftleri silindir olarak çizilir; viewer_state.json içindeki interactions dizisi bu çizgileri üretir.';
   };
 
   window.addEventListener('orientationchange', function() {
@@ -1511,6 +1600,7 @@ def write_index(
     training_dir: Optional[Path] = None,
     site_extra_viz_section: str = "",
     peptide_2d_variants_section: str = "",
+    downloads_section: str = "",
 ) -> None:
     m = _metrics_for_index(manifest)
     manifest_esc = html_module.escape(json.dumps(manifest, indent=2, ensure_ascii=False))
@@ -1542,6 +1632,7 @@ def write_index(
         "__TRAINING_GALLERY_SECTION__": training_gallery_section,
         "__SITE_EXTRA_VIZ__": site_extra_viz_section,
         "__PEPTIDE_2D_VARIANTS__": peptide_2d_variants_section,
+        "__DOWNLOADS_SECTION__": downloads_section,
     }
     for k, v in reps.items():
         idx = idx.replace(k, v)
@@ -1566,6 +1657,7 @@ __THEME_HEAD_SCRIPT__
       <a href="#metrikler">Metrikler</a>
       <a href="#gorsel-2d">2D</a>
       <a href="#gorsel-3d">3D</a>
+      <a href="#ciktilar">Dosyalar</a>
     </nav>
     <button type="button" class="theme-toggle" data-theme-toggle aria-pressed="false" aria-label="Acik temaya gec">
       <span class="theme-toggle-text">Gunduz modu</span>
@@ -1928,7 +2020,7 @@ __PEPTIDE_2D_VARIANTS__
               <tbody>
                 <tr><td><code>viewer.html</code></td><td>Tam ekran gorsel; cartoon/stick/sphere kontrolleri</td></tr>
                 <tr><td><code>viewer_state.json</code></td><td>Kompleks kimlik, zincir bilgisi, etkilesim listesi</td></tr>
-                <tr><td><code>interaction_provenance.json</code></td><td>PLIP/Arpeggio veya geometrik fallback bilgisi</td></tr>
+                <tr><td><code>interaction_provenance.json</code></td><td>Temas kaynağı ve geometric fallback özeti</td></tr>
                 <tr><td><code>report.html</code></td><td>Ozet rapor: 2D gorsel + gomulu 3D viewer</td></tr>
               </tbody>
             </table>
@@ -1972,6 +2064,7 @@ __PEPTIDE_2D_VARIANTS__
             </ul>
           </div>
         </div>
+__DOWNLOADS_SECTION__
       </section>
 
       <section class="block" id="sss">
@@ -1985,8 +2078,8 @@ __PEPTIDE_2D_VARIANTS__
         <details class="expand"><summary>Sizinti-siz split nasil calisiyor?</summary>
           <div class="inner">MMseqs2 ile protein sekanslari %30 kimlik esiginde kumelenir. Ayni kumedeki tum kompleksler ayni split'e atanir, boylece egitim ve test arasinda homoloji sizintisi onlenir.</div>
         </details>
-        <details class="expand"><summary>PLIP / Arpeggio neden calismamis gorunuyor?</summary>
-          <div class="inner">Pipeline yalnizca <code>plip</code> ve <code>arpeggio</code> komutlari PATH'te ve basarili ise calistirir. Aksi halde geometrik fallback kullanilir.</div>
+        <details class="expand"><summary>Bu temas cizgileri nasil uretiliyor?</summary>
+          <div class="inner">Final aktif pipeline, protein ve peptit zincirleri arasindaki geometrik residue-contact ciftlerini kullanir. Harici tool extractor'lar raporlanan sonuclarin parcasi degildir.</div>
         </details>
         <details class="expand"><summary>Etiket 1 (pozitif) ne anlama geliyor?</summary>
           <div class="inner">Etiket 1 = kristalde birlikte gozlenen (native/co-crystal) protein-peptit cifti. Model bu cifti tanimayi ve aday kumesi icinde ust siralara tasimayi ogrenir.</div>
@@ -2055,6 +2148,9 @@ def main() -> None:
     training_fig_items = _copy_training_figures(training_dir, img)
     manifest["training_figure_assets"] = [x["href"] for x in training_fig_items]
     gallery_section = _render_training_gallery_section(training_fig_items)
+    download_items = _copy_downloadable_artifacts(training_dir, SITE / "downloads")
+    manifest["download_assets"] = [x["href"] for x in download_items]
+    downloads_section = _render_downloads_table(download_items)
 
     p2d = _first_glob(
         [
@@ -2126,7 +2222,7 @@ def main() -> None:
         json.dump(manifest, f, indent=2, ensure_ascii=False)
 
     write_demo_viewer(SITE)
-    write_index(SITE, manifest, gallery_section, training_dir, site_extra_html, peptide_variants_html)
+    write_index(SITE, manifest, gallery_section, training_dir, site_extra_html, peptide_variants_html, downloads_section)
     print(f"[OK] GitHub Pages site: {SITE}")
 
 

@@ -178,7 +178,31 @@ def compute_metrics(
     metrics["hit@1"] = float(np.mean(hit1s)) if hit1s else 0.0
     metrics["hit@3"] = float(np.mean(hit3s)) if hit3s else 0.0
     metrics["hit@5"] = float(np.mean(hit5s)) if hit5s else 0.0
+    metrics["groups_evaluated"] = int(len(mrrs))
     return metrics
+
+
+def compute_candidate_group_integrity(df: pd.DataFrame) -> Dict[str, int]:
+    """Summarize whether each protein group has at least one positive and one negative."""
+    grouped = df.groupby(["protein_complex_id", "protein_chain_id"])
+    groups_without_positive = 0
+    groups_without_negative = 0
+    valid_groups = 0
+    for _, group_df in grouped:
+        has_positive = bool((group_df["label"] == 1).any())
+        has_negative = bool((group_df["label"] == 0).any())
+        if has_positive and has_negative:
+            valid_groups += 1
+        if not has_positive:
+            groups_without_positive += 1
+        if not has_negative:
+            groups_without_negative += 1
+    return {
+        "total_groups": int(len(grouped)),
+        "valid_groups": int(valid_groups),
+        "groups_without_positive": int(groups_without_positive),
+        "groups_without_negative": int(groups_without_negative),
+    }
 
 
 def find_best_threshold(labels: np.ndarray, scores: np.ndarray, metric: str = "mcc") -> float:
@@ -294,6 +318,7 @@ def train(cfg: dict):
     patience = cfg["training"]["early_stopping_patience"]
     monitor = cfg["evaluation"]["monitor_metric"]
     lcfg = cfg["loss"]
+    train_history: List[Dict[str, float]] = []
 
     for epoch in range(1, cfg["training"]["epochs"] + 1):
         model.train()
@@ -345,6 +370,24 @@ def train(cfg: dict):
             f"{' *' if improved else ''}"
         )
 
+        train_history.append(
+            {
+                "epoch": int(epoch),
+                "train_loss": float(avg_loss),
+                "val_auroc": float(val_metrics["auroc"]),
+                "val_auprc": float(val_metrics["auprc"]),
+                "val_f1": float(val_metrics["f1"]),
+                "val_mcc": float(val_metrics["mcc"]),
+                "val_mrr": float(val_metrics["mrr"]),
+                "val_hit@1": float(val_metrics["hit@1"]),
+                "val_hit@3": float(val_metrics["hit@3"]),
+                "val_hit@5": float(val_metrics["hit@5"]),
+                "elapsed_sec": float(elapsed),
+                "is_best": int(improved),
+            }
+        )
+        pd.DataFrame(train_history).to_csv(save_dir / "train_log.csv", index=False)
+
         if improved:
             best_val_metric = val_monitor
             patience_counter = 0
@@ -361,7 +404,18 @@ def train(cfg: dict):
     test_labels, test_scores, test_groups = evaluate(model, test_loader, device)
 
     threshold = find_best_threshold(val_labels, val_scores, cfg["evaluation"]["threshold_selection_metric"])
+    val_metrics_at_threshold = compute_metrics(val_labels, val_scores, val_groups, threshold)
     test_metrics = compute_metrics(test_labels, test_scores, test_groups, threshold)
+    val_ranking_metrics = {
+        key: float(val_metrics_at_threshold[key])
+        for key in ("mrr", "hit@1", "hit@3", "hit@5")
+    }
+    val_ranking_metrics["groups_evaluated"] = int(val_metrics_at_threshold["groups_evaluated"])
+    test_ranking_metrics = {
+        key: float(test_metrics[key])
+        for key in ("mrr", "hit@1", "hit@3", "hit@5")
+    }
+    test_ranking_metrics["groups_evaluated"] = int(test_metrics["groups_evaluated"])
 
     print(f"\n{'='*50}")
     print(f"Test Sonuçları (threshold={threshold:.2f}):")
@@ -371,14 +425,32 @@ def train(cfg: dict):
 
     # Save
     results = {
-        "test_metrics": test_metrics,
+        "validation_metrics_at_selected_threshold": {
+            key: float(val_metrics_at_threshold[key])
+            for key in ("auroc", "auprc", "f1", "mcc")
+        },
+        "test_metrics": {
+            key: float(test_metrics[key])
+            for key in ("auroc", "auprc", "f1", "mcc")
+        },
+        "val_ranking_metrics": val_ranking_metrics,
+        "test_ranking_metrics": test_ranking_metrics,
         "selected_threshold": threshold,
+        "threshold_selection_metric": cfg["evaluation"]["threshold_selection_metric"],
         "epochs_completed": epoch,
         "best_val_monitor_metric": best_val_metric,
+        "candidate_group_integrity": {
+            "train": compute_candidate_group_integrity(train_pairs),
+            "val": compute_candidate_group_integrity(val_pairs),
+            "test": compute_candidate_group_integrity(test_pairs),
+        },
         "model_params": total_params,
     }
     with open(save_dir / "metrics.json", "w") as f:
         json.dump(results, f, indent=2)
+
+    with open(save_dir / "ranking_metrics.json", "w") as f:
+        json.dump({"validation": val_ranking_metrics, "test": test_ranking_metrics}, f, indent=2)
 
     print(f"\nSonuçlar: {save_dir / 'metrics.json'}")
 

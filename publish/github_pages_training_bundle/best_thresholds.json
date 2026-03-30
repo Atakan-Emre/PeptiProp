@@ -1,0 +1,12 @@
+{
+  "validation": {
+    "best_f1_threshold": 0.23,
+    "best_f1": 0.5959509552323924,
+    "best_mcc_threshold": 0.2,
+    "best_mcc": 0.5164746703996784,
+    "selected_threshold": 0.2,
+    "selection_metric": "mcc"
+  },
+  "selected_threshold": 0.2,
+  "selection_metric": "mcc"
+}

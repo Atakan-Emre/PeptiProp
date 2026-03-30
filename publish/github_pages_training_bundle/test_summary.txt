@@ -1,0 +1,44 @@
+PeptiProp GNN+ESM-2 Final Evaluation Summary
+============================================================
+
+selected_threshold: 0.20
+best_f1_threshold: 0.23
+best_mcc_threshold: 0.20
+
+[validation_metrics_at_selected_threshold]
+auroc: 0.881804
+auprc: 0.553261
+f1: 0.594451
+mcc: 0.516475
+precision: 0.468909
+recall: 0.811794
+
+[validation_ranking_metrics]
+mrr: 0.781819
+hit@1: 0.632873
+hit@3: 0.935759
+hit@5: 0.995985
+groups_evaluated: 3985
+
+[test_metrics]
+auroc: 0.881266
+auprc: 0.556599
+f1: 0.588681
+mcc: 0.504855
+precision: 0.475996
+recall: 0.771265
+
+[test_ranking_metrics]
+mrr: 0.777637
+hit@1: 0.620978
+hit@3: 0.946893
+hit@5: 0.996474
+groups_evaluated: 4538
+
+[calibration_test]
+brier_score: 0.102964
+score_min: 0.000000
+score_max: 1.000000
+score_mean: 0.149185
+score_std: 0.253205
+positive_rate: 0.166667

@@ -43,7 +43,7 @@ class PeptidQuantumPipeline:
     1. Acquire structure (RCSB/PROPEDIA or local file)
     2. Parse and normalize (mmCIF parsing, chain classification)
     3. Extract pocket (residues within distance cutoff)
-    4. Extract interactions (Arpeggio + PLIP)
+    4. Build residue-contact interactions (final active path: geometric fallback)
     5. Build analysis (contact matrix, fingerprint)
     6. Render visuals (PyMOL, contact maps, 2D chemistry)
     7. Build report (HTML with 3Dmol.js viewer)
@@ -68,7 +68,7 @@ class PeptidQuantumPipeline:
         self.rcsb_fetcher = RCSBFetcher(cache_dir=self.cache_dir / "rcsb")
         self.structure_parser = StructureParser()
         self.arpeggio = ArpeggioWrapper()
-        self.plip = PLIPWrapper()
+        self.plip: Optional[PLIPWrapper] = None
         self.merger = InteractionMerger()
         self.contact_generator = ContactMatrixGenerator()
         self.fingerprint_builder = InteractionFingerprintBuilder()
@@ -87,8 +87,8 @@ class PeptidQuantumPipeline:
         protein_chain: Optional[str] = None,
         peptide_chain: Optional[str] = None,
         pocket_radius: float = 8.0,
-        use_arpeggio: bool = True,
-        use_plip: bool = True,
+        use_arpeggio: bool = False,
+        use_plip: bool = False,
         generate_pymol: bool = True,
         generate_report: bool = True,
         generate_viewer: bool = True,
@@ -103,8 +103,8 @@ class PeptidQuantumPipeline:
             protein_chain: Protein chain ID (auto-detect if None)
             peptide_chain: Peptide chain ID (auto-detect if None)
             pocket_radius: Pocket extraction radius in Angstroms
-            use_arpeggio: Use Arpeggio for interaction extraction
-            use_plip: Use PLIP for interaction extraction
+            use_arpeggio: Enable experimental Arpeggio extraction
+            use_plip: Enable experimental PLIP extraction
             generate_pymol: Generate PyMOL figures
             generate_report: Generate HTML report
             generate_viewer: Generate standalone 3Dmol.js viewer
@@ -278,24 +278,32 @@ class PeptidQuantumPipeline:
         
         # Override chain classification if specified
         if protein_chain or peptide_chain:
-            # Reclassify chains
             all_chains = parsed_complex.protein_chains + parsed_complex.peptide_chains
-            parsed_complex.protein_chains = []
-            parsed_complex.peptide_chains = []
-            
+            selected_proteins = []
+            selected_peptides = []
+
             for chain in all_chains:
-                if protein_chain and chain.chain_id == protein_chain:
-                    chain.chain_type = "protein"
-                    parsed_complex.protein_chains.append(chain)
-                elif peptide_chain and chain.chain_id == peptide_chain:
-                    chain.chain_type = "peptide"
-                    parsed_complex.peptide_chains.append(chain)
-                else:
-                    # Keep original classification
-                    if chain.chain_type == "protein":
-                        parsed_complex.protein_chains.append(chain)
-                    else:
-                        parsed_complex.peptide_chains.append(chain)
+                if protein_chain is not None:
+                    if chain.chain_id == protein_chain:
+                        chain.chain_type = "protein"
+                        selected_proteins.append(chain)
+                elif chain.chain_type == "protein":
+                    selected_proteins.append(chain)
+
+                if peptide_chain is not None:
+                    if chain.chain_id == peptide_chain:
+                        chain.chain_type = "peptide"
+                        selected_peptides.append(chain)
+                elif chain.chain_type == "peptide":
+                    selected_peptides.append(chain)
+
+            parsed_complex.protein_chains = selected_proteins
+            parsed_complex.peptide_chains = selected_peptides
+
+            if protein_chain is not None and not parsed_complex.protein_chains:
+                logger.warning(f"Requested protein chain not found after parsing: {protein_chain}")
+            if peptide_chain is not None and not parsed_complex.peptide_chains:
+                logger.warning(f"Requested peptide chain not found after parsing: {peptide_chain}")
         
         logger.info(f"✓ Parsed {len(parsed_complex.protein_chains)} protein chains, "
                    f"{len(parsed_complex.peptide_chains)} peptide chains")
@@ -335,7 +343,7 @@ class PeptidQuantumPipeline:
         use_plip: bool,
         tools_succeeded: List[str],
     ) -> Dict[str, object]:
-        """Counts / fractions of interaction records by source_tool (PLIP, Arpeggio, fallback)."""
+        """Counts / fractions of interaction records by source_tool."""
         tool_labels = frozenset({"arpeggio", "plip"})
         counts = Counter((i.source_tool or "unknown").lower() for i in interaction_set.interactions)
         n = len(interaction_set.interactions)
@@ -373,37 +381,54 @@ class PeptidQuantumPipeline:
                     complex_obj,
                     output_dir=output_dir / "arpeggio_tmp"
                 )
-                interaction_sets.append(arpeggio_set)
-                tools_succeeded.append("arpeggio")
-                logger.info(f"  Arpeggio: {len(arpeggio_set.interactions)} interactions")
+                if arpeggio_set.interactions:
+                    interaction_sets.append(arpeggio_set)
+                    tools_succeeded.append("arpeggio")
+                    logger.info(f"  Arpeggio: {len(arpeggio_set.interactions)} interactions")
+                else:
+                    logger.warning("Arpeggio produced zero standardizable interactions, ignoring result")
             except Exception as e:
                 logger.warning(f"Arpeggio failed: {e}")
         elif use_arpeggio:
             logger.warning("Arpeggio not available, skipping")
-        
+
         # PLIP
-        if use_plip and self.plip.is_available():
-            logger.info("Running PLIP...")
+        if use_plip:
+            if self.plip is None:
+                self.plip = PLIPWrapper()
+        if use_plip and self.plip and self.plip.is_available():
+            logger.info("Running experimental PLIP...")
             try:
                 plip_set = self.plip.extract_interactions(
                     complex_obj,
                     output_dir=output_dir / "plip_tmp"
                 )
-                interaction_sets.append(plip_set)
-                tools_succeeded.append("plip")
-                logger.info(f"  PLIP: {len(plip_set.interactions)} interactions")
+                if plip_set.interactions:
+                    interaction_sets.append(plip_set)
+                    tools_succeeded.append("plip")
+                    logger.info(f"  PLIP: {len(plip_set.interactions)} interactions")
+                else:
+                    logger.warning("PLIP produced zero standardizable interactions, ignoring result")
             except Exception as e:
                 logger.warning(f"PLIP failed: {e}")
         elif use_plip:
             logger.warning("PLIP not available, skipping")
-        
+
         # Merge interactions
         if interaction_sets:
             merged_set = self.merger.merge(*interaction_sets, strategy="union")
-            logger.info(f"✓ Total interactions: {len(merged_set.interactions)}")
-            extraction_mode = "tool_merged"
+            if merged_set.interactions:
+                logger.info(f"✓ Total interactions: {len(merged_set.interactions)}")
+                extraction_mode = "tool_merged"
+            else:
+                logger.warning("Tool outputs merged to zero usable contacts, using geometric fallback")
+                merged_set = self._build_geometric_fallback(
+                    complex_obj=complex_obj,
+                    distance_cutoff=8.0,
+                )
+                extraction_mode = "geometric_fallback"
         else:
-            logger.warning("No interaction extractors ran successfully, using geometric fallback")
+            logger.warning("No interaction extractors yielded usable contacts, using geometric fallback")
             merged_set = self._build_geometric_fallback(
                 complex_obj=complex_obj,
                 distance_cutoff=8.0,
@@ -427,8 +452,8 @@ class PeptidQuantumPipeline:
         """
         Build a residue-contact interaction set from C-alpha distances.
 
-        This keeps visualization/report generation useful even when Arpeggio/PLIP
-        are unavailable on local machines.
+        This keeps visualization/report generation useful when tool extraction is
+        unavailable or yields zero usable contacts on local machines.
         """
         if distance_cutoff <= 0:
             return InteractionSet(complex_id=complex_obj.complex_id, interactions=[])

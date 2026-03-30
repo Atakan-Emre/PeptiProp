@@ -64,7 +64,7 @@ Modelin "bağlanmayan" örnekleri öğrenmesi için iki tür negatif çift üret
 | Tür | Açıklama | Zorluk |
 |-----|----------|--------|
 | **Easy** | Protein ile tamamen rastgele bir peptid eşleştirilir | Düşük |
-| **Hard** | Protein ile aynı SCOP/CATH ailesinden farklı bir peptid eşleştirilir | Yüksek |
+| **Hard** | Aynı split içinde, benzer protein sequence/bucket havuzundan farklı bir peptid eşleştirilir | Yüksek |
 
 Her protein grubu için 1 pozitif (native) + 4 easy + 1 hard = 6 aday oluşturulur.
 
@@ -216,7 +216,7 @@ Faz 1: PROPEDIA mmCIF (42,375 kompleks)
   │  Ham deneysel ko-kristal yapılarının indirilmesi ve standardizasyonu
   ▼
 Faz 2: Kanonik tablolar (complexes · chains · residues → Parquet)
-  │  18.7K kompleks, 48K zincir, 3.5M rezidü; arayüz (5Å) + pocket (8Å) anotasyonu
+  │  42.4K kompleks, 84.8K zincir, 12.3M rezidü; arayüz (5Å) + pocket (8Å) anotasyonu
   ▼
 Faz 3: Sekans-küme split (MMseqs2 %30 kimlik → train 70% / val 15% / test 15%)
   │  Veri sızıntısı koruması: benzer proteinler aynı split'te
@@ -271,7 +271,7 @@ python scripts/train_scoring_mlx.py --config configs/train_v0_1_scoring_mlx_m4.y
 python scripts/extract_esm2_embeddings.py --model esm2_t6_8M  # ~35K NPZ dosyası üretir
 python scripts/build_residue_graphs.py --config configs/train_v0_2_gnn_esm2.yaml  # PyG .pt grafları
 python scripts/train_gnn_esm2.py --config configs/train_v0_2_gnn_esm2.yaml  # 80 epoch GATv2 eğitimi
-python scripts/generate_gnn_predictions.py --config configs/train_v0_2_gnn_esm2.yaml  # Tahmin + grafikler
+python scripts/generate_gnn_predictions.py  # Tahmin + calibration + threshold + top-k artifact'ları
 
 # 7. Statik site üretimi
 pip install -r scripts/requirements-pages.txt
@@ -294,9 +294,9 @@ PeptiProp/
 │   │   └── graph_builder.py       # Rezidü grafı inşa modülü
 │   ├── data/
 │   │   ├── processors/            # canonical_builder, mmcif_parser, pair_extractor
-│   │   ├── downloaders/           # PROPEDIA, PepBDB, BioLip2, GEPPRI indirici
+│   │   ├── downloaders/           # Ham veri yardımcıları (aktif train yüzeyi PROPEDIA-only)
 │   │   └── fetchers/              # RCSB mmCIF fetcher
-│   ├── interaction/               # Arpeggio/PLIP wrapper, contact matrix, fingerprint
+│   ├── interaction/               # residue-contact fallback, contact matrix, fingerprint
 │   ├── training/                  # Trainer, ablation runner
 │   ├── visualization/
 │   │   ├── chemistry/             # RDKit 2D peptit renderer
@@ -397,7 +397,7 @@ python -m unittest discover -s tests -v
 | [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) | Ortam kurulumu ve bağımlılıklar |
 | [docs/DATA_ARCHITECTURE.md](docs/DATA_ARCHITECTURE.md) | Kanonik veri şeması |
 | [docs/PROJECT_ARCHITECTURE.md](docs/PROJECT_ARCHITECTURE.md) | Proje mimarisi detayı |
-| [docs/EXTERNAL_TOOLS.md](docs/EXTERNAL_TOOLS.md) | Arpeggio, PLIP, Open Babel kurulumu |
+| [docs/EXTERNAL_TOOLS.md](docs/EXTERNAL_TOOLS.md) | Arşiv: deneysel external tool notları |
 | [docs/VALIDATION.md](docs/VALIDATION.md) | Doğrulama rehberi |
 | [docs/DATASET_DOWNLOAD_GUIDE.md](docs/DATASET_DOWNLOAD_GUIDE.md) | Veri indirme adımları |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Proje yol haritası |

@@ -1,0 +1,18 @@
+{
+  "validation": {
+    "brier_score": 0.10069288313388824,
+    "score_min": 0.0,
+    "score_max": 1.0,
+    "score_mean": 0.1556146740913391,
+    "score_std": 0.25241684913635254,
+    "positive_rate": 0.16666666666666666
+  },
+  "test": {
+    "brier_score": 0.10296415537595749,
+    "score_min": 0.0,
+    "score_max": 1.0,
+    "score_mean": 0.14918482303619385,
+    "score_std": 0.2532045245170593,
+    "positive_rate": 0.16666666666666666
+  }
+}

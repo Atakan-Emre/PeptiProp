@@ -160,7 +160,7 @@ def build_all(
     print("\nNext steps:")
     print("  1. Review quarantine reports in staging/quarantine/")
     print("  2. Validate canonical dataset with QC dashboard")
-    print("  3. Create PDB-level structure-aware splits")
+    print("  3. Create sequence-cluster structure-aware splits")
     print("  4. Generate audit gallery")
     print("=" * 70 + "\n")
 

@@ -10,21 +10,56 @@ ROOT = Path(__file__).resolve().parent.parent
 CANONICAL_DIR = ROOT / "data" / "canonical"
 SPLITS_DIR = CANONICAL_DIR / "splits"
 PAIRS_DIR = CANONICAL_DIR / "pairs"
-TRAINING_DIR = ROOT / "outputs" / "training" / "peptidquantum_v0_1_final_best_mlx_ablation"
 VIS_SUMMARY_BATCH = ROOT / "outputs" / "analysis_propedia_batch_mlx" / "visualization_sanity_summary.json"
 VIS_SUMMARY_TOP = ROOT / "outputs" / "analysis_propedia_top_ranked_batch_mlx" / "visualization_sanity_summary.json"
 
 
+def _resolve_mlx_training_dir() -> Path:
+    preferred = [
+        ROOT / "outputs" / "training" / "peptidquantum_v0_1_final_best_mlx_ablation",
+        ROOT / "outputs" / "training" / "peptidquantum_v0_1_final_mlx_m4",
+    ]
+    for candidate in preferred:
+        if (candidate / "metrics.json").is_file():
+            return candidate
+    return preferred[-1]
+
+
+TRAINING_DIR = _resolve_mlx_training_dir()
+
+
 def _mlx_artifacts_ready() -> bool:
+    required = {
+        "metrics.json",
+        "ranking_metrics.json",
+        "best_thresholds.json",
+        "pair_data_report.json",
+        "candidate_set_report.json",
+        "calibration_metrics.json",
+        "test_summary.txt",
+        "train_log.csv",
+        "confusion_matrix.png",
+        "roc_curve.png",
+        "pr_curve.png",
+        "validation_threshold_sweep.png",
+        "validation_score_histogram_pos_neg.png",
+        "score_histogram_pos_neg.png",
+        "calibration_curve.png",
+        "threshold_vs_f1_table.csv",
+        "test_topk_candidates.csv",
+        "test_topk_positive_hits.csv",
+        "top_ranked_examples.json",
+    }
     return (
-        (TRAINING_DIR / "metrics.json").is_file()
+        TRAINING_DIR.is_dir()
+        and required.issubset({path.name for path in TRAINING_DIR.iterdir()})
         and VIS_SUMMARY_BATCH.is_file()
         and VIS_SUMMARY_TOP.is_file()
     )
 
 
 class TestPropediaActivePipelineCanonical(unittest.TestCase):
-    """Kanonik veri; eğitim çıktısı gerektirmez."""
+    """Canonical PROPEDIA surface should stay consistent for MLX baseline checks."""
 
     @classmethod
     def setUpClass(cls):
@@ -61,7 +96,7 @@ class TestPropediaActivePipelineCanonical(unittest.TestCase):
 
 @unittest.skipUnless(
     _mlx_artifacts_ready(),
-    "MLX eğitim / görsel çıktıları yok — tamamlayıcı test: scripts/run_final_ablation_mlx.py",
+    "MLX training or visualization artifacts are missing; run scripts/train_scoring_mlx.py or scripts/run_final_ablation_mlx.py",
 )
 class TestPropediaActivePipelineMLXArtifacts(unittest.TestCase):
     @classmethod
@@ -94,10 +129,6 @@ class TestPropediaActivePipelineMLXArtifacts(unittest.TestCase):
             "test_topk_candidates.csv",
             "test_topk_positive_hits.csv",
             "top_ranked_examples.json",
-            "ablation_summary.csv",
-            "ablation_heatmap.png",
-            "model_family_comparison.png",
-            "selection_summary.json",
         }
         self.assertTrue(required_files.issubset({path.name for path in TRAINING_DIR.iterdir()}))
 

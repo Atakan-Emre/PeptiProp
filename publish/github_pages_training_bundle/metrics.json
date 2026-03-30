@@ -1,38 +1,42 @@
 {
   "validation_metrics_at_selected_threshold": {
-    "auroc": 0.8549264698705465,
-    "auprc": 0.46304706411638097,
-    "f1": 0.5310734463276836,
-    "mcc": 0.4504021228138967,
-    "precision": 0.383952551477171,
-    "recall": 0.860978670012547
+    "auroc": 0.8818044013860002,
+    "auprc": 0.5532605186843575,
+    "f1": 0.5944505696435134,
+    "mcc": 0.5164746703996784,
+    "precision": 0.4689085374691984,
+    "recall": 0.8117942283563363,
+    "positive_predictions": 6899,
+    "negative_predictions": 17011
   },
   "test_metrics": {
-    "auroc": 0.8387957934573742,
-    "auprc": 0.43477299141790066,
-    "f1": 0.5074216602528862,
-    "mcc": 0.41344470867721617,
-    "precision": 0.36868384262033155,
-    "recall": 0.8135742617893346
+    "auroc": 0.8812662466753981,
+    "auprc": 0.5565987337643044,
+    "f1": 0.5886805146749643,
+    "mcc": 0.5048546232827292,
+    "precision": 0.4759961920304638,
+    "recall": 0.7712648743940062,
+    "positive_predictions": 7353,
+    "negative_predictions": 19875
   },
   "val_ranking_metrics": {
-    "mrr": 0.7452530322040987,
-    "hit@1": 0.5628607277289837,
-    "hit@3": 0.9397741530740276,
-    "hit@5": 0.9967377666248431,
+    "mrr": 0.7818193224592221,
+    "hit@1": 0.6328732747804267,
+    "hit@3": 0.9357590966122961,
+    "hit@5": 0.9959849435382685,
     "groups_evaluated": 3985
   },
   "test_ranking_metrics": {
-    "mrr": 0.711950932863229,
-    "hit@1": 0.5121198765976201,
-    "hit@3": 0.9275011018069634,
-    "hit@5": 0.9951520493609519,
+    "mrr": 0.7776369913324519,
+    "hit@1": 0.6209784045835169,
+    "hit@3": 0.9468929043631555,
+    "hit@5": 0.996474217717056,
     "groups_evaluated": 4538
   },
-  "selected_threshold": 0.5900000000000001,
+  "selected_threshold": 0.2,
   "threshold_selection_metric": "mcc",
-  "best_val_monitor_metric": 0.7452530322040987,
-  "epochs_completed": 68,
+  "best_val_monitor_metric": 0.7818193224592221,
+  "epochs_completed": 80,
   "candidate_group_integrity": {
     "train": {
       "total_groups": 19542,
@@ -52,5 +56,15 @@
       "groups_without_positive": 0,
       "groups_without_negative": 0
     }
+  },
+  "model_params": 553731,
+  "test_brier": 0.10296415537595749,
+  "calibration": {
+    "brier_score": 0.10296415537595749,
+    "score_min": 0.0,
+    "score_max": 1.0,
+    "score_mean": 0.14918482303619385,
+    "score_std": 0.2532045245170593,
+    "positive_rate": 0.16666666666666666
   }
 }

@@ -1,6 +1,6 @@
 # Dataset Download Guide (PROPEDIA-only)
 
-This guide describes only the active v0.1 data flow. Güncel komut özeti: [README.md](../README.md). Yayınlanan özet JSON: `site/data/manifest.json` (site script’i ile üretilir).
+This guide describes the active PROPEDIA data flow shared by both the final GNN run and the MLX baseline. Güncel komut özeti: [README.md](../README.md). Yayınlanan özet JSON: `site/data/manifest.json`.
 
 ## Active Dataset
 
@@ -53,15 +53,22 @@ Before training, verify:
 - quality flag includes only `clean`
 - candidate set size is stable (`6`: 1 positive + 5 negatives)
 
-## 5) Train Model
+## 5) Train Models
 
 ```bash
-# MLX (Apple Silicon)
+# Active final GNN
+python scripts/train_gnn_esm2.py --config configs/train_v0_2_gnn_esm2.yaml
+python scripts/generate_gnn_predictions.py
+
+# MLX baseline (Apple Silicon)
 python scripts/export_mlx_features.py --config configs/train_v0_1_scoring_mlx_m4.yaml
 python scripts/train_scoring_mlx.py --config configs/train_v0_1_scoring_mlx_m4.yaml
 ```
 
-Final outputs: `outputs/training/peptidquantum_v0_1_final_mlx_m4/`
+Final outputs:
+
+- `outputs/training/peptiprop_v0_2_gnn_esm2/`
+- `outputs/training/peptidquantum_v0_1_final_mlx_m4/`
 
 ## Notes
 

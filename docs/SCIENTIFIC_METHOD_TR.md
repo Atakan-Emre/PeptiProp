@@ -33,7 +33,7 @@ Split dağılımı:
 
 ## 3) Kalite Filtresi
 
-Eğitim/veri üretimi sırasında yalnızca `quality_flag = clean` kompleksler kullanılır (41,572 → 27,387 kompleks). Düşük güvenilirlikli yapıların etiket gürültüsünü azaltır.
+Eğitim/veri üretimi sırasında yalnızca `quality_flag = clean` kompleksler kullanılır (`42,375` toplam kompleks içinden `28,065` clean kompleks). Düşük güvenilirlikli yapıların etiket gürültüsünü azaltır.
 
 ## 4) Negatif Çift Tasarımı
 
@@ -42,7 +42,7 @@ Her protein grubu için 1 pozitif (native co-crystal) + 4 easy + 1 hard = 6 aday
 | Tür | Açıklama | Zorluk |
 |-----|----------|--------|
 | Easy | Tamamen rastgele peptid eşleşmesi | Düşük |
-| Hard | Aynı SCOP/CATH ailesinden farklı peptid | Yüksek |
+| Hard | Aynı split içinde, benzer protein sequence/bucket havuzundan farklı peptid | Yüksek |
 
 ## 5) Model Mimarisi: GNN + ESM-2 (v0.2)
 
@@ -107,10 +107,11 @@ GNN+ESM-2, rezidü-seviye yapısal bilgiyi kullanarak tüm metriklerde MLP basel
 - GATv2 attention mekanizması hangi rezidülerin önemli olduğunu öğrenebilir
 - Ablation karşılaştırması (MLP vs GNN) mimari katkıyı izole eder
 - MRR/Hit@K metrikleri sıralama problemine uygun
+- Final raporlanan 2D/3D sanity çıktıları, geometric residue-contact fallback ile üretilir; external tool extractor çıktıları final metrik/makale yüzeyine dahil edilmez
 
 ## 9) Sınırlar
 
-- Val/test hard-negative shortfall tam kapanmamış
+- Visualization tarafında 3D temas çizgileri tool-annotated chemistry değil, geometric residue-contact özetidir
 - ESM-2 t6-8M (en küçük model) kullanıldı; daha büyük modeller potansiyel iyileşme sağlayabilir
 - Cross-attention (protein–peptid arası dikkat) henüz uygulanmadı
 - Eğitim CPU üzerinde gerçekleştirildi; GPU/MPS ile daha fazla epoch/hiperparametre araması mümkün

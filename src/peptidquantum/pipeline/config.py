@@ -27,8 +27,8 @@ class PipelineConfig:
     residue_number_mode: str = "auth"  # "auth" or "label"
     
     # Interaction extraction
-    use_arpeggio: bool = True
-    use_plip: bool = True
+    use_arpeggio: bool = False
+    use_plip: bool = False
     
     # Visualization
     generate_pymol: bool = True

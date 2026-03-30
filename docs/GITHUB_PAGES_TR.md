@@ -8,11 +8,18 @@ Workflow `.github/workflows/pages.yml` her `main` (veya `master`) push’ında:
 2. `python scripts/build_pages_site.py` çalıştırır (`PEPTIPROP_SITE_URL` ile `canonical` / `og:url` meta; örn. `https://atakan-emre.github.io/PeptiProp`)
 3. `site/` klasörünü GitHub Pages’e yükler
 
+Önemli sınır:
+
+- GitHub Pages **yalnızca `site/` klasörünü** yayınlar.
+- `data/`, `outputs/`, `publish/` veya tüm repo ağacı Pages’e doğrudan gitmez.
+- Bu yüzden Pages üzerinde görünmesini istediğiniz her statik dosya, build sırasında `site/` altına kopyalanmış olmalıdır.
+
 İçerik:
 
 - `index.html` — tek sütun genişliğinde hizalı **site-shell**, üst çubukta GitHub + tema; **proje akışı** diyagramı (`#akim`); dört metrik kartı; eğitim PNG’leri (veya yer tutucu)
 - `embed/viewer-demo.html` — **3Dmol.js** ile tarayıcıda **1CRN** (mmCIF, `assets/demo/1crn.cif`)
 - `data/manifest.json` — makine-okur özet
+- `downloads/` — doğrudan indirilebilir final sonuç dosyaları (`metrics.json`, `ranking_metrics.json`, `best_thresholds.json`, `calibration_metrics.json`, `pair/candidate reports`, `top-k CSV`, `test_summary.txt`)
 - `assets/css/site.css` — gündüz/gece CSS değişkenleri, responsive düzen
 - `assets/js/site-theme.js` — tema anahtarı (`pq-site-theme`); ana sayfa ve 3D demo ortak kullanır
 
@@ -20,13 +27,13 @@ Workflow `.github/workflows/pages.yml` her `main` (veya `master`) push’ında:
 
 ### 2D peptit + skor paneli (test örnekleri)
 
-`top_ranked_examples.json` + `data/canonical/chains.parquet` + **RDKit** ile derleme sırasında `peptide_2d_v1…v4.png` üretilir. CI’da `chains.parquet` yoksa veya RDKit kurulu değilse bu alt bölüm atlanır; yerelde `build_pages_site.py` çalıştırıp üretilen `site/` önizleyin veya bu PNG’leri repoya (bundle dışında) eklemeyi tercih edin.
+`top_ranked_examples.json` + `data/canonical/chains.parquet` + **RDKit** ile derleme sırasında `peptide_2d_v1…v5.png` üretilir. CI’da `chains.parquet` yoksa veya RDKit kurulu değilse build önce `publish/github_pages_training_bundle/` içindeki önceden üretilmiş `peptide_2d_v*.png` ve `peptide_2d_variants.json` dosyalarını kullanır; onlar da yoksa bu alt bölüm atlanır.
 
 ### Metrik ve eğitim görselleri neden yerelde dolu, CI’da boştu?
 
 `outputs/training/` `.gitignore` ile repoda yok. **Çözüm:** `publish/github_pages_training_bundle/` içine `metrics.json`, `ranking_metrics.json` ve ilgili PNG’leri commit edin. `build_pages_site.py` önce yerel `outputs/training/` arar; yoksa bu paketi kullanır.
 
-Güncelleme: `python scripts/sync_pages_training_bundle.py` → `git add publish/github_pages_training_bundle` → push. Ayrıntı: `publish/github_pages_training_bundle/README.md`.
+Güncelleme: `python scripts/build_pages_site.py && python scripts/sync_pages_training_bundle.py` → `git add publish/github_pages_training_bundle` → push.
 
 ## Repo ayarları
 

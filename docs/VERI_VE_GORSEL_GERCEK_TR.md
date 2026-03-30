@@ -17,7 +17,7 @@ Bu not, **amacınızla uyumluluk** ve **2D/3D çıktıların ne ölçtüğü** s
 | Ne | Anlamı | Örnek (bu repoda) |
 |----|--------|-------------------|
 | **Model performansı** | Pozitif/negatif veya sıralama başarısı | Test **AUROC ≈ 0.84**, **MRR ≈ 0.71**, **Hit@3 ≈ 0.93** (`metrics.json` özetleri) |
-| **Etkileşim tespiti (3D çizim)** | PLIP/Arpeggio veya geometrik fallback ile çizilen temas/çizgi sayısı | Kompleks başına değişir; **“% kaç bağ bulundu”** tek cümlede anlamlı değildir (eşik, mesafe, kaynak aracı değişir) |
+| **Etkileşim tespiti (3D çizim)** | Geometric residue-contact fallback ile çizilen temas/çizgi sayısı | Kompleks başına değişir; **“% kaç bağ bulundu”** tek cümlede anlamlı değildir (eşik ve geometri tanımı değişir) |
 
 Yani **2D şekil** veya **3D silindir sayısı**, “model %X bağlanma buldu” anlamına gelmez; **görselleştirme veya geometri özetidir**.
 
@@ -28,13 +28,13 @@ Yani **2D şekil** veya **3D silindir sayısı**, “model %X bağlanma buldu”
 
 ## 4. 3D görsel ve etkileşim kaynağı
 
-- Pipeline `interaction_provenance.json` yazar: **PLIP / Arpeggio / geometric_fallback** oranları.
-- **PLIP / Arpeggio neden “kullanılmamış” görünür?** `pipeline.py` içinde `_extract_interactions` yalnızca her aracın `is_available()` True olduğunda (komut `PATH`’te ve genelde `--help` başarılı) çalıştırır; aksi halde bu adımlar **atlanır** ve `interaction_sets` boş kalırsa **geometrik fallback** devreye girer. Kurulum doğrulaması: `scripts/verify_external_tools.py`, ayrıntı: `EXTERNAL_TOOLS.md`.
-- Bu repoda **örnek sanity toplu çıktıları** (`outputs/analysis_propedia_*_mlx/**/data/interaction_provenance.json`, N≈20) üzerinde özet:
+- Pipeline `interaction_provenance.json` yazar: final aktif hatta beklenen mod **geometric_fallback**’tır.
+- External tool extractor denemeleri repoda arşiv/deneysel olarak bulunabilir; fakat **makale ve final aktif rapor yüzeyinde kullanılmazlar**.
+- Bu repoda güncel GNN sanity toplu çıktıları (`outputs/analysis_propedia_*_gnn/**/data/interaction_provenance.json`) üzerinde özet:
   - **`tool_based_interaction_fraction` ortalaması: 0.0**
   - **`tools_succeeded`:** boş; kayıtlar **geometric_fallback** ile üretilmiş.
 
-Bu, “araçlar kurulu değil / çalışmadı / CIF-PDB yolu uyumsuz” gibi nedenlerle olabilir; **3D çizim yine de yapı + geometrik mesafe kurallarıyla tutarlı** olabilir, fakat “PLIP onaylı bağ” iddiası bu örneklerde geçerli değildir. Üretimde PLIP’in dolması için `EXTERNAL_TOOLS.md` ve `run_visualization_sanity.py` ortamını doğrulamak gerekir.
+Bu yüzden final bilimsel yorumda, 3D çizgiler tool-annotated chemistry olarak değil, geometrik temas özeti olarak okunmalıdır.
 
 ## 5. Amaçla uyum
 
@@ -49,7 +49,7 @@ Anlamlı ekler:
 
 1. **Peptit uzunluk histogramı** — `complexes.parquet` içindeki peptit uzunluğu; veri örtümesi kontrolü.
 2. **Etkileşim tipi çubuk grafiği** — birden fazla kompleks için `interaction_summary` özetinin birleşik paneli (jupyter veya mevcut `ContactMapPlotter.plot_interaction_summary` ile toplu klasör döngüsü).
-3. **Tek sayfa “kart”** — PDB ID, peptit **tek harf sekansı**, pozitif çift skoru, temas sayısı (geometrik veya PLIP); makale ekine uygun.
+3. **Tek sayfa “kart”** — PDB ID, peptit **tek harf sekansı**, pozitif çift skoru, temas sayısı (geometrik); makale ekine uygun.
 
 **Otomasyon:** `python scripts/build_pages_site.py` çalıştırıldığında `peptidquantum.visualization.plots.site_extras` modülü (varsa veri ve `outputs/`) şunları üretir: `site/assets/img/peptide_length_histogram.png`, `site/assets/img/interaction_summary_panel.png`, `site/embed/complex-cards.html`; ana `index.html` içinde **Ek veri görselleri** bölümüne bağlanır. Veri veya çıktı klasörü yoksa bu adımlar sessizce atlanır.
 

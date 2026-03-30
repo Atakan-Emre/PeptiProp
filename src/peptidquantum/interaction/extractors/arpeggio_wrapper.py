@@ -59,7 +59,7 @@ class ArpeggioWrapper:
         if selection is None:
             peptide_chains = [c.chain_id for c in complex_obj.peptide_chains]
             if peptide_chains:
-                selection = "/" + "/".join(peptide_chains) + "/"
+                selection = f"/{peptide_chains[0]}//"
         
         # Run Arpeggio (yalnızca düzgün PDB; mmCIF doğrudan verilmez)
         try:

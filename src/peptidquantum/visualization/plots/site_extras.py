@@ -254,6 +254,8 @@ def stitch_interaction_summary_panel(
     root: Path,
     out_png: Path,
     patterns: Tuple[str, ...] = (
+        "outputs/analysis_propedia_batch_gnn/**/figures/interaction_summary.png",
+        "outputs/analysis_propedia_top_ranked_batch_gnn/**/figures/interaction_summary.png",
         "outputs/analysis_propedia_batch_mlx/**/figures/interaction_summary.png",
         "outputs/analysis_propedia_top_ranked_batch_mlx/**/figures/interaction_summary.png",
     ),
@@ -317,6 +319,8 @@ def write_complex_cards_html(
     chains = pd.read_parquet(chains_parquet)
     states: List[Path] = []
     for pat in (
+        "outputs/analysis_propedia_batch_gnn/**/data/viewer_state.json",
+        "outputs/analysis_propedia_top_ranked_batch_gnn/**/data/viewer_state.json",
         "outputs/analysis_propedia_batch_mlx/**/data/viewer_state.json",
         "outputs/analysis_propedia_top_ranked_batch_mlx/**/data/viewer_state.json",
     ):
@@ -386,7 +390,7 @@ def write_complex_cards_html(
     <p><a class="btn-pill outline" href="../index.html">← Ana sayfa</a></p>
     <h1 style="margin-top:1rem">Örnek kompleks kartları</h1>
     <p class="lead-in">Kanonik <code>chains.parquet</code> sekansı (1 harf) ve <code>viewer_state.json</code> temas sayısı.
-    PLIP/Arpeggio kullanılmadıysa <code>extraction_mode</code> genelde <code>geometric_fallback</code> olur; ayrıntı için <code>docs/VERI_VE_GORSEL_GERCEK_TR.md</code>.</p>
+    Final aktif hatta temas çizgileri <code>geometric_fallback</code> ile üretilir; ayrıntı için <code>docs/VERI_VE_GORSEL_GERCEK_TR.md</code>.</p>
     <div class="table-scroll">
     <table class="data-table">
       <thead><tr><th>Kompleks</th><th>Peptit (1 harf)</th><th>Temas sayısı</th><th>Mod</th><th>Araç oranı</th></tr></thead>
@@ -445,7 +449,7 @@ def html_extra_viz_section(site: Path) -> str:
     parts.append("        <h2>Ek veri görselleri</h2>")
     parts.append(
         '        <p class="lead-in">Kanonik tablolardan ve yerel pipeline çıktılarından otomatik üretilir '
-        "(<code>python scripts/build_pages_site.py</code>). PLIP/Arpeggio devreye girmemiş çalıştırmalarda "
+        "(<code>python scripts/build_pages_site.py</code>). Final aktif hatta "
         "temaslar <strong>geometrik fallback</strong> ile sayılır.</p>"
     )
     if hist.is_file():

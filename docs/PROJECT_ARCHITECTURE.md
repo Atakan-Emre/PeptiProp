@@ -72,15 +72,10 @@ Each structure must have:
 
 ## Layer 3: Interaction Extraction
 
-### Primary Tool: Arpeggio
-- Analyzes protein-protein, protein-DNA, protein-small molecule interactions
-- Detects: van der Waals, ionic, carbonyl, metal, hydrophobic, halogen bonds, H-bonds, cation-π, donor-π, halogen-π, carbon-π, π-π
-- Works with mmCIF format
-
-### Secondary Tool: PLIP 2025
-- Now supports protein-protein interactions
-- Detects 8 types of non-covalent interactions
-- Validates Arpeggio results
+### Active Final Surface: Geometric Residue Contacts
+- Final reported viewer/report outputs use geometric residue-contact summaries
+- This keeps visual outputs populated without over-claiming chemistry annotations
+- External tool extractors are archival/experimental and not part of final reported results
 
 ### Interaction Table Schema
 ```
@@ -94,9 +89,8 @@ source_tool | confidence
 ```
 src/peptidquantum/interaction/
 ├── extractors/
-│   ├── arpeggio_wrapper.py  # Arpeggio integration
-│   ├── plip_wrapper.py      # PLIP integration
-│   └── merger.py            # Merge results from both tools
+│   ├── arpeggio_wrapper.py  # Archived experimental integration
+│   └── merger.py            # Merge helper for experimental tool outputs
 ├── analysis/
 │   ├── contact_matrix.py    # Residue-residue contact matrix
 │   ├── fingerprint.py       # Interaction fingerprint
@@ -266,7 +260,7 @@ src/peptidquantum/analysis/
                  │
 ┌────────────────▼────────────────────────────────────────────┐
 │ 3. INTERACTION EXTRACTION                                   │
-│    Arpeggio + PLIP → interaction table                      │
+│    Geometric residue-contact fallback → interaction table   │
 │    Contact matrix, fingerprint, importance scores           │
 └────────────────┬────────────────────────────────────────────┘
                  │
@@ -302,8 +296,8 @@ src/peptidquantum/analysis/
 
 ### Structure
 - AlphaFold Server / AlphaFold 3
-- Arpeggio (interaction extraction)
-- PLIP 2025 (interaction validation)
+- Geometric residue-contact fallback (final visualization continuity)
+- Experimental tool extractors (archival, not used in reported results)
 
 ### Visualization
 - PyMOL (static figures)
@@ -336,8 +330,7 @@ py3Dmol>=2.0.0
 alphafold (via API)
 
 # Interaction analysis
-arpeggio (install separately)
-plip (install separately)
+no external interaction extractor required for final active path
 
 # Optional
 fair-esm>=2.0.0  # ESM embeddings
@@ -350,7 +343,7 @@ plotly>=5.14.0
 
 1. **mmCIF as primary format**: Official wwPDB standard, no atom/residue/chain limitations
 2. **Dual representation**: Residue-level for biology + atom-level for chemistry
-3. **Multi-tool interaction extraction**: Arpeggio + PLIP for robustness
+3. **Final active visualization**: geometric residue-contact fallback
 4. **Provenance tracking**: Always know if structure is experimental or predicted
 5. **Multi-scale visualization**: From full complex to atom-level interactions
 6. **Contact atlas as core output**: Not just prediction, but explanation

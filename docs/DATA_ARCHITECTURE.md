@@ -1,31 +1,34 @@
-# PeptiProp — Veri Mimarisi
+# PeptiProp - Veri Mimarisi
 
-*(Kod paketi: `peptidquantum`. Aktif model: GNN+ESM-2 v0.2.)*
+*(Kod paketi: `peptidquantum`. Aktif final model: GATv2 + ESM-2 v0.2. MLX v0.1 baseline olarak korunur.)*
 
 ## Scope
 
-Active data surface is **PROPEDIA-only**.
+Aktif veri yüzeyi yalnızca **PROPEDIA**'dır.
 
-- Primary source: `data/raw/propedia/`
-- Canonical source of truth: `data/canonical/`
-- Split strategy: **PDB-level structure-aware split**
-- Training data policy: **clean-only**, split-local candidate generation
+- Ham veri: `data/raw/propedia/`
+- Kanonik doğruluk kaynağı: `data/canonical/`
+- Split stratejisi: **sequence-cluster leakage-free split**
+- Eğitim politikası: **clean-only**, split-local candidate generation
 
-External datasets are not part of active training flow.
+Harici veri setleri (`GEPPRI`, `PepBDB`, `BioLiP2`) repoda dursa da aktif train/val/test akışına girmez.
 
-Özet manifest (GitHub Pages / yerel site): `scripts/build_pages_site.py` → `site/data/manifest.json`.
+Güncel repo durum özeti:
+
+- Makine tarafından üretilen manifest: `data/reports/project_state_manifest.json`
+- Site özeti: `site/data/manifest.json`
 
 ## Directory Layout
 
 ```text
 data/
   raw/
-    propedia/                      # Active raw source
-  external_frozen/                 # Frozen, non-active sources
-    GEPPRI/
-    pepbdb/
-    biolip2/
-  staging/                         # Intermediate processing artifacts
+    propedia/
+      complexes/
+      interfaces/
+      peptides/
+      receptors/
+      sequence_meta/
   canonical/
     complexes.parquet
     chains.parquet
@@ -35,15 +38,25 @@ data/
       train_ids.txt
       val_ids.txt
       test_ids.txt
+      split_summary.txt
     pairs/
       train_pairs.parquet
       val_pairs.parquet
       test_pairs.parquet
       pair_data_report.json
       candidate_set_report.json
+  embeddings/
+    esm2_residue/
+    esm2_chain_lookup.json
+  graphs/
+    *.pt
+  mlx/
+    features_v0_1_m4/
   reports/
-    qc*/
+    project_state_manifest.json
     audit_gallery_propedia/
+      sample_list_final_best_mlx_model.txt
+      sample_list_top_ranked_gnn_v0_2.txt
 ```
 
 ## Canonical Policies
@@ -52,54 +65,95 @@ data/
 - residue numbering mode: `auth`
 - peptide length: `5-50 aa`
 - protein minimum length: `>= 30 aa`
-- max pairs per structure: `50`
-- duplicate pairs: `0` (required)
-- split overlap leakage: `0` (required)
+- duplicate pair count: `0` zorunlu
+- pair quality: aktif hatta yalnız `clean`
+- split-local candidate generation: zorunlu
+
+## Split Policy
+
+Split script: `scripts/build_pdb_level_splits.py`
+
+Gerçekte kullanılan yöntem:
+
+1. Protein zincir sekansları MMseqs2 ile `%30` kimlik eşiğinde kümelenir.
+2. Aynı kümedeki tüm kompleksler tek split'e atanır.
+3. MMseqs2 yoksa exact-sequence fallback kullanılır.
+
+Bu nedenle dosya adı `build_pdb_level_splits.py` olsa da aktif bilimsel protokol **PDB-level değil, sequence-cluster-aware leakage control**'dür.
 
 ## Candidate Set Policy
 
-Per protein:
+Her protein için:
 
-- `1` positive peptide
-- `5` negative peptides
-- candidate size = `6`
+- `1` pozitif
+- `5` negatif
+- toplam candidate size = `6`
 
-Target negative mix:
+Negatif karışımı:
 
 - train: `~70% easy / ~30% hard`
 - val/test: `~80% easy / ~20% hard`
 
-If target ratio cannot be reached, shortfall is reported in:
+Hard negatifler SCOP/CATH etiketinden değil, **aynı split içinde benzer protein sequence/bucket havuzundan** üretilir. Ratio sapmaları `data/canonical/pairs/candidate_set_report.json` içine yazılır.
 
-- `data/canonical/pairs/candidate_set_report.json`
+## Feature / Graph Surfaces
 
-## ESM-2 Embedding Surface
+MLX dense features:
 
-ESM-2 per-rezidü embedding'ler `data/embeddings/` altında saklanır:
+- klasör: `data/mlx/features_v0_1_m4/`
+- script: `scripts/export_mlx_features.py`
+- kullanım: MLX MLP baseline
 
-- `data/embeddings/esm2_residue/*.npz` — her benzersiz sekans için 1 dosya (320-d float16)
-- `data/embeddings/esm2_chain_lookup.json` — (complex_id::chain_id) → NPZ dosya eşlemesi
+ESM-2 residue embeddings:
 
-Script: `scripts/extract_esm2_embeddings.py`
+- klasör: `data/embeddings/esm2_residue/`
+- lookup: `data/embeddings/esm2_chain_lookup.json`
+- script: `scripts/extract_esm2_embeddings.py`
 
-## Graph Surface
+PyG residue graphs:
 
-Rezidü-seviye PyG grafları `data/graphs/` altında saklanır:
+- klasör: `data/graphs/`
+- dosya: `{complex_id}__{chain_id}.pt`
+- node features: `320-d ESM-2 + 6-d structural = 326-d`
+- edge features: `distance + direction = 4-d`
+- script: `scripts/build_residue_graphs.py`
 
-- `data/graphs/{complex_id}__{chain_id}.pt` — her zincir için 1 PyG Data objesi
-- Node features: ESM-2 (320-d) + yapısal (6-d) = 326-d
-- Edge features: mesafe (1-d) + yön vektörü (3-d) = 4-d
+## Training Output Surfaces
 
-Script: `scripts/build_residue_graphs.py`
+Aktif final GNN run:
 
-## Active Training Output Surface
+- `outputs/training/peptiprop_v0_2_gnn_esm2/`
 
-GNN+ESM-2 (v0.2): `outputs/training/peptiprop_v0_2_gnn_esm2/`
+Beklenen ana artifact'lar:
 
-- `best_model.pt` — en iyi model ağırlıkları
-- `metrics.json` — test metrikleri
-- `ranking_metrics.json` — sıralama metrikleri
-- `top_ranked_examples.json` — en iyi tahmin örnekleri
-- `figures/` — ROC, PR, confusion matrix, histogram PNG'leri
+- `metrics.json`
+- `ranking_metrics.json`
+- `best_thresholds.json`
+- `pair_data_report.json`
+- `candidate_set_report.json`
+- `calibration_metrics.json`
+- `test_summary.txt`
+- `test_topk_candidates.csv`
+- `test_topk_positive_hits.csv`
+- `top_ranked_examples.json`
+- `roc_curve.png`
+- `pr_curve.png`
+- `confusion_matrix.png`
+- `score_histogram_pos_neg.png`
+- `validation_score_histogram_pos_neg.png`
+- `validation_threshold_sweep.png`
+- `calibration_curve.png`
 
-MLP baseline (v0.1): `publish/github_pages_training_bundle/` (senkronize snapshot)
+MLX baseline run:
+
+- `outputs/training/peptidquantum_v0_1_final_mlx_m4/`
+
+Visualization sanity outputs:
+
+- MLX: `outputs/analysis_propedia_batch_mlx/`, `outputs/analysis_propedia_top_ranked_batch_mlx/`
+- GNN: `outputs/analysis_propedia_batch_gnn/`, `outputs/analysis_propedia_top_ranked_batch_gnn/`
+
+## Notes
+
+- Site build `scripts/build_pages_site.py` aktif olarak GNN final klasörünü, fallback olarak MLX klasörünü kullanır.
+- GitHub Pages için commitlenecek hafif eğitim bundle'ı `scripts/sync_pages_training_bundle.py` doldurur.

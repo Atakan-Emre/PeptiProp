@@ -414,8 +414,7 @@ def run_visualization(sample_list: Path, output_dir: Path, relax_tool_fraction_c
         "--limit",
         "10",
     ]
-    if relax_tool_fraction_check:
-        cmd.append("--no-enforce-tool-fraction")
+    _ = relax_tool_fraction_check
     try:
         run_command(cmd)
         return True
@@ -448,7 +447,7 @@ def main():
     parser.add_argument(
         "--vis-relax-tool-fraction",
         action="store_true",
-        help="Do not enforce min PLIP/Arpeggio interaction fraction in post-ablation visualization sanity.",
+        help="Deprecated no-op. Final visualization now uses geometric residue-contact fallback by default.",
     )
     args = parser.parse_args()
 

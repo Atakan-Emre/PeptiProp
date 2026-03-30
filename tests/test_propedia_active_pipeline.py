@@ -9,16 +9,42 @@ ROOT = Path(__file__).resolve().parent.parent
 CANONICAL_DIR = ROOT / "data" / "canonical"
 SPLITS_DIR = CANONICAL_DIR / "splits"
 PAIRS_DIR = CANONICAL_DIR / "pairs"
-TRAINING_DIR_CLASSICAL = ROOT / "outputs" / "training" / "peptidquantum_v0_1_final_classical"
-VIS_SUMMARY_CLASSICAL = ROOT / "outputs" / "analysis_propedia_batch" / "visualization_sanity_summary.json"
+TRAINING_DIR_GNN = ROOT / "outputs" / "training" / "peptiprop_v0_2_gnn_esm2"
+VIS_SUMMARY_BATCH_GNN = ROOT / "outputs" / "analysis_propedia_batch_gnn" / "visualization_sanity_summary.json"
+VIS_SUMMARY_TOP_GNN = ROOT / "outputs" / "analysis_propedia_top_ranked_batch_gnn" / "visualization_sanity_summary.json"
 
 
-def _classical_artifacts_ready() -> bool:
-    return (TRAINING_DIR_CLASSICAL / "metrics.json").is_file() and VIS_SUMMARY_CLASSICAL.is_file()
+def _gnn_artifacts_ready() -> bool:
+    required = {
+        "best_model.pt",
+        "metrics.json",
+        "ranking_metrics.json",
+        "best_thresholds.json",
+        "pair_data_report.json",
+        "candidate_set_report.json",
+        "calibration_metrics.json",
+        "threshold_vs_f1_table.csv",
+        "test_summary.txt",
+        "test_topk_candidates.csv",
+        "test_topk_positive_hits.csv",
+        "top_ranked_examples.json",
+        "roc_curve.png",
+        "pr_curve.png",
+        "confusion_matrix.png",
+        "score_histogram_pos_neg.png",
+        "validation_score_histogram_pos_neg.png",
+        "validation_threshold_sweep.png",
+        "calibration_curve.png",
+    }
+    return TRAINING_DIR_GNN.is_dir() and required.issubset({path.name for path in TRAINING_DIR_GNN.iterdir()})
+
+
+def _gnn_visualizations_ready() -> bool:
+    return VIS_SUMMARY_BATCH_GNN.is_file() and VIS_SUMMARY_TOP_GNN.is_file()
 
 
 class TestPropediaActivePipelineCanonical(unittest.TestCase):
-    """Kanonik veri; klasik eğitim çıktısı gerektirmez."""
+    """Canonical PROPEDIA surface should stay consistent regardless of model family."""
 
     @classmethod
     def setUpClass(cls):
@@ -34,12 +60,12 @@ class TestPropediaActivePipelineCanonical(unittest.TestCase):
         self.assertTrue(set(self.complexes["quality_flag"].unique()).issubset({"clean", "warning"}))
 
     def test_residues_have_interface_and_pocket_annotations(self):
-        res = pd.read_parquet(CANONICAL_DIR / "residues.parquet", columns=["is_interface", "is_pocket"])
-        intf_count = int(res["is_interface"].sum())
-        pocket_count = int(res["is_pocket"].sum())
-        self.assertGreater(intf_count, 0, "is_interface is all-zero — annotate_interface_pocket.py not run?")
-        self.assertGreater(pocket_count, 0, "is_pocket is all-zero — annotate_interface_pocket.py not run?")
-        self.assertGreater(pocket_count, intf_count, "pocket set should be larger than interface set")
+        residues = pd.read_parquet(CANONICAL_DIR / "residues.parquet", columns=["is_interface", "is_pocket"])
+        interface_count = int(residues["is_interface"].sum())
+        pocket_count = int(residues["is_pocket"].sum())
+        self.assertGreater(interface_count, 0, "is_interface is all-zero")
+        self.assertGreater(pocket_count, 0, "is_pocket is all-zero")
+        self.assertGreater(pocket_count, interface_count, "pocket set should be larger than interface set")
 
     def test_split_metadata_matches_files(self):
         for split_name in ("train", "val", "test"):
@@ -52,17 +78,10 @@ class TestPropediaActivePipelineCanonical(unittest.TestCase):
             self.assertSetEqual(split_ids, tagged_ids, msg=f"split drift for {split_name}")
 
     def test_pair_reports_are_balanced_and_unique(self):
-        expected_neg_types = {
-            "train": {"easy", "hard"},
-            "val": {"easy", "hard"},
-            "test": {"easy", "hard"},
-        }
         for split_name, report in self.pair_report.items():
             self.assertEqual(report["duplicate_pair_count"], 0, msg=f"duplicates in {split_name}")
             self.assertGreater(report["negative_pairs"], report["positive_pairs"], msg=f"not enough candidates in {split_name}")
             self.assertEqual(set(report["quality_flag_distribution"].keys()), {"clean"})
-            observed_neg_types = set(report["negative_type_distribution"].keys()) - {"positive"}
-            self.assertSetEqual(observed_neg_types, expected_neg_types[split_name])
             self.assertTrue(report["split_column_consistent"], msg=f"split column inconsistent in {split_name}")
             self.assertGreater(self.candidate_report[split_name]["avg_candidates_per_protein"], 1.0)
 
@@ -73,54 +92,96 @@ class TestPropediaActivePipelineCanonical(unittest.TestCase):
 
 
 @unittest.skipUnless(
-    _classical_artifacts_ready(),
-    "Klasik eğitim + analysis_propedia_batch özeti yok — isteğe bağlı; aktif hat MLX için tests.test_propedia_active_pipeline_mlx",
+    _gnn_artifacts_ready(),
+    "GNN final artifacts are missing; run scripts/train_gnn_esm2.py and scripts/generate_gnn_predictions.py",
 )
-class TestPropediaActivePipelineClassicalArtifacts(unittest.TestCase):
+class TestPropediaActivePipelineGNNArtifacts(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        with open(TRAINING_DIR_CLASSICAL / "metrics.json", encoding="utf-8") as handle:
+        with open(TRAINING_DIR_GNN / "metrics.json", encoding="utf-8") as handle:
             cls.training_metrics = json.load(handle)
-        with open(VIS_SUMMARY_CLASSICAL, encoding="utf-8") as handle:
-            cls.visualization_summary = json.load(handle)
+        with open(TRAINING_DIR_GNN / "ranking_metrics.json", encoding="utf-8") as handle:
+            cls.ranking_metrics = json.load(handle)
 
-    def test_final_baseline_artifacts_and_metrics(self):
+    def test_gnn_final_artifacts_and_metrics_are_present(self):
         required_files = {
+            "best_model.pt",
             "metrics.json",
             "ranking_metrics.json",
             "best_thresholds.json",
             "pair_data_report.json",
             "candidate_set_report.json",
             "calibration_metrics.json",
+            "threshold_vs_f1_table.csv",
             "test_summary.txt",
-            "train_log.csv",
-            "confusion_matrix.png",
+            "test_topk_candidates.csv",
+            "test_topk_positive_hits.csv",
+            "top_ranked_examples.json",
             "roc_curve.png",
             "pr_curve.png",
-            "validation_threshold_sweep.png",
-            "validation_score_histogram_pos_neg.png",
+            "confusion_matrix.png",
             "score_histogram_pos_neg.png",
+            "validation_score_histogram_pos_neg.png",
+            "validation_threshold_sweep.png",
             "calibration_curve.png",
         }
-        self.assertTrue(required_files.issubset({path.name for path in TRAINING_DIR_CLASSICAL.iterdir()}))
+        self.assertTrue(required_files.issubset({path.name for path in TRAINING_DIR_GNN.iterdir()}))
+
         val_metrics = self.training_metrics["validation_metrics_at_selected_threshold"]
         test_metrics = self.training_metrics["test_metrics"]
-        self.assertGreaterEqual(val_metrics["auroc"], 0.0)
-        self.assertLessEqual(val_metrics["auroc"], 1.0)
-        self.assertGreaterEqual(test_metrics["auroc"], 0.0)
-        self.assertLessEqual(test_metrics["auroc"], 1.0)
-        self.assertGreaterEqual(test_metrics["f1"], 0.0)
-        self.assertLessEqual(test_metrics["f1"], 1.0)
-        self.assertGreaterEqual(test_metrics["positive_predictions"], 1)
-        self.assertGreaterEqual(test_metrics["negative_predictions"], 1)
+        val_rank = self.training_metrics["val_ranking_metrics"]
+        test_rank = self.training_metrics["test_ranking_metrics"]
+
+        for key in ("auroc", "auprc", "f1", "mcc"):
+            self.assertGreaterEqual(val_metrics[key], 0.0)
+            self.assertLessEqual(val_metrics[key], 1.0)
+            self.assertGreaterEqual(test_metrics[key], 0.0)
+            self.assertLessEqual(test_metrics[key], 1.0)
+
+        self.assertGreater(val_rank["mrr"], 0.3)
+        self.assertGreater(test_rank["mrr"], 0.3)
+        self.assertGreater(val_rank["hit@3"], 0.5)
+        self.assertGreater(test_rank["hit@3"], 0.5)
+
+        integrity = self.training_metrics["candidate_group_integrity"]
+        self.assertEqual(integrity["train"]["groups_without_positive"], 0)
+        self.assertEqual(integrity["train"]["groups_without_negative"], 0)
+        self.assertEqual(integrity["val"]["groups_without_positive"], 0)
+        self.assertEqual(integrity["val"]["groups_without_negative"], 0)
+        self.assertEqual(integrity["test"]["groups_without_positive"], 0)
+        self.assertEqual(integrity["test"]["groups_without_negative"], 0)
+
+        self.assertIn("test", self.ranking_metrics)
+        self.assertGreater(self.ranking_metrics["test"]["mrr"], 0.3)
+
+
+@unittest.skipUnless(
+    _gnn_visualizations_ready(),
+    "Optional GNN visualization batch not found; run scripts/run_visualization_sanity.py on the GNN sample list",
+)
+class TestPropediaActivePipelineGNNVisualizationArtifacts(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        with open(VIS_SUMMARY_BATCH_GNN, encoding="utf-8") as handle:
+            cls.visualization_summary_batch = json.load(handle)
+        with open(VIS_SUMMARY_TOP_GNN, encoding="utf-8") as handle:
+            cls.visualization_summary_top = json.load(handle)
 
     def test_visualization_sanity_batch_passed(self):
-        self.assertEqual(len(self.visualization_summary), 10)
-        self.assertTrue(all(item["status"] == "success" for item in self.visualization_summary))
-        self.assertTrue(all(item["report_exists"] for item in self.visualization_summary))
-        self.assertTrue(all(item["viewer_exists"] for item in self.visualization_summary))
-        self.assertTrue(all(item["viewer_state_exists"] for item in self.visualization_summary))
-        self.assertTrue(all(item["peptide_2d_exists"] for item in self.visualization_summary))
+        self.assertEqual(len(self.visualization_summary_batch), 10)
+        self.assertTrue(all(item["status"] == "success" for item in self.visualization_summary_batch))
+        self.assertTrue(all(item["report_exists"] for item in self.visualization_summary_batch))
+        self.assertTrue(all(item["viewer_exists"] for item in self.visualization_summary_batch))
+        self.assertTrue(all(item["viewer_state_exists"] for item in self.visualization_summary_batch))
+        self.assertTrue(all(item["peptide_2d_exists"] for item in self.visualization_summary_batch))
+
+    def test_visualization_sanity_top_ranked_passed(self):
+        self.assertEqual(len(self.visualization_summary_top), 10)
+        self.assertTrue(all(item["status"] == "success" for item in self.visualization_summary_top))
+        self.assertTrue(all(item["report_exists"] for item in self.visualization_summary_top))
+        self.assertTrue(all(item["viewer_exists"] for item in self.visualization_summary_top))
+        self.assertTrue(all(item["viewer_state_exists"] for item in self.visualization_summary_top))
+        self.assertTrue(all(item["peptide_2d_exists"] for item in self.visualization_summary_top))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,150 @@
+{
+  "train": {
+    "split_values": [
+      "train"
+    ],
+    "split_column_consistent": true,
+    "total_pairs": 117252,
+    "positive_pairs": 19542,
+    "negative_pairs": 97710,
+    "positive_to_negative_ratio": 0.2,
+    "num_proteins": 19542,
+    "avg_candidates_per_protein": 6.0,
+    "min_candidates_per_protein": 6,
+    "max_candidates_per_protein": 6,
+    "candidate_count_distribution": {
+      "6": 19542
+    },
+    "avg_negatives_per_protein": 5.0,
+    "hard_negative_ratio": 0.3,
+    "structure_hard_negative_ratio": 0.0,
+    "duplicate_pair_count": 0,
+    "target_negatives_per_protein": 5,
+    "target_negative_type_ratio": {
+      "easy": 0.7,
+      "hard": 0.3,
+      "structure_hard": 0.0
+    },
+    "actual_negative_type_ratio": {
+      "easy": 0.7,
+      "hard": 0.3,
+      "structure_hard": 0.0
+    },
+    "negative_type_shortfall": {
+      "easy": 0,
+      "hard": 0,
+      "structure_hard": 0
+    },
+    "negative_type_planned_totals": {
+      "easy": 68397,
+      "hard": 29313,
+      "structure_hard": 0
+    },
+    "hard_shortfall_rate": 0.0,
+    "negative_type_ratio_shortfall": {
+      "easy": 0.0,
+      "hard": 0.0,
+      "structure_hard": 0.0
+    }
+  },
+  "val": {
+    "split_values": [
+      "val"
+    ],
+    "split_column_consistent": true,
+    "total_pairs": 23910,
+    "positive_pairs": 3985,
+    "negative_pairs": 19925,
+    "positive_to_negative_ratio": 0.2,
+    "num_proteins": 3985,
+    "avg_candidates_per_protein": 6.0,
+    "min_candidates_per_protein": 6,
+    "max_candidates_per_protein": 6,
+    "candidate_count_distribution": {
+      "6": 3985
+    },
+    "avg_negatives_per_protein": 5.0,
+    "hard_negative_ratio": 0.2,
+    "structure_hard_negative_ratio": 0.0,
+    "duplicate_pair_count": 0,
+    "target_negatives_per_protein": 5,
+    "target_negative_type_ratio": {
+      "easy": 0.8,
+      "hard": 0.2,
+      "structure_hard": 0.0
+    },
+    "actual_negative_type_ratio": {
+      "easy": 0.8,
+      "hard": 0.2,
+      "structure_hard": 0.0
+    },
+    "negative_type_shortfall": {
+      "easy": 0,
+      "hard": 0,
+      "structure_hard": 0
+    },
+    "negative_type_planned_totals": {
+      "easy": 15940,
+      "hard": 3985,
+      "structure_hard": 0
+    },
+    "hard_shortfall_rate": 0.0,
+    "negative_type_ratio_shortfall": {
+      "easy": 0.0,
+      "hard": 0.0,
+      "structure_hard": 0.0
+    }
+  },
+  "test": {
+    "split_values": [
+      "test"
+    ],
+    "split_column_consistent": true,
+    "total_pairs": 27228,
+    "positive_pairs": 4538,
+    "negative_pairs": 22690,
+    "positive_to_negative_ratio": 0.2,
+    "num_proteins": 4538,
+    "avg_candidates_per_protein": 6.0,
+    "min_candidates_per_protein": 6,
+    "max_candidates_per_protein": 6,
+    "candidate_count_distribution": {
+      "6": 4538
+    },
+    "avg_negatives_per_protein": 5.0,
+    "hard_negative_ratio": 0.2,
+    "structure_hard_negative_ratio": 0.0,
+    "duplicate_pair_count": 0,
+    "target_negatives_per_protein": 5,
+    "target_negative_type_ratio": {
+      "easy": 0.8,
+      "hard": 0.2,
+      "structure_hard": 0.0
+    },
+    "actual_negative_type_ratio": {
+      "easy": 0.8,
+      "hard": 0.2,
+      "structure_hard": 0.0
+    },
+    "negative_type_shortfall": {
+      "easy": 0,
+      "hard": 0,
+      "structure_hard": 0
+    },
+    "negative_type_planned_totals": {
+      "easy": 18152,
+      "hard": 4538,
+      "structure_hard": 0
+    },
+    "hard_shortfall_rate": 0.0,
+    "negative_type_ratio_shortfall": {
+      "easy": 0.0,
+      "hard": 0.0,
+      "structure_hard": 0.0
+    }
+  },
+  "shortfall_policy": {
+    "max_hard_shortfall_rate": 0.01,
+    "enforce_shortfall_check": true
+  }
+}

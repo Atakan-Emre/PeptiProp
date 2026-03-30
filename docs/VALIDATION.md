@@ -1,91 +1,139 @@
-# Validation Guide (Active v0.1)
+# Validation Guide
 
-This validation checklist is aligned with the active PROPEDIA-only scoring pipeline.
+Bu checklist aktif PROPEDIA-only scoring pipeline ile hizalıdır.
 
-**Statik site (isteğe bağlı):** `python scripts/build_pages_site.py` produces `site/`; CI deploy is documented in `docs/GITHUB_PAGES_TR.md`.
-
-## 1) Leakage Guards (Mandatory)
-
-Run:
+Ön koşul:
 
 ```bash
-python -m unittest tests/test_baseline_leakage_guards.py -v
+source .venv-mlx/bin/activate
 ```
 
-Expected:
+## 1) Leakage Guards
 
-- `2/2` tests pass
-- negative pair features do not depend on native peptide
-- negative protein graph does not depend on native peptide
+```bash
+python tests/test_mlx_leakage_guards.py
+```
 
-**Tam birim test paketi:** `PYTHONPATH=src python -m unittest discover -s tests -p 'test_*.py' -v` (klasik eğitim çıktısı gerektiren testler yoksa atlanır).
+Beklenen:
 
-**Golden E2E (pytest):** `unittest` keşfi `tests/golden_set_e2e_pytest.py` dosyasını yüklemez; `pip install pytest` sonrası `pytest tests/golden_set_e2e_pytest.py -v`.
+- testler `PASS`
+- MLX feature export native peptide leakage barındırmaz
+- split-local pair surface korunur
 
-## 2) Data Integrity Checks
+## 2) Canonical Data Integrity
 
-Use reports:
+Kontrol dosyaları:
 
+- `data/canonical/splits/split_summary.txt`
 - `data/canonical/pairs/pair_data_report.json`
 - `data/canonical/pairs/candidate_set_report.json`
 
-Confirm:
+Doğrulanacaklar:
 
-- split overlap leakage = `0`
+- sequence-cluster leakage = `0`
 - split column consistency = `true`
 - duplicate pair count = `0`
-- quality flag = `clean` only
-- candidate size distribution = `6` (1 positive + 5 negatives)
+- quality flag = `clean`
+- candidate size = `6`
+- hard-negative shortfall policy pass
 
-## 3) Training Output Checks
+## 3) Active Pipeline Tests
 
-Final run folder:
+```bash
+python -m unittest tests.test_propedia_active_pipeline -v
+python -m unittest tests.test_propedia_active_pipeline_mlx -v
+```
 
-- `outputs/training/peptidquantum_v0_1_final_best_classical_100ep_r2/`
+GNN testi aktif final run klasörünü doğrular:
 
-Required files:
+- `outputs/training/peptiprop_v0_2_gnn_esm2/`
+
+MLX testi baseline veya ablation run'ı doğrular:
+
+- `outputs/training/peptidquantum_v0_1_final_mlx_m4/`
+- veya `outputs/training/peptidquantum_v0_1_final_best_mlx_ablation/`
+
+## 4) GNN Output Checks
+
+Zorunlu GNN artifact'lar:
 
 - `metrics.json`
 - `ranking_metrics.json`
 - `best_thresholds.json`
+- `pair_data_report.json`
+- `candidate_set_report.json`
+- `calibration_metrics.json`
+- `threshold_vs_f1_table.csv`
+- `test_summary.txt`
+- `test_topk_candidates.csv`
+- `test_topk_positive_hits.csv`
+- `top_ranked_examples.json`
+- `roc_curve.png`
+- `pr_curve.png`
+- `confusion_matrix.png`
+- `score_histogram_pos_neg.png`
+- `validation_score_histogram_pos_neg.png`
+- `validation_threshold_sweep.png`
+- `calibration_curve.png`
+
+Not:
+
+- `train_log.csv` yalnız yeni eğitim rerun'larında doğrudan training script tarafından üretilir.
+
+## 5) MLX Output Checks
+
+MLX tarafında aşağıdakiler beklenir:
+
+- `metrics.json`
+- `ranking_metrics.json`
+- `best_thresholds.json`
+- `pair_data_report.json`
+- `candidate_set_report.json`
 - `calibration_metrics.json`
 - `train_log.csv`
-- ROC/PR/confusion/threshold/calibration plots
+- `test_summary.txt`
+- `threshold_vs_f1_table.csv`
+- ROC/PR/confusion/histogram/calibration plot'ları
 
-## 4) Overfitting / Generalization Check
+## 6) Visualization Sanity
 
-Inspect `train_log.csv` and compare train vs val:
-
-- `train_mrr` vs `val_mrr`
-- `train_hit@3` vs `val_hit@3`
-- `train_loss` vs `val_loss`
-
-Guideline:
-
-- mild train-val gap is acceptable
-- strong gap with degrading val/test metrics indicates overfitting
-
-## 5) 3D/2D Sanity Check
-
-Run:
+GNN:
 
 ```bash
-python scripts/run_visualization_sanity.py --canonical data/canonical --sample-list data/reports/audit_gallery_propedia/sample_list_top_ranked_100ep_r2.txt --output outputs/analysis_propedia_top_ranked_batch_100ep_r2 --limit 10
+python scripts/run_visualization_sanity.py \
+  --canonical data/canonical \
+  --sample-list data/reports/audit_gallery_propedia/sample_list_top_ranked_gnn_v0_2.txt \
+  --output outputs/analysis_propedia_top_ranked_batch_gnn \
+  --limit 10
 ```
 
-Expected:
+MLX:
 
-- `10/10` pass in `visualization_sanity_summary.json`
-- each sample contains:
+```bash
+python scripts/run_visualization_sanity.py \
+  --canonical data/canonical \
+  --sample-list data/reports/audit_gallery_propedia/sample_list_final_best_mlx_model.txt \
+  --output outputs/analysis_propedia_top_ranked_batch_mlx \
+  --limit 10
+```
+
+Beklenen:
+
+- `visualization_sanity_summary.json` içinde `10/10 success`
+- her sample altında:
   - `report.html`
   - `viewer.html`
   - `data/viewer_state.json`
   - `figures/peptide_2d.png`
 
-## 6) Metadata Visibility in Visual Outputs
+## 7) Repo State Manifest
 
-Verify:
+Repo yüzeyini tek JSON dosyada yenilemek için:
 
-- `viewer.html` shows complex id, protein chain ids, peptide chain ids
-- `report.html` includes protein/peptide chain id fields
-- `peptide_2d.png` title includes complex + protein + peptide metadata
+```bash
+python scripts/build_project_state_manifest.py
+```
+
+Çıktı:
+
+- `data/reports/project_state_manifest.json`
